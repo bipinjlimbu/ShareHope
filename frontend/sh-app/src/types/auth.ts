@@ -5,6 +5,7 @@ export interface RegisterPayload {
     email: string;
     password: string;
     confirm_password: string;
+    role: "ADMIN" | "DONOR" | "NGO_ADMIN";
     phone?: string;
     profile_picture?: File | null;
 }
