@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
@@ -14,55 +13,98 @@ const initialForm: RegisterPayload = {
     email: "",
     password: "",
     confirm_password: "",
+    role: "DONOR",
     phone: "",
     profile_picture: null,
 };
 
-const inputClass =
-    "w-full rounded-xl border border-[#DCE7D8] bg-white px-4 py-3 text-sm text-[#183B2A] outline-none transition placeholder:text-[#9AA89B] focus:border-[#35A45C] focus:ring-4 focus:ring-[#35A45C]/10";
-
-const labelClass = "mb-2 block text-sm font-semibold text-[#284B35]";
-
 export default function RegisterPage() {
     const router = useRouter();
-    const [form, setForm] = useState<RegisterPayload>(initialForm);
+    const [form, setForm] = useState<RegisterPayload>({ ...initialForm });
     const [errors, setErrors] = useState<RegisterErrors>({});
     const [generalError, setGeneralError] = useState("");
     const [success, setSuccess] = useState("");
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    function handleChange(event: ChangeEvent<HTMLInputElement>) {
-        const { name, value, files } = event.target;
+    const inputClass =
+        "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-green-600 focus:ring-2 focus:ring-green-100";
 
-        if (name === "profile_picture") {
-            setForm((previous) => ({
-                ...previous,
-                profile_picture: files?.[0] ?? null,
-            }));
-        } else {
-            setForm((previous) => ({
-                ...previous,
-                [name]: value,
-            }));
-        }
+    const labelClass = "mb-2 block text-sm font-medium text-gray-700";
+
+    const handleChange = (
+        event: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    ) => {
+        const { name, value } = event.target;
+
+        setForm((previous) => ({
+            ...previous,
+            [name]: value,
+        }));
 
         setErrors((previous) => ({
             ...previous,
             [name]: undefined,
         }));
+
         setGeneralError("");
         setSuccess("");
-    }
+    };
 
-    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0] ?? null;
+
+        setForm((previous) => ({
+            ...previous,
+            profile_picture: file,
+        }));
+
+        setErrors((previous) => ({
+            ...previous,
+            profile_picture: undefined,
+        }));
+
+        setGeneralError("");
+
+        if (file && !file.type.startsWith("image/")) {
+            setErrors((previous) => ({
+                ...previous,
+                profile_picture: "Please select a valid image file.",
+            }));
+
+            setForm((previous) => ({
+                ...previous,
+                profile_picture: null,
+            }));
+
+            event.target.value = "";
+        }
+    };
+
+    const fieldError = (field: string) => {
+        const error = errors[field];
+
+        if (!error) return null;
+
+        return (
+            <p className="mt-1 text-xs text-red-600">
+                {Array.isArray(error) ? error.join(" ") : error}
+            </p>
+        );
+    };
+
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+
         setErrors({});
         setGeneralError("");
         setSuccess("");
 
         if (form.password !== form.confirm_password) {
-            setErrors({ confirm_password: "Passwords do not match." });
+            setErrors({
+                confirm_password: "Passwords do not match.",
+            });
             return;
         }
 
@@ -80,249 +122,324 @@ export default function RegisterPage() {
 
         try {
             const response = await registerUser(form);
+
             setSuccess(response.message || "Account created successfully.");
             setForm({ ...initialForm });
 
-            const fileInput = document.getElementById(
-                "profile_picture"
-            ) as HTMLInputElement | null;
-
-            if (fileInput) fileInput.value = "";
-
-            window.setTimeout(() => router.push("/login"), 1500);
+            window.setTimeout(() => {
+                router.push("/login");
+            }, 1500);
         } catch (error: unknown) {
-            const responseErrors =
-                typeof error === "object" && error !== null
-                    ? (error as Record<string, unknown>)
-                    : {};
-
+            const response = error as Record<string, unknown>;
             const fieldErrors: RegisterErrors = {};
-            const fields = [
-                "username",
-                "first_name",
-                "last_name",
-                "email",
-                "password",
-                "confirm_password",
-                "phone",
-                "profile_picture",
-            ];
 
-            for (const field of fields) {
-                const value = responseErrors[field];
+            Object.entries(response).forEach(([key, value]) => {
+                if (key === "status" || key === "detail") return;
 
-                if (typeof value === "string") {
-                    fieldErrors[field] = value;
-                } else if (Array.isArray(value)) {
-                    fieldErrors[field] = value.join(" ");
+                if (typeof value === "string" || Array.isArray(value)) {
+                    fieldErrors[key] = value as string | string[];
                 }
-            }
+            });
 
             if (Object.keys(fieldErrors).length > 0) {
                 setErrors(fieldErrors);
+            } else if (typeof response.detail === "string") {
+                setGeneralError(response.detail);
+            } else if (typeof response.message === "string") {
+                setGeneralError(response.message);
             } else {
-                const messages = Object.entries(responseErrors)
-                    .filter(([key]) => key !== "status")
-                    .map(([, value]) =>
-                        Array.isArray(value) ? value.join(" ") : value
-                    )
-                    .filter(
-                        (value): value is string =>
-                            typeof value === "string"
-                    );
-
                 setGeneralError(
-                    messages.join(" ") ||
-                    "Registration failed. Please try again."
+                    "Unable to create your account. Please check your details and try again."
                 );
             }
         } finally {
             setLoading(false);
         }
-    }
-
-    function fieldError(name: string) {
-        const error = errors[name];
-        if (!error) return null;
-
-        return (
-            <p className="mt-1.5 text-xs text-red-600">
-                {Array.isArray(error) ? error.join(" ") : error}
-            </p>
-        );
-    }
+    };
 
     return (
-        <main className="min-h-screen bg-[#FFFCF6] px-4 py-12 sm:px-6 lg:py-16">
-            <div className="mx-auto grid w-full max-w-6xl overflow-hidden rounded-3xl border border-[#E6EDE4] bg-white shadow-[0_24px_80px_rgba(24,59,42,0.08)] lg:grid-cols-2">
-                <section className="relative hidden flex-col justify-between overflow-hidden bg-[#103B25] p-10 text-white lg:flex xl:p-14">
-                    <div className="absolute -right-24 -top-20 h-80 w-80 rounded-full border border-white/10" />
-                    <div className="absolute -bottom-32 -left-24 h-96 w-96 rounded-full border border-white/10" />
-                    <div className="absolute right-10 top-36 h-40 w-40 rounded-full bg-[#35A45C]/20 blur-3xl" />
+        <main className="min-h-screen bg-[#FFFCF6] px-4 py-10 sm:px-6 lg:py-16">
+            <div className="mx-auto grid max-w-6xl overflow-hidden rounded-3xl bg-white shadow-xl shadow-green-950/5 lg:grid-cols-2">
+                <section className="relative flex flex-col justify-between overflow-hidden bg-[#14532D] p-8 text-white sm:p-12 lg:p-14">
+                    <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-green-400/10" />
+                    <div className="absolute -bottom-24 -left-20 h-72 w-72 rounded-full bg-lime-300/10" />
 
-                    <Link href="/" className="relative z-10 flex items-center gap-3">
-                        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-xl font-bold">
-                            S
-                        </span>
-                        <span className="text-xl font-bold tracking-tight">
-                            ShareHope
-                        </span>
-                    </Link>
-
-                    <div className="relative z-10 my-16">
-                        <span className="inline-flex rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-semibold tracking-wide text-emerald-100">
-                            GIVE A LITTLE. CHANGE A LOT.
-                        </span>
-
-                        <h1 className="mt-7 max-w-md text-4xl font-bold leading-tight xl:text-5xl">
-                            Small acts of kindness create lasting change.
-                        </h1>
-
-                        <p className="mt-6 max-w-md text-base leading-8 text-emerald-50/75">
-                            Join a community connecting generous people with
-                            campaigns that bring real help to those who need it.
-                        </p>
-
-                        <div className="mt-10 space-y-5">
-                            {[
-                                "Support causes that matter to you",
-                                "Contribute funds or essential items",
-                                "Follow campaign progress and updates",
-                            ].map((item) => (
-                                <div
-                                    key={item}
-                                    className="flex items-center gap-3 text-sm text-emerald-50/90"
-                                >
-                                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#35A45C] text-xs font-bold">
-                                        ✓
-                                    </span>
-                                    {item}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    <p className="relative z-10 text-xs text-emerald-50/50">
-                        Every contribution can make a difference.
-                    </p>
-                </section>
-
-                <section className="p-6 sm:p-10 lg:p-12 xl:p-14">
-                    <div className="mb-8 flex items-center justify-between lg:hidden">
-                        <Link href="/" className="flex items-center gap-2 text-lg font-bold text-[#166534]">
-                            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#E5F2E1]">
+                    <div className="relative">
+                        <Link href="/" className="inline-flex items-center gap-3">
+                            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-xl font-bold text-green-800">
                                 S
                             </span>
-                            ShareHope
+                            <span className="text-2xl font-bold tracking-tight">
+                                ShareHope
+                            </span>
                         </Link>
-                        <Link href="/" className="text-sm font-medium text-[#647568] hover:text-[#166534]">
-                            Home
-                        </Link>
+
+                        <div className="mt-16 sm:mt-20">
+                            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-green-200">
+                                Make a difference
+                            </p>
+                            <h1 className="max-w-md text-4xl font-bold leading-tight sm:text-5xl">
+                                Small acts.
+                                <br />
+                                Big changes.
+                            </h1>
+                            <p className="mt-6 max-w-md leading-7 text-green-100">
+                                Join a community connecting people who want to
+                                help with campaigns making a real difference.
+                            </p>
+                        </div>
                     </div>
 
-                    <div className="mb-8">
-                        <p className="text-sm font-semibold text-[#35A45C]">
-                            JOIN SHAREHOPE
+                    <div className="relative mt-16 rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-sm">
+                        <p className="text-lg font-semibold">
+                            Every contribution matters.
                         </p>
-                        <h2 className="mt-2 text-3xl font-bold tracking-tight text-[#183B2A]">
-                            Create your account
-                        </h2>
-                        <p className="mt-3 text-sm leading-6 text-[#718073]">
-                            Enter your details to get started with ShareHope.
+                        <p className="mt-2 text-sm leading-6 text-green-100">
+                            Create an account to support campaigns, contribute
+                            to your community, and follow your impact.
                         </p>
                     </div>
+                </section>
 
-                    {generalError && (
-                        <div role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                            {generalError}
+                <section className="p-6 sm:p-10 lg:p-12">
+                    <div className="mx-auto max-w-md">
+                        <div className="mb-8">
+                            <p className="text-sm font-semibold text-green-700">
+                                GET STARTED
+                            </p>
+                            <h2 className="mt-2 text-3xl font-bold tracking-tight text-gray-900">
+                                Create your account
+                            </h2>
+                            <p className="mt-3 text-sm leading-6 text-gray-500">
+                                Fill in your details to join ShareHope.
+                            </p>
                         </div>
-                    )}
 
-                    {success && (
-                        <div role="status" className="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-                            {success} Redirecting to login...
-                        </div>
-                    )}
+                        {generalError && (
+                            <div
+                                role="alert"
+                                className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                            >
+                                {generalError}
+                            </div>
+                        )}
 
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        <div className="grid gap-5 sm:grid-cols-2">
-                            <div>
-                                <label htmlFor="first_name" className={labelClass}>First name</label>
-                                <input id="first_name" name="first_name" value={form.first_name} onChange={handleChange} className={inputClass} placeholder="First name" autoComplete="given-name" />
-                                {fieldError("first_name")}
+                        {success && (
+                            <div
+                                role="status"
+                                className="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
+                            >
+                                {success} Redirecting to login...
+                            </div>
+                        )}
+
+                        <form onSubmit={handleSubmit} className="space-y-5">
+                            <div className="grid gap-5 sm:grid-cols-2">
+                                <div>
+                                    <label htmlFor="first_name" className={labelClass}>
+                                        First name
+                                    </label>
+                                    <input
+                                        id="first_name"
+                                        name="first_name"
+                                        type="text"
+                                        autoComplete="given-name"
+                                        value={form.first_name}
+                                        onChange={handleChange}
+                                        className={inputClass}
+                                        placeholder="First name"
+                                    />
+                                    {fieldError("first_name")}
+                                </div>
+
+                                <div>
+                                    <label htmlFor="last_name" className={labelClass}>
+                                        Last name
+                                    </label>
+                                    <input
+                                        id="last_name"
+                                        name="last_name"
+                                        type="text"
+                                        autoComplete="family-name"
+                                        value={form.last_name}
+                                        onChange={handleChange}
+                                        className={inputClass}
+                                        placeholder="Last name"
+                                    />
+                                    {fieldError("last_name")}
+                                </div>
                             </div>
 
                             <div>
-                                <label htmlFor="last_name" className={labelClass}>Last name</label>
-                                <input id="last_name" name="last_name" value={form.last_name} onChange={handleChange} className={inputClass} placeholder="Last name" autoComplete="family-name" />
-                                {fieldError("last_name")}
+                                <label htmlFor="username" className={labelClass}>
+                                    Username
+                                </label>
+                                <input
+                                    id="username"
+                                    name="username"
+                                    type="text"
+                                    autoComplete="username"
+                                    value={form.username}
+                                    onChange={handleChange}
+                                    className={inputClass}
+                                    placeholder="Choose a username"
+                                    required
+                                />
+                                {fieldError("username")}
                             </div>
-                        </div>
 
-                        <div>
-                            <label htmlFor="username" className={labelClass}>Username <span className="text-red-500">*</span></label>
-                            <input id="username" name="username" value={form.username} onChange={handleChange} className={inputClass} placeholder="Choose a username" autoComplete="username" required />
-                            {fieldError("username")}
-                        </div>
-
-                        <div>
-                            <label htmlFor="email" className={labelClass}>Email address <span className="text-red-500">*</span></label>
-                            <input id="email" name="email" type="email" value={form.email} onChange={handleChange} className={inputClass} placeholder="you@example.com" autoComplete="email" required />
-                            {fieldError("email")}
-                        </div>
-
-                        <div>
-                            <label htmlFor="phone" className={labelClass}>Phone number</label>
-                            <input id="phone" name="phone" type="tel" value={form.phone ?? ""} onChange={handleChange} className={inputClass} placeholder="Your phone number" autoComplete="tel" />
-                            {fieldError("phone")}
-                        </div>
-
-                        <div>
-                            <label htmlFor="profile_picture" className={labelClass}>
-                                Profile picture <span className="font-normal text-[#879387]">(optional)</span>
-                            </label>
-                            <input id="profile_picture" name="profile_picture" type="file" accept="image/*" onChange={handleChange} className="block w-full rounded-xl border border-[#DCE7D8] bg-white text-sm text-[#647568] file:mr-4 file:border-0 file:border-r file:border-[#DCE7D8] file:bg-[#F2F8EF] file:px-4 file:py-3 file:font-semibold file:text-[#166534] hover:file:bg-[#E5F2E1]" />
-                            {form.profile_picture && <p className="mt-1.5 text-xs text-[#647568]">{form.profile_picture.name}</p>}
-                            {fieldError("profile_picture")}
-                        </div>
-
-                        <div>
-                            <label htmlFor="password" className={labelClass}>Password <span className="text-red-500">*</span></label>
-                            <div className="relative">
-                                <input id="password" name="password" type={showPassword ? "text" : "password"} value={form.password} onChange={handleChange} className={`${inputClass} pr-20`} placeholder="Create a password" autoComplete="new-password" required />
-                                <button type="button" onClick={() => setShowPassword((value) => !value)} className="absolute inset-y-0 right-3 text-xs font-semibold text-[#166534]">
-                                    {showPassword ? "Hide" : "Show"}
-                                </button>
+                            <div>
+                                <label htmlFor="email" className={labelClass}>
+                                    Email address
+                                </label>
+                                <input
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    autoComplete="email"
+                                    value={form.email}
+                                    onChange={handleChange}
+                                    className={inputClass}
+                                    placeholder="you@example.com"
+                                    required
+                                />
+                                {fieldError("email")}
                             </div>
-                            {fieldError("password")}
-                        </div>
 
-                        <div>
-                            <label htmlFor="confirm_password" className={labelClass}>Confirm password <span className="text-red-500">*</span></label>
-                            <input id="confirm_password" name="confirm_password" type={showPassword ? "text" : "password"} value={form.confirm_password} onChange={handleChange} className={inputClass} placeholder="Enter your password again" autoComplete="new-password" required />
-                            {fieldError("confirm_password")}
-                        </div>
+                            <div>
+                                <label htmlFor="phone" className={labelClass}>
+                                    Phone number
+                                </label>
+                                <input
+                                    id="phone"
+                                    name="phone"
+                                    type="tel"
+                                    autoComplete="tel"
+                                    value={form.phone ?? ""}
+                                    onChange={handleChange}
+                                    className={inputClass}
+                                    placeholder="Enter your phone number"
+                                />
+                                {fieldError("phone")}
+                            </div>
 
-                        <button type="submit" disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#166534] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#14532D] disabled:cursor-not-allowed disabled:opacity-60">
-                            {loading ? (
-                                <>
-                                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                                    Creating account...
-                                </>
-                            ) : "Create account"}
-                        </button>
-                    </form>
+                            <div>
+                                <label htmlFor="role" className={labelClass}>
+                                    Account type
+                                </label>
+                                <select
+                                    id="role"
+                                    name="role"
+                                    value={form.role}
+                                    onChange={handleChange}
+                                    className={inputClass}
+                                    required
+                                >
+                                    <option value="DONOR">Donor</option>
+                                    <option value="NGO_ADMIN">NGO Admin</option>
+                                    <option value="ADMIN">Admin</option>
+                                </select>
+                                {fieldError("role")}
+                            </div>
 
-                    <p className="mt-7 text-center text-sm text-[#718073]">
-                        Already have an account?{" "}
-                        <Link href="/login" className="font-semibold text-[#166534] hover:text-[#35A45C]">
-                            Sign in
-                        </Link>
-                    </p>
+                            <div>
+                                <label htmlFor="profile_picture" className={labelClass}>
+                                    Profile picture <span className="font-normal text-gray-400">(optional)</span>
+                                </label>
+                                <input
+                                    id="profile_picture"
+                                    name="profile_picture"
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleFileChange}
+                                    className="block w-full rounded-xl border border-gray-200 bg-white text-sm text-gray-600 file:mr-4 file:border-0 file:bg-green-50 file:px-4 file:py-3 file:font-medium file:text-green-800 hover:file:bg-green-100"
+                                />
+                                {form.profile_picture && (
+                                    <p className="mt-2 text-xs text-gray-500">
+                                        Selected: {form.profile_picture.name}
+                                    </p>
+                                )}
+                                {fieldError("profile_picture")}
+                            </div>
 
-                    <p className="mt-6 text-center text-xs leading-5 text-[#9AA89B]">
-                        By creating an account, you agree to use ShareHope responsibly and honestly.
-                    </p>
+                            <div>
+                                <label htmlFor="password" className={labelClass}>
+                                    Password
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        id="password"
+                                        name="password"
+                                        type={showPassword ? "text" : "password"}
+                                        autoComplete="new-password"
+                                        value={form.password}
+                                        onChange={handleChange}
+                                        className={`${inputClass} pr-20`}
+                                        placeholder="Create a password"
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword((previous) => !previous)}
+                                        className="absolute inset-y-0 right-3 text-xs font-semibold text-green-700"
+                                    >
+                                        {showPassword ? "Hide" : "Show"}
+                                    </button>
+                                </div>
+                                {fieldError("password")}
+                            </div>
+
+                            <div>
+                                <label htmlFor="confirm_password" className={labelClass}>
+                                    Confirm password
+                                </label>
+                                <div className="relative">
+                                    <input
+                                        id="confirm_password"
+                                        name="confirm_password"
+                                        type={showConfirmPassword ? "text" : "password"}
+                                        autoComplete="new-password"
+                                        value={form.confirm_password}
+                                        onChange={handleChange}
+                                        className={`${inputClass} pr-20`}
+                                        placeholder="Enter your password again"
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword((previous) => !previous)}
+                                        className="absolute inset-y-0 right-3 text-xs font-semibold text-green-700"
+                                    >
+                                        {showConfirmPassword ? "Hide" : "Show"}
+                                    </button>
+                                </div>
+                                {fieldError("confirm_password")}
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full rounded-xl bg-green-700 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {loading ? "Creating account..." : "Create account"}
+                            </button>
+                        </form>
+
+                        <p className="mt-7 text-center text-sm text-gray-500">
+                            Already have an account?{" "}
+                            <Link
+                                href="/login"
+                                className="font-semibold text-green-700 hover:text-green-800"
+                            >
+                                Sign in
+                            </Link>
+                        </p>
+
+                        <p className="mt-5 text-center text-xs leading-5 text-gray-400">
+                            By creating an account, you agree to use ShareHope
+                            responsibly and provide accurate information.
+                        </p>
+                    </div>
                 </section>
             </div>
         </main>
