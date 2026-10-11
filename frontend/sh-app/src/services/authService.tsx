@@ -1,10 +1,7 @@
-
 import { apiFetch } from "@/lib/api";
-import type { RegisterPayload, RegisterResponse } from "@/types/auth";
+import type { RegisterPayload, RegisterResponse, LoginPayload, LoginResponse } from "@/types/auth";
 
-export async function registerUser(
-    payload: RegisterPayload
-): Promise<RegisterResponse> {
+export async function registerUser(payload: RegisterPayload): Promise<RegisterResponse> {
     const formData = new FormData();
 
     formData.append("username", payload.username);
@@ -35,5 +32,19 @@ export async function registerUser(
     return apiFetch("/register/", {
         method: "POST",
         body: formData,
+    });
+}
+
+export async function loginUser(payload: LoginPayload): Promise<LoginResponse> {
+    return apiFetch("/login/", {
+        method: "POST",
+        body: JSON.stringify(payload),
+    });
+}
+
+export async function refreshSession(): Promise<{ message: string }> {
+    return apiFetch("/token/refresh/", {
+        method: "POST",
+        body: JSON.stringify({}),
     });
 }
