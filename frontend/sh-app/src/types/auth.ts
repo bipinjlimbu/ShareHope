@@ -1,4 +1,3 @@
-
 export interface RegisterPayload {
     username: string;
     first_name: string;
@@ -17,4 +16,24 @@ export interface RegisterResponse {
 
 export interface RegisterErrors {
     [field: string]: string | string[] | undefined;
+}
+
+export interface LoginPayload {
+    login_credential: string;
+    password: string;
+}
+
+export interface AuthUser {
+    id: number | string;
+    username: string;
+    email: string;
+    first_name?: string;
+    last_name?: string;
+    role?: string;
+    [key: string]: unknown;
+}
+
+export interface LoginResponse {
+    message: string;
+    user: AuthUser;
 }
