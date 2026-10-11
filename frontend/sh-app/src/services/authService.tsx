@@ -1,4 +1,3 @@
-
 import { apiFetch } from "@/lib/api";
 import type { RegisterPayload, RegisterResponse } from "@/types/auth";
 
@@ -13,6 +12,7 @@ export async function registerUser(
     formData.append("email", payload.email);
     formData.append("password", payload.password);
     formData.append("confirm_password", payload.confirm_password);
+    formData.append("role", payload.role);
 
     if (payload.phone) {
         formData.append("phone", payload.phone);
