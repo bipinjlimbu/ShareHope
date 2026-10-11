@@ -1,10 +1,16 @@
 
 "use client";
 
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import {
+    useState,
+    useEffect,
+    type ChangeEvent,
+    type FormEvent,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { registerUser } from "@/services/authService";
+import RegisterSkeleton from "@/components/skeleton/RegisterSkeleton";
 import type { RegisterPayload, RegisterErrors } from "@/types/auth";
 
 const initialForm: RegisterPayload = {
@@ -21,6 +27,7 @@ const initialForm: RegisterPayload = {
 
 export default function RegisterPage() {
     const router = useRouter();
+    const [pageReady, setPageReady] = useState(false);
     const [form, setForm] = useState<RegisterPayload>({ ...initialForm });
     const [errors, setErrors] = useState<RegisterErrors>({});
     const [generalError, setGeneralError] = useState("");
@@ -28,6 +35,10 @@ export default function RegisterPage() {
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    useEffect(() => {
+        setPageReady(true);
+    }, []);
 
     const inputClass =
         "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-green-600 focus:ring-2 focus:ring-green-100";
@@ -147,6 +158,10 @@ export default function RegisterPage() {
             setLoading(false);
         }
     };
+
+    if (!pageReady) {
+        return <RegisterSkeleton />;
+    }
 
     return (
         <main className="min-h-screen bg-[#FFFCF6] px-4 py-10 sm:px-6 lg:py-16">
