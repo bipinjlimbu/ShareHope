@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
@@ -66,20 +67,6 @@ export default function RegisterPage() {
         }));
 
         setGeneralError("");
-
-        if (file && !file.type.startsWith("image/")) {
-            setErrors((previous) => ({
-                ...previous,
-                profile_picture: "Please select a valid image file.",
-            }));
-
-            setForm((previous) => ({
-                ...previous,
-                profile_picture: null,
-            }));
-
-            event.target.value = "";
-        }
     };
 
     const fieldError = (field: string) => {
@@ -87,9 +74,11 @@ export default function RegisterPage() {
 
         if (!error) return null;
 
+        const message = Array.isArray(error) ? error.join(" ") : error;
+
         return (
-            <p className="mt-1 text-xs text-red-600">
-                {Array.isArray(error) ? error.join(" ") : error}
+            <p className="mt-1 text-xs text-red-600" role="alert">
+                {message}
             </p>
         );
     };
@@ -100,57 +89,59 @@ export default function RegisterPage() {
         setErrors({});
         setGeneralError("");
         setSuccess("");
-
-        if (form.password !== form.confirm_password) {
-            setErrors({
-                confirm_password: "Passwords do not match.",
-            });
-            return;
-        }
-
-        if (
-            form.profile_picture &&
-            !form.profile_picture.type.startsWith("image/")
-        ) {
-            setErrors({
-                profile_picture: "Please select a valid image file.",
-            });
-            return;
-        }
-
         setLoading(true);
 
         try {
             const response = await registerUser(form);
 
-            setSuccess(response.message || "Account created successfully.");
+            setSuccess(response.message);
             setForm({ ...initialForm });
 
             window.setTimeout(() => {
                 router.push("/login");
             }, 1500);
         } catch (error: unknown) {
-            const response = error as Record<string, unknown>;
-            const fieldErrors: RegisterErrors = {};
+            const response =
+                error && typeof error === "object"
+                    ? (error as Record<string, unknown>)
+                    : {};
+
+            const backendErrors: RegisterErrors = {};
+            const reservedKeys = [
+                "status",
+                "detail",
+                "message",
+                "error",
+                "non_field_errors",
+            ];
 
             Object.entries(response).forEach(([key, value]) => {
-                if (key === "status" || key === "detail") return;
+                if (reservedKeys.includes(key)) return;
 
-                if (typeof value === "string" || Array.isArray(value)) {
-                    fieldErrors[key] = value as string | string[];
+                if (typeof value === "string") {
+                    backendErrors[key] = value;
+                } else if (
+                    Array.isArray(value) &&
+                    value.every((item) => typeof item === "string")
+                ) {
+                    backendErrors[key] = value;
                 }
             });
 
-            if (Object.keys(fieldErrors).length > 0) {
-                setErrors(fieldErrors);
+            setErrors(backendErrors);
+
+            const nonFieldErrors = response.non_field_errors;
+
+            if (Array.isArray(nonFieldErrors)) {
+                setGeneralError(nonFieldErrors.join(" "));
+            } else if (typeof nonFieldErrors === "string") {
+                setGeneralError(nonFieldErrors);
             } else if (typeof response.detail === "string") {
                 setGeneralError(response.detail);
             } else if (typeof response.message === "string") {
                 setGeneralError(response.message);
-            } else {
-                setGeneralError(
-                    "Unable to create your account. Please check your details and try again."
-                );
+            } else if (typeof response.error === "string") {
+                setGeneralError(response.error);
             }
         } finally {
             setLoading(false);
@@ -233,7 +224,11 @@ export default function RegisterPage() {
                             </div>
                         )}
 
-                        <form onSubmit={handleSubmit} className="space-y-5">
+                        <form
+                            onSubmit={handleSubmit}
+                            className="space-y-5"
+                            noValidate
+                        >
                             <div className="grid gap-5 sm:grid-cols-2">
                                 <div>
                                     <label htmlFor="first_name" className={labelClass}>
@@ -283,7 +278,6 @@ export default function RegisterPage() {
                                     onChange={handleChange}
                                     className={inputClass}
                                     placeholder="Choose a username"
-                                    required
                                 />
                                 {fieldError("username")}
                             </div>
@@ -301,7 +295,6 @@ export default function RegisterPage() {
                                     onChange={handleChange}
                                     className={inputClass}
                                     placeholder="you@example.com"
-                                    required
                                 />
                                 {fieldError("email")}
                             </div>
@@ -333,18 +326,19 @@ export default function RegisterPage() {
                                     value={form.role}
                                     onChange={handleChange}
                                     className={inputClass}
-                                    required
                                 >
                                     <option value="DONOR">Donor</option>
                                     <option value="NGO_ADMIN">NGO Admin</option>
-                                    <option value="ADMIN">Admin</option>
                                 </select>
                                 {fieldError("role")}
                             </div>
 
                             <div>
                                 <label htmlFor="profile_picture" className={labelClass}>
-                                    Profile picture <span className="font-normal text-gray-400">(optional)</span>
+                                    Profile picture{" "}
+                                    <span className="font-normal text-gray-400">
+                                        (optional)
+                                    </span>
                                 </label>
                                 <input
                                     id="profile_picture"
@@ -376,11 +370,12 @@ export default function RegisterPage() {
                                         onChange={handleChange}
                                         className={`${inputClass} pr-20`}
                                         placeholder="Create a password"
-                                        required
                                     />
                                     <button
                                         type="button"
-                                        onClick={() => setShowPassword((previous) => !previous)}
+                                        onClick={() =>
+                                            setShowPassword((previous) => !previous)
+                                        }
                                         className="absolute inset-y-0 right-3 text-xs font-semibold text-green-700"
                                     >
                                         {showPassword ? "Hide" : "Show"}
@@ -403,11 +398,12 @@ export default function RegisterPage() {
                                         onChange={handleChange}
                                         className={`${inputClass} pr-20`}
                                         placeholder="Enter your password again"
-                                        required
                                     />
                                     <button
                                         type="button"
-                                        onClick={() => setShowConfirmPassword((previous) => !previous)}
+                                        onClick={() =>
+                                            setShowConfirmPassword((previous) => !previous)
+                                        }
                                         className="absolute inset-y-0 right-3 text-xs font-semibold text-green-700"
                                     >
                                         {showConfirmPassword ? "Hide" : "Show"}
