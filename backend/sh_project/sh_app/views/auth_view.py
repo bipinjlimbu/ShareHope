@@ -12,14 +12,14 @@ def register_view(request):
     errors = {}
     if request.method == 'POST':
         username = request.data.get('username')
-        first_name = request.data.get('first_name')
-        last_name = request.data.get('last_name')
+        first_name = request.data.get('first_name','')
+        last_name = request.data.get('last_name','')
         email = request.data.get('email')
         password = request.data.get('password')
         confirm_password = request.data.get('confirm_password')
         role = request.data.get('role', User.Role.DONOR)
-        phone = request.data.get('phone')
-        profile_picture = request.FILES.get('profile_picture')
+        phone = request.data.get('phone','')
+        profile_picture = request.FILES.get('profile_picture', None)
         
         if not username:
             errors['username'] = 'Username is required.'
