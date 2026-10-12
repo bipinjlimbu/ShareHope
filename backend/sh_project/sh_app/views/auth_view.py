@@ -5,6 +5,7 @@ from django.middleware.csrf import get_token
 from rest_framework import status
 from rest_framework.authentication import CSRFCheck
 from rest_framework.decorators import api_view, permission_classes
+from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -170,3 +171,9 @@ def logout_view(request):
     response.delete_cookie('refresh_token', path='/')
     response.delete_cookie('csrftoken', path='/')
     return response
+
+@ensure_csrf_cookie
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def csrf_token_view(request):
+    return Response({'message': 'CSRF cookie set.'}, status=status.HTTP_200_OK)
