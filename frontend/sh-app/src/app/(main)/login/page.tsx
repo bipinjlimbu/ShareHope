@@ -1,18 +1,24 @@
 
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { loginUser } from "@/services/authService";
 import type { LoginPayload } from "@/types/auth";
+import LoginSkeleton from "@/components/skeleton/LoginSkeleton";
 
 export default function LoginPage() {
     const router = useRouter();
+    const [isPageLoading, setIsPageLoading] = useState(true);
     const [formData, setFormData] = useState<LoginPayload>({ login_credential: "", password: "" });
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+
+    useEffect(() => {
+        setIsPageLoading(false);
+    }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -51,6 +57,10 @@ export default function LoginPage() {
             setLoading(false);
         }
     };
+
+    if (isPageLoading) {
+        return <LoginSkeleton />;
+    }
 
     return (
         <main className="flex min-h-screen items-center justify-center bg-white px-4 py-12 text-slate-900">
