@@ -70,15 +70,18 @@ export async function refreshSession(): Promise<{ message: string }> {
 export async function logoutUser(): Promise<LogoutResponse> {
     const csrfToken = getCookie("csrftoken");
 
+    if (!csrfToken) {
+        throw new Error(
+            "CSRF token is missing. Please refresh the page and try again."
+        );
+    }
+
     return apiFetch("/logout/", {
         method: "POST",
-        ...(csrfToken
-            ? {
-                headers: {
-                    "X-CSRFToken": csrfToken,
-                },
-            }
-            : {}),
+        credentials: "include",
+        headers: {
+            "X-CSRFToken": csrfToken,
+        },
         body: JSON.stringify({}),
     });
 }
