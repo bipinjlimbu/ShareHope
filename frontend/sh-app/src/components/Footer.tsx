@@ -1,4 +1,3 @@
-
 const footerLinks = {
     Platform: [
         { label: "Explore campaigns", href: "/campaigns" },
