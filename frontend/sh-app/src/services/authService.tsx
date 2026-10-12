@@ -1,5 +1,23 @@
 import { apiFetch } from "@/lib/api";
-import type { RegisterPayload, RegisterResponse, LoginPayload, LoginResponse } from "@/types/auth";
+import type {
+    RegisterPayload,
+    RegisterResponse,
+    LoginPayload,
+    LoginResponse,
+    LogoutResponse,
+} from "@/types/auth";
+
+function getCookie(name: string): string | null {
+    if (typeof document === "undefined") {
+        return null;
+    }
+
+    const cookie = document.cookie
+        .split("; ")
+        .find((item) => item.startsWith(`${name}=`));
+
+    return cookie ? decodeURIComponent(cookie.substring(name.length + 1)) : null;
+}
 
 export async function registerUser(payload: RegisterPayload): Promise<RegisterResponse> {
     const formData = new FormData();
@@ -45,6 +63,22 @@ export async function loginUser(payload: LoginPayload): Promise<LoginResponse> {
 export async function refreshSession(): Promise<{ message: string }> {
     return apiFetch("/token/refresh/", {
         method: "POST",
+        body: JSON.stringify({}),
+    });
+}
+
+export async function logoutUser(): Promise<LogoutResponse> {
+    const csrfToken = getCookie("csrftoken");
+
+    return apiFetch("/logout/", {
+        method: "POST",
+        ...(csrfToken
+            ? {
+                headers: {
+                    "X-CSRFToken": csrfToken,
+                },
+            }
+            : {}),
         body: JSON.stringify({}),
     });
 }
