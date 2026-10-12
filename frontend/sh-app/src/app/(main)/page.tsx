@@ -1,4 +1,8 @@
 
+"use client";
+
+import { useEffect, useState, type ReactNode } from "react";
+
 const campaigns = [
     {
         id: 1,
@@ -57,8 +61,16 @@ const categories = [
     { name: "Environment", description: "A healthier, greener future", icon: "sprout", color: "bg-[#E3F0E9]", iconColor: "text-[#267653]" },
 ];
 
+type StoredUser = {
+    username?: string;
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    role?: string;
+};
+
 function Icon({ name, className = "h-5 w-5" }: { name: string; className?: string }) {
-    const paths: Record<string, React.ReactNode> = {
+    const paths: Record<string, ReactNode> = {
         arrow: <><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></>,
         book: <><path d="M12 7v14" /><path d="M3 18V5a2 2 0 0 1 2-2h4a3 3 0 0 1 3 3 3 3 0 0 1 3-3h4a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2h-5a2 2 0 0 0-2 2 2 2 0 0 0-2-2H5a2 2 0 0 1-2-2Z" /></>,
         hands: <><path d="M11 17 7 13l-4 4 5 5h8l5-5-4-4-4 4a2 2 0 0 1-2-2Z" /><path d="m7 13 3-3a2 2 0 0 1 3 0l1 1" /><path d="m3 10 3-3 4 3" /><path d="m21 10-3-3-4 3" /></>,
@@ -168,6 +180,28 @@ function CampaignCard({ campaign }: { campaign: (typeof campaigns)[number] }) {
 }
 
 export default function Home() {
+    const [user, setUser] = useState<StoredUser | null>(null);
+
+    useEffect(() => {
+        const loadStoredUser = () => {
+            try {
+                const storedUser = localStorage.getItem("user");
+                setUser(storedUser ? JSON.parse(storedUser) as StoredUser : null);
+            } catch {
+                setUser(null);
+            }
+        };
+
+        loadStoredUser();
+        window.addEventListener("auth-change", loadStoredUser);
+        window.addEventListener("storage", loadStoredUser);
+
+        return () => {
+            window.removeEventListener("auth-change", loadStoredUser);
+            window.removeEventListener("storage", loadStoredUser);
+        };
+    }, []);
+
     return (
         <main className="overflow-hidden bg-[#FFFCF6] text-[#183B2A]">
             <section className="relative">
@@ -180,7 +214,7 @@ export default function Home() {
                             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#DFF2DD]">
                                 <Icon name="heart" className="h-3 w-3" />
                             </span>
-                            Good things happen when we share
+                            {user ? "Your kindness can make a difference" : "Good things happen when we share"}
                         </div>
 
                         <h1 className="mt-7 max-w-2xl text-4xl font-extrabold leading-[1.12] tracking-[-0.045em] text-[#163D28] sm:text-5xl lg:text-7xl">
@@ -201,8 +235,8 @@ export default function Home() {
                             <a href="/campaigns" className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-[#166534] px-6 text-sm font-bold text-white shadow-lg shadow-[#166534]/15 transition hover:-translate-y-0.5 hover:bg-[#14532D]">
                                 Explore campaigns <Icon name="arrow" />
                             </a>
-                            <a href="/register/ngo" className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl border border-[#D8E4D5] bg-white/80 px-6 text-sm font-bold text-[#245335] transition hover:border-[#A9CCAA] hover:bg-[#F1F8EF]">
-                                Join as an NGO <Icon name="arrow" />
+                            <a href={user ? "/donations" : "/register/ngo"} className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl border border-[#D8E4D5] bg-white/80 px-6 text-sm font-bold text-[#245335] transition hover:border-[#A9CCAA] hover:bg-[#F1F8EF]">
+                                {user ? "View my donations" : "Join as an NGO"} <Icon name={user ? "heart" : "arrow"} />
                             </a>
                         </div>
 
@@ -328,7 +362,6 @@ export default function Home() {
                             View all campaigns <Icon name="arrow" />
                         </a>
                     </div>
-
                     <div className="mt-9 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                         {campaigns.filter((campaign) => campaign.status === "ACTIVE").map((campaign) => (
                             <CampaignCard key={campaign.id} campaign={campaign} />
@@ -412,8 +445,8 @@ export default function Home() {
                             <a href="/campaigns" className="inline-flex min-h-13 items-center justify-center gap-3 rounded-2xl bg-white px-6 py-4 text-sm font-bold text-[#14532D] transition hover:bg-[#EAF6E7]">
                                 Find a campaign <Icon name="arrow" />
                             </a>
-                            <a href="/register/ngo" className="inline-flex min-h-13 items-center justify-center gap-3 rounded-2xl border border-white/25 px-6 py-4 text-sm font-bold text-white transition hover:bg-white/10">
-                                Register your NGO <Icon name="arrow" />
+                            <a href={user ? "/donations" : "/register/ngo"} className="inline-flex min-h-13 items-center justify-center gap-3 rounded-2xl border border-white/25 px-6 py-4 text-sm font-bold text-white transition hover:bg-white/10">
+                                {user ? "View my donations" : "Register your NGO"} <Icon name="arrow" />
                             </a>
                         </div>
                     </div>
