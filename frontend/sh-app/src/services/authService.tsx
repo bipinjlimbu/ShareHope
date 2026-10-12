@@ -85,3 +85,10 @@ export async function logoutUser(): Promise<LogoutResponse> {
         body: JSON.stringify({}),
     });
 }
+
+export async function getCsrfToken(): Promise<void> {
+    await apiFetch("/csrf/", {
+        method: "GET",
+        credentials: "include",
+    });
+}
