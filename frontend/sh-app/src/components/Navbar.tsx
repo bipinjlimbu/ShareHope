@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AuthUser } from "@/types/auth";
 import LogoutButton from "@/components/LogoutButton";
+import NavbarSkeleton from "@/components/skeleton/NavbarSkeleton";
 
 const links = [
     { label: "Home", href: "/" },
@@ -39,9 +40,11 @@ function getStoredUser(): AuthUser | null {
 export default function Navbar() {
     const [menuOpen, setMenuOpen] = useState(false);
     const [user, setUser] = useState<AuthUser | null>(null);
+    const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
     const syncUser = useCallback(() => {
         setUser(getStoredUser());
+        setIsCheckingAuth(false);
     }, []);
 
     useEffect(() => {
@@ -55,6 +58,10 @@ export default function Navbar() {
             window.removeEventListener("storage", syncUser);
         };
     }, [syncUser]);
+
+    if (isCheckingAuth) {
+        return <NavbarSkeleton />;
+    }
 
     const profilePicture =
         typeof user?.profile_picture === "string"
