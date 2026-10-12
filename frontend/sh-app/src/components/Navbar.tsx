@@ -63,10 +63,7 @@ export default function Navbar() {
         return <NavbarSkeleton />;
     }
 
-    const profilePicture =
-        typeof user?.profile_picture === "string"
-            ? user.profile_picture
-            : null;
+    const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "");
 
     const username = user?.username ?? "";
 
@@ -129,9 +126,9 @@ export default function Navbar() {
                                 className={profileLinkClass}
                                 aria-label={`View ${username}'s profile`}
                             >
-                                {profilePicture ? (
+                                {user?.profile_picture ? (
                                     <img
-                                        src={profilePicture}
+                                        src={`${API_URL}${user.profile_picture}`}
                                         alt=""
                                         className="h-10 w-10 rounded-full border border-[#DDE7DC] object-cover"
                                     />
@@ -231,9 +228,9 @@ export default function Navbar() {
                                     onClick={closeMenu}
                                     className="mt-2 flex items-center gap-3 rounded-xl px-4 py-3 transition hover:bg-[#EDF5EC]"
                                 >
-                                    {profilePicture ? (
+                                    {user.profile_picture ? (
                                         <img
-                                            src={profilePicture}
+                                            src={`${API_URL}${user.profile_picture}`}
                                             alt=""
                                             className="h-10 w-10 rounded-full border border-[#DDE7DC] object-cover"
                                         />
