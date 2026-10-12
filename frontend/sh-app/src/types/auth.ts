@@ -1,3 +1,4 @@
+
 export interface RegisterPayload {
     username: string;
     first_name: string;
@@ -30,10 +31,15 @@ export interface AuthUser {
     first_name?: string;
     last_name?: string;
     role?: string;
+    profile_picture?: string | null;
     [key: string]: unknown;
 }
 
 export interface LoginResponse {
     message: string;
     user: AuthUser;
+}
+
+export interface LogoutResponse {
+    message: string;
 }
