@@ -160,3 +160,13 @@ def refresh_token_view(request):
     set_csrf_cookie(request, response)
 
     return response
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def logout_view(request):
+    enforce_csrf(request)
+    response = Response({'message': 'Logged out successfully.'}, status=status.HTTP_200_OK)
+    response.delete_cookie('access_token', path='/')
+    response.delete_cookie('refresh_token', path='/')
+    response.delete_cookie('csrftoken', path='/')
+    return response
