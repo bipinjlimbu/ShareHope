@@ -234,8 +234,8 @@ export default function Home() {
                             <a href="/campaigns" className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-[#166534] px-6 text-sm font-bold text-white shadow-lg shadow-[#166534]/15 transition hover:-translate-y-0.5 hover:bg-[#14532D]">
                                 Explore campaigns <Icon name="arrow" />
                             </a>
-                            <a href={user ? "/donations" : "/register/ngo"} className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl border border-[#D8E4D5] bg-white/80 px-6 text-sm font-bold text-[#245335] transition hover:border-[#A9CCAA] hover:bg-[#F1F8EF]">
-                                {user ? "View my donations" : "Join as an NGO"} <Icon name={user ? "heart" : "arrow"} />
+                            <a href={user ? "/donations" : "/register"} className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl border border-[#D8E4D5] bg-white/80 px-6 text-sm font-bold text-[#245335] transition hover:border-[#A9CCAA] hover:bg-[#F1F8EF]">
+                                {user ? "View my donations" : "Join Us"} <Icon name={user ? "heart" : "arrow"} />
                             </a>
                         </div>
 
@@ -444,8 +444,8 @@ export default function Home() {
                             <a href="/campaigns" className="inline-flex min-h-13 items-center justify-center gap-3 rounded-2xl bg-white px-6 py-4 text-sm font-bold text-[#14532D] transition hover:bg-[#EAF6E7]">
                                 Find a campaign <Icon name="arrow" />
                             </a>
-                            <a href={user ? "/donations" : "/register/ngo"} className="inline-flex min-h-13 items-center justify-center gap-3 rounded-2xl border border-white/25 px-6 py-4 text-sm font-bold text-white transition hover:bg-white/10">
-                                {user ? "View my donations" : "Register your NGO"} <Icon name="arrow" />
+                            <a href={user ? "/donations" : "/register"} className="inline-flex min-h-13 items-center justify-center gap-3 rounded-2xl border border-white/25 px-6 py-4 text-sm font-bold text-white transition hover:bg-white/10">
+                                {user ? "View my donations" : "Register Now"} <Icon name="arrow" />
                             </a>
                         </div>
                     </div>
