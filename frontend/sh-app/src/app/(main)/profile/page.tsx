@@ -1,17 +1,10 @@
+
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import type { AuthUser } from "@/types/auth";
+import type { ProfileUser } from "@/types/profile";
 import ProfileSkeleton from "@/components/skeleton/ProfileSkeleton";
-
-type ProfileUser = AuthUser & {
-    email?: string;
-    phone?: string;
-    role?: string;
-    is_verified?: boolean;
-    profile_picture?: string | null;
-};
 
 function getStoredUser(): ProfileUser | null {
     try {
@@ -52,7 +45,7 @@ function ProfileField({
 }: {
     label: string;
     value?: string | null;
-    icon: React.ReactNode;
+    icon: ReactNode;
 }) {
     return (
         <div className="flex min-w-0 items-start gap-3.5 rounded-2xl border border-[#E6EDE4] bg-white p-4 transition hover:border-[#C8DDC8] sm:p-5">
@@ -173,6 +166,11 @@ export default function ProfilePage() {
     }
 
     const username = user.username;
+
+    const fullName = [user.first_name, user.last_name]
+        .filter((name) => name?.trim())
+        .join(" ");
+
     const profilePicture =
         typeof user.profile_picture === "string"
             ? user.profile_picture.startsWith("http")
@@ -201,17 +199,17 @@ export default function ProfilePage() {
                             {profilePicture ? (
                                 <img
                                     src={profilePicture}
-                                    alt={`${username}'s profile`}
+                                    alt={`${fullName || username}'s profile`}
                                     className="h-24 w-24 rounded-full border-4 border-[#F0F6ED] bg-[#E4F1E4] object-cover"
                                 />
                             ) : (
                                 <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-[#F0F6ED] bg-[#E4F1E4] text-3xl font-extrabold uppercase text-[#166534]">
-                                    {username.charAt(0) || "U"}
+                                    {(fullName || username).charAt(0) || "U"}
                                 </div>
                             )}
 
                             <h2 className="mt-4 max-w-full break-words text-xl font-extrabold text-[#14532D]">
-                                {username}
+                                {fullName || "Name not provided"}
                             </h2>
 
                             <p className="mt-1 text-sm text-[#718174]">
@@ -219,8 +217,13 @@ export default function ProfilePage() {
                             </p>
 
                             <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#D7E9D5] bg-[#F0F7ED] px-3 py-1.5 text-xs font-semibold text-[#287341]">
-                                <span className={`h-2 w-2 rounded-full ${user.is_verified ? "bg-[#35A45C]" : "bg-[#B7A16A]"}`} />
-                                {user.is_verified ? "Verified account" : "Account"}
+                                <span
+                                    className={`h-2 w-2 rounded-full ${user.is_verified
+                                        ? "bg-[#35A45C]"
+                                        : "bg-[#B7A16A]"
+                                        }`}
+                                />
+                                {user.is_verified ? "Verified account" : "Not verified"}
                             </span>
                         </div>
 
