@@ -1,12 +1,12 @@
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from ..models import User
 from ..serializers import UserSerializer
 
 @api_view(['PUT', 'DELETE'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def profile_view(request):
     errors = {}
     if request.method == 'PUT':
@@ -16,6 +16,7 @@ def profile_view(request):
         email = request.data.get('email', '')
         phone = request.data.get('phone', '')
         profile_picture = request.FILES.get('profile_picture', None)
+        print(request.user)
         
         if not username:
             errors['username'] = 'Username is required.'
@@ -24,7 +25,7 @@ def profile_view(request):
             
         if not email:
             errors['email'] = 'Email is required.'
-        elif User.objects.exclude(pk=request.user.pk).filter(email__iexact=email).exists():
+        elif User.objects.exclude(pk=request.user.pk).filter(email=email).exists():
             errors['email'] = 'Email already exists.'
             
         if errors:
