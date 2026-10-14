@@ -81,6 +81,29 @@ export default function ProfileForm({
 
     const displayedPicture = previewUrl || currentPicture;
 
+    const inputClassName =
+        "mt-2 w-full rounded-xl border border-[#DDE7DC] bg-white px-4 py-3 text-sm text-[#24432D] outline-none transition placeholder:text-[#A0ACA0] focus:border-[#35A45C] focus:ring-2 focus:ring-[#35A45C]/15 disabled:cursor-not-allowed disabled:bg-[#F7F9F4]";
+
+    const fieldErrorClassName = "mt-1.5 text-xs font-medium text-red-600";
+
+    function clearFieldError(field: string) {
+        setErrors((previous) => ({
+            ...previous,
+            [field]: "",
+        }));
+        setGeneralError("");
+    }
+
+    function fieldError(field: string) {
+        const message = getFieldError(errors, field);
+
+        return message ? (
+            <p className={fieldErrorClassName} role="alert">
+                {message}
+            </p>
+        ) : null;
+    }
+
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setErrors({});
@@ -102,27 +125,25 @@ export default function ProfileForm({
             onUpdated(response.user);
         } catch (error) {
             if (error instanceof ProfileServiceError) {
-                setGeneralError(error.message);
-                setErrors(error.errors ?? {});
+                const serverErrors = error.errors ?? {};
+                setErrors(serverErrors);
+
+                const hasFieldErrors = Object.keys(serverErrors).some(
+                    (key) =>
+                        key !== "detail" &&
+                        key !== "message" &&
+                        Boolean(getFieldError(serverErrors, key)),
+                );
+
+                if (!hasFieldErrors) {
+                    setGeneralError(error.message);
+                }
             } else {
                 setGeneralError("Something went wrong. Please try again.");
             }
         } finally {
             setIsSaving(false);
         }
-    }
-
-    const inputClassName =
-        "mt-2 w-full rounded-xl border border-[#DDE7DC] bg-white px-4 py-3 text-sm text-[#24432D] outline-none transition placeholder:text-[#A0ACA0] focus:border-[#35A45C] focus:ring-2 focus:ring-[#35A45C]/15 disabled:cursor-not-allowed disabled:bg-[#F7F9F4]";
-
-    function fieldError(field: string) {
-        const message = getFieldError(errors, field);
-
-        return message ? (
-            <p className="mt-1.5 text-xs font-medium text-red-600">
-                {message}
-            </p>
-        ) : null;
     }
 
     return (
@@ -167,7 +188,7 @@ export default function ProfileForm({
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit}>
+                <form noValidate onSubmit={handleSubmit}>
                     <div className="max-h-[70vh] space-y-5 overflow-y-auto px-5 py-6 sm:px-7">
                         {generalError && (
                             <div
@@ -207,10 +228,7 @@ export default function ProfileForm({
                                 onChange={(event) => {
                                     const file = event.target.files?.[0] ?? null;
                                     setProfilePicture(file);
-                                    setErrors((previous) => ({
-                                        ...previous,
-                                        profile_picture: "",
-                                    }));
+                                    clearFieldError("profile_picture");
                                 }}
                                 className="sr-only"
                             />
@@ -236,10 +254,14 @@ export default function ProfileForm({
                                     type="text"
                                     autoComplete="given-name"
                                     value={firstName}
-                                    onChange={(event) => setFirstName(event.target.value)}
+                                    onChange={(event) => {
+                                        setFirstName(event.target.value);
+                                        clearFieldError("first_name");
+                                    }}
                                     disabled={isSaving}
                                     className={inputClassName}
                                     placeholder="Enter first name"
+                                    aria-invalid={Boolean(getFieldError(errors, "first_name"))}
                                 />
                                 {fieldError("first_name")}
                             </div>
@@ -257,10 +279,14 @@ export default function ProfileForm({
                                     type="text"
                                     autoComplete="family-name"
                                     value={lastName}
-                                    onChange={(event) => setLastName(event.target.value)}
+                                    onChange={(event) => {
+                                        setLastName(event.target.value);
+                                        clearFieldError("last_name");
+                                    }}
                                     disabled={isSaving}
                                     className={inputClassName}
                                     placeholder="Enter last name"
+                                    aria-invalid={Boolean(getFieldError(errors, "last_name"))}
                                 />
                                 {fieldError("last_name")}
                             </div>
@@ -277,12 +303,15 @@ export default function ProfileForm({
                                     name="username"
                                     type="text"
                                     autoComplete="username"
-                                    required
                                     value={username}
-                                    onChange={(event) => setUsername(event.target.value)}
+                                    onChange={(event) => {
+                                        setUsername(event.target.value);
+                                        clearFieldError("username");
+                                    }}
                                     disabled={isSaving}
                                     className={inputClassName}
                                     placeholder="Enter username"
+                                    aria-invalid={Boolean(getFieldError(errors, "username"))}
                                 />
                                 {fieldError("username")}
                             </div>
@@ -299,12 +328,15 @@ export default function ProfileForm({
                                     name="email"
                                     type="email"
                                     autoComplete="email"
-                                    required
                                     value={email}
-                                    onChange={(event) => setEmail(event.target.value)}
+                                    onChange={(event) => {
+                                        setEmail(event.target.value);
+                                        clearFieldError("email");
+                                    }}
                                     disabled={isSaving}
                                     className={inputClassName}
                                     placeholder="Enter email address"
+                                    aria-invalid={Boolean(getFieldError(errors, "email"))}
                                 />
                                 {fieldError("email")}
                             </div>
@@ -322,10 +354,14 @@ export default function ProfileForm({
                                     type="tel"
                                     autoComplete="tel"
                                     value={phone}
-                                    onChange={(event) => setPhone(event.target.value)}
+                                    onChange={(event) => {
+                                        setPhone(event.target.value);
+                                        clearFieldError("phone");
+                                    }}
                                     disabled={isSaving}
                                     className={inputClassName}
                                     placeholder="Enter phone number"
+                                    aria-invalid={Boolean(getFieldError(errors, "phone"))}
                                 />
                                 {fieldError("phone")}
                             </div>
