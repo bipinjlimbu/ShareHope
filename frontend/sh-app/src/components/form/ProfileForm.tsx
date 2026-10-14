@@ -7,10 +7,7 @@ import type {
     ProfileUpdatePayload,
     ProfileUser,
 } from "@/types/profile";
-import {
-    ProfileServiceError,
-    updateProfile,
-} from "@/services/profileService";
+import { updateProfile } from "@/services/profileService";
 
 type ProfileFormProps = {
     user: ProfileUser;
@@ -26,9 +23,43 @@ function getFieldError(
     const error = errors[field];
 
     if (Array.isArray(error)) return error.join(" ");
-    if (typeof error === "string") return error;
+    if (typeof error === "string" && error.trim()) return error;
 
     return undefined;
+}
+
+function parseServerErrors(error: unknown): {
+    errors: ProfileFormErrors;
+    message: string;
+} {
+    if (typeof error !== "object" || error === null) {
+        return {
+            errors: {},
+            message: "Something went wrong. Please try again.",
+        };
+    }
+
+    const response = error as Record<string, unknown>;
+    const errors: ProfileFormErrors = {};
+
+    for (const [key, value] of Object.entries(response)) {
+        if (key === "status") continue;
+
+        if (
+            typeof value === "string" ||
+            (Array.isArray(value) &&
+                value.every((item) => typeof item === "string"))
+        ) {
+            errors[key] = value as string | string[];
+        }
+    }
+
+    const message =
+        (typeof response.detail === "string" && response.detail) ||
+        (typeof response.message === "string" && response.message) ||
+        "Unable to update your profile.";
+
+    return { errors, message };
 }
 
 export default function ProfileForm({
@@ -106,6 +137,7 @@ export default function ProfileForm({
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
+
         setErrors({});
         setGeneralError("");
 
@@ -123,23 +155,20 @@ export default function ProfileForm({
         try {
             const response = await updateProfile(payload);
             onUpdated(response.user);
-        } catch (error) {
-            if (error instanceof ProfileServiceError) {
-                const serverErrors = error.errors ?? {};
-                setErrors(serverErrors);
+        } catch (error: unknown) {
+            const parsed = parseServerErrors(error);
 
-                const hasFieldErrors = Object.keys(serverErrors).some(
-                    (key) =>
-                        key !== "detail" &&
-                        key !== "message" &&
-                        Boolean(getFieldError(serverErrors, key)),
-                );
+            setErrors(parsed.errors);
 
-                if (!hasFieldErrors) {
-                    setGeneralError(error.message);
-                }
-            } else {
-                setGeneralError("Something went wrong. Please try again.");
+            const hasFieldErrors = Object.keys(parsed.errors).some(
+                (key) =>
+                    key !== "detail" &&
+                    key !== "message" &&
+                    Boolean(getFieldError(parsed.errors, key)),
+            );
+
+            if (!hasFieldErrors) {
+                setGeneralError(parsed.message);
             }
         } finally {
             setIsSaving(false);
@@ -226,7 +255,8 @@ export default function ProfileForm({
                                 accept="image/*"
                                 disabled={isSaving}
                                 onChange={(event) => {
-                                    const file = event.target.files?.[0] ?? null;
+                                    const file =
+                                        event.target.files?.[0] ?? null;
                                     setProfilePicture(file);
                                     clearFieldError("profile_picture");
                                 }}
@@ -261,7 +291,9 @@ export default function ProfileForm({
                                     disabled={isSaving}
                                     className={inputClassName}
                                     placeholder="Enter first name"
-                                    aria-invalid={Boolean(getFieldError(errors, "first_name"))}
+                                    aria-invalid={Boolean(
+                                        getFieldError(errors, "first_name"),
+                                    )}
                                 />
                                 {fieldError("first_name")}
                             </div>
@@ -286,7 +318,9 @@ export default function ProfileForm({
                                     disabled={isSaving}
                                     className={inputClassName}
                                     placeholder="Enter last name"
-                                    aria-invalid={Boolean(getFieldError(errors, "last_name"))}
+                                    aria-invalid={Boolean(
+                                        getFieldError(errors, "last_name"),
+                                    )}
                                 />
                                 {fieldError("last_name")}
                             </div>
@@ -311,7 +345,9 @@ export default function ProfileForm({
                                     disabled={isSaving}
                                     className={inputClassName}
                                     placeholder="Enter username"
-                                    aria-invalid={Boolean(getFieldError(errors, "username"))}
+                                    aria-invalid={Boolean(
+                                        getFieldError(errors, "username"),
+                                    )}
                                 />
                                 {fieldError("username")}
                             </div>
@@ -336,7 +372,9 @@ export default function ProfileForm({
                                     disabled={isSaving}
                                     className={inputClassName}
                                     placeholder="Enter email address"
-                                    aria-invalid={Boolean(getFieldError(errors, "email"))}
+                                    aria-invalid={Boolean(
+                                        getFieldError(errors, "email"),
+                                    )}
                                 />
                                 {fieldError("email")}
                             </div>
@@ -361,7 +399,9 @@ export default function ProfileForm({
                                     disabled={isSaving}
                                     className={inputClassName}
                                     placeholder="Enter phone number"
-                                    aria-invalid={Boolean(getFieldError(errors, "phone"))}
+                                    aria-invalid={Boolean(
+                                        getFieldError(errors, "phone"),
+                                    )}
                                 />
                                 {fieldError("phone")}
                             </div>
@@ -386,7 +426,9 @@ export default function ProfileForm({
                             {isSaving && (
                                 <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
                             )}
-                            {isSaving ? "Saving changes..." : "Save changes"}
+                            {isSaving
+                                ? "Saving changes..."
+                                : "Save changes"}
                         </button>
                     </div>
                 </form>
