@@ -10,3 +10,19 @@ export type ProfileUser = AuthUser & {
     is_verified?: boolean;
     profile_picture?: string | null;
 };
+
+export type ProfileUpdatePayload = {
+    username: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    profile_picture?: File | null;
+};
+
+export type ProfileUpdateResponse = {
+    message: string;
+    user: ProfileUser;
+};
+
+export type ProfileFormErrors = Record<string, string | string[]>;
