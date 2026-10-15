@@ -1,15 +1,43 @@
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 function getCsrfToken(): string | undefined {
     if (typeof document === "undefined") return undefined;
 
-    const csrfCookie = document.cookie.split("; ").find((cookie) => cookie.startsWith("csrftoken="));
+    const csrfCookie = document.cookie
+        .split("; ")
+        .find((cookie) => cookie.startsWith("csrftoken="));
 
-    return csrfCookie ? decodeURIComponent(csrfCookie.substring("csrftoken=".length)) : undefined;
+    return csrfCookie
+        ? decodeURIComponent(csrfCookie.substring("csrftoken=".length))
+        : undefined;
 }
 
-export async function apiFetch(endpoint: string, options?: RequestInit) {
-    const isFormData = typeof FormData !== "undefined" && options?.body instanceof FormData;
+function clearClientSession(): void {
+    if (typeof window === "undefined") return;
+
+    localStorage.removeItem("user");
+    window.dispatchEvent(new Event("auth-change"));
+}
+
+function redirectToLogin(): void {
+    if (typeof window === "undefined") return;
+
+    const publicPaths = ["/login", "/register"];
+
+    if (!publicPaths.includes(window.location.pathname)) {
+        window.location.replace("/login");
+    }
+}
+
+export async function apiFetch(
+    endpoint: string,
+    options?: RequestInit,
+) {
+    const isFormData =
+        typeof FormData !== "undefined" &&
+        options?.body instanceof FormData;
+
     const method = (options?.method ?? "GET").toUpperCase();
     const headers = new Headers(options?.headers);
 
@@ -19,7 +47,10 @@ export async function apiFetch(endpoint: string, options?: RequestInit) {
 
     if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
         const csrfToken = getCsrfToken();
-        if (csrfToken) headers.set("X-CSRFToken", csrfToken);
+
+        if (csrfToken) {
+            headers.set("X-CSRFToken", csrfToken);
+        }
     }
 
     const response = await fetch(`${API_URL}${endpoint}`, {
@@ -32,7 +63,7 @@ export async function apiFetch(endpoint: string, options?: RequestInit) {
 
     if (!response.ok) {
         throw {
-            ...data,
+            ...(typeof data === "object" && data !== null ? data : {}),
             status: response.status,
         };
     }
@@ -40,19 +71,60 @@ export async function apiFetch(endpoint: string, options?: RequestInit) {
     return data;
 }
 
-export async function authFetch(endpoint: string, options?: RequestInit) {
+function getErrorStatus(error: unknown): number | undefined {
+    if (
+        typeof error === "object" &&
+        error !== null &&
+        "status" in error &&
+        typeof error.status === "number"
+    ) {
+        return error.status;
+    }
+
+    return undefined;
+}
+
+export async function authFetch(
+    endpoint: string,
+    options?: RequestInit,
+) {
     try {
         return await apiFetch(endpoint, options);
-    } catch (error) {
-        const status = typeof error === "object" && error !== null && "status" in error ? (error as { status?: number }).status : undefined;
+    } catch (error: unknown) {
+        if (getErrorStatus(error) !== 401) {
+            throw error;
+        }
 
-        if (status !== 401 || endpoint === "/token/refresh/") throw error;
+        if (endpoint === "/token/refresh/") {
+            clearClientSession();
+            redirectToLogin();
+            throw error;
+        }
 
-        await apiFetch("/token/refresh/", {
-            method: "POST",
-            body: JSON.stringify({}),
-        });
+        try {
+            await apiFetch("/token/refresh/", {
+                method: "POST",
+                body: JSON.stringify({}),
+            });
+        } catch (refreshError: unknown) {
+            if (getErrorStatus(refreshError) === 401 ||
+                getErrorStatus(refreshError) === 400) {
+                clearClientSession();
+                redirectToLogin();
+            }
 
-        return apiFetch(endpoint, options);
+            throw refreshError;
+        }
+
+        try {
+            return await apiFetch(endpoint, options);
+        } catch (retryError: unknown) {
+            if (getErrorStatus(retryError) === 401) {
+                clearClientSession();
+                redirectToLogin();
+            }
+
+            throw retryError;
+        }
     }
 }
