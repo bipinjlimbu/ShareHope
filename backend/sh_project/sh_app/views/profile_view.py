@@ -16,7 +16,6 @@ def profile_view(request):
         email = request.data.get('email', '')
         phone = request.data.get('phone', '')
         profile_picture = request.FILES.get('profile_picture', None)
-        print(request.user)
         
         if not username:
             errors['username'] = 'Username is required.'
@@ -41,3 +40,8 @@ def profile_view(request):
             user.profile_picture = profile_picture
         user.save()
         return Response({"message": "Profile updated successfully", "user": UserSerializer(user).data}, status=status.HTTP_200_OK)
+    
+    if request.method == 'DELETE':
+        user = request.user
+        user.delete()
+        return Response({"message": "Profile deleted successfully"}, status=status.HTTP_200_OK)
