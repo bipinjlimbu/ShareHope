@@ -1,4 +1,5 @@
-import { apiFetch } from "@/lib/api";
+
+import { authFetch } from "@/lib/api";
 import type {
     ProfileUpdatePayload,
     ProfileUpdateResponse,
@@ -19,8 +20,20 @@ export async function updateProfile(
         formData.append("profile_picture", payload.profile_picture);
     }
 
-    return apiFetch("/profile/", {
+    const response = await authFetch("/profile/", {
         method: "PUT",
         body: formData,
-    }) as Promise<ProfileUpdateResponse>;
+    });
+
+    if (
+        typeof response !== "object" ||
+        response === null ||
+        !("user" in response)
+    ) {
+        throw {
+            message: "The server returned an invalid profile response.",
+        };
+    }
+
+    return response as ProfileUpdateResponse;
 }
