@@ -1,6 +1,6 @@
-
 import { authFetch } from "@/lib/api";
 import type {
+    ProfileDeleteResponse,
     ProfileUpdatePayload,
     ProfileUpdateResponse,
 } from "@/types/profile";
@@ -36,4 +36,23 @@ export async function updateProfile(
     }
 
     return response as ProfileUpdateResponse;
+}
+
+export async function deleteProfile(): Promise<ProfileDeleteResponse> {
+    const response = await authFetch("/profile/", {
+        method: "DELETE",
+        body: JSON.stringify({}),
+    });
+
+    if (
+        typeof response !== "object" ||
+        response === null ||
+        !("message" in response)
+    ) {
+        throw {
+            message: "The server returned an invalid delete response.",
+        };
+    }
+
+    return response as ProfileDeleteResponse;
 }
