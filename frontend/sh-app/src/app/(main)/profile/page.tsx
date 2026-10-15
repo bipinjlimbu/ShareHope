@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { ProfileUser } from "@/types/profile";
+import { deleteProfile } from "@/services/profileService";
 import ProfileSkeleton from "@/components/skeleton/ProfileSkeleton";
 import ProfileForm from "@/components/form/ProfileForm";
 
@@ -36,6 +38,22 @@ function formatRole(role?: string) {
         .replaceAll("_", " ")
         .toLowerCase()
         .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function getErrorMessage(error: unknown): string {
+    if (typeof error === "object" && error !== null) {
+        const response = error as Record<string, unknown>;
+
+        if (typeof response.message === "string") {
+            return response.message;
+        }
+
+        if (typeof response.detail === "string") {
+            return response.detail;
+        }
+    }
+
+    return "Unable to delete your profile. Please try again.";
 }
 
 function ProfileField({
@@ -121,10 +139,29 @@ function ShieldIcon() {
     );
 }
 
+function TrashIcon() {
+    return (
+        <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+            <path
+                d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+        </svg>
+    );
+}
+
 export default function ProfilePage() {
+    const router = useRouter();
+
     const [user, setUser] = useState<ProfileUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isEditOpen, setIsEditOpen] = useState(false);
+    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState("");
 
     const closeEditForm = useCallback(() => {
         setIsEditOpen(false);
@@ -148,6 +185,29 @@ export default function ProfilePage() {
         }
 
         setIsEditOpen(false);
+    }
+
+    async function handleDeleteProfile() {
+        if (isDeleting) return;
+
+        setIsDeleting(true);
+        setDeleteError("");
+
+        try {
+            await deleteProfile();
+
+            localStorage.removeItem("user");
+            window.dispatchEvent(new Event("auth-change"));
+
+            setUser(null);
+            setIsDeleteOpen(false);
+
+            router.replace("/");
+            router.refresh();
+        } catch (error: unknown) {
+            setDeleteError(getErrorMessage(error));
+            setIsDeleting(false);
+        }
     }
 
     if (isLoading) {
@@ -260,11 +320,14 @@ export default function ProfilePage() {
 
                                 <button
                                     type="button"
-                                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                                    onClick={() => {
+                                        setDeleteError("");
+                                        setIsDeleteOpen(true);
+                                    }}
+                                    disabled={isDeleting}
+                                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
-                                    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
-                                        <path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
+                                    <TrashIcon />
                                     Delete Profile
                                 </button>
                             </div>
@@ -327,7 +390,8 @@ export default function ProfilePage() {
                                             Account security
                                         </h3>
                                         <p className="mt-1 text-sm leading-6 text-[#718174]">
-                                            Your account information is shown here for easy reference. Contact the ShareHope team if you need help with your account.
+                                            Your account information is shown here for easy reference.
+                                            Contact the ShareHope team if you need help with your account.
                                         </p>
                                     </div>
                                 </div>
@@ -348,6 +412,78 @@ export default function ProfilePage() {
                     onClose={closeEditForm}
                     onUpdated={handleProfileUpdated}
                 />
+            )}
+
+            {isDeleteOpen && (
+                <div
+                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-5 py-8"
+                    role="presentation"
+                    onMouseDown={(event) => {
+                        if (event.target === event.currentTarget && !isDeleting) {
+                            setIsDeleteOpen(false);
+                            setDeleteError("");
+                        }
+                    }}
+                >
+                    <section
+                        role="alertdialog"
+                        aria-modal="true"
+                        aria-labelledby="delete-profile-title"
+                        aria-describedby="delete-profile-description"
+                        className="w-full max-w-md rounded-3xl border border-[#E6EDE4] bg-[#FFFCF6] p-6 shadow-2xl sm:p-8"
+                    >
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-red-600">
+                            <TrashIcon />
+                        </div>
+
+                        <h2
+                            id="delete-profile-title"
+                            className="mt-5 text-xl font-extrabold text-[#14532D]"
+                        >
+                            Delete your profile?
+                        </h2>
+
+                        <p
+                            id="delete-profile-description"
+                            className="mt-3 text-sm leading-6 text-[#718174]"
+                        >
+                            This will permanently delete your ShareHope account.
+                            This action cannot be undone.
+                        </p>
+
+                        {deleteError && (
+                            <p
+                                role="alert"
+                                className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm leading-5 text-red-700"
+                            >
+                                {deleteError}
+                            </p>
+                        )}
+
+                        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsDeleteOpen(false);
+                                    setDeleteError("");
+                                }}
+                                disabled={isDeleting}
+                                className="rounded-xl border border-[#DDE7DC] px-5 py-3 text-sm font-semibold text-[#31523C] transition hover:bg-[#EDF5EC] disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleDeleteProfile}
+                                disabled={isDeleting}
+                                className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {isDeleting ? "Deleting profile..." : "Delete permanently"}
+                            </button>
+                        </div>
+                    </section>
+                </div>
             )}
         </>
     );
