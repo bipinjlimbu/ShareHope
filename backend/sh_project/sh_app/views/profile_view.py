@@ -5,9 +5,14 @@ from rest_framework.response import Response
 from ..models import User
 from ..serializers import UserSerializer
 
-@api_view(['PUT', 'DELETE'])
+@api_view(['GET', 'PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def profile_view(request):
+    if request.method == 'GET':
+        user = request.user
+        serializer = UserSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
     errors = {}
     if request.method == 'PUT':
         username = request.data.get('username', '')
@@ -43,5 +48,9 @@ def profile_view(request):
     
     if request.method == 'DELETE':
         user = request.user
+        
+        if user.role == User.Role.ADMIN:
+            return Response({"error": "Admin users cannot delete their profile."}, status=status.HTTP_403_FORBIDDEN)
+        
         user.delete()
         return Response({"message": "Profile deleted successfully"}, status=status.HTTP_200_OK)
