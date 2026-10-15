@@ -25,4 +25,8 @@ export type ProfileUpdateResponse = {
     user: ProfileUser;
 };
 
+export type ProfileDeleteResponse = {
+    message: string;
+};
+
 export type ProfileFormErrors = Record<string, string | string[]>;
