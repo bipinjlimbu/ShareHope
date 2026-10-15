@@ -116,7 +116,7 @@ def login_view(request):
 
     if user is None:
         try:
-            matched_user = User.objects.get(email__iexact=login_credential)
+            matched_user = User.objects.get(email=login_credential)
             user = authenticate(request, username=matched_user.username, password=password)
         except User.DoesNotExist:
             user = None
