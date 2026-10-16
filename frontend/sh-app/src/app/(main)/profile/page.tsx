@@ -6,33 +6,11 @@ import { useRouter } from "next/navigation";
 import type { ProfileUser } from "@/types/profile";
 import {
     deleteProfile,
+    getProfile,
     requestEmailVerification,
 } from "@/services/profileService";
 import ProfileSkeleton from "@/components/skeleton/ProfileSkeleton";
 import ProfileForm from "@/components/form/ProfileForm";
-
-function getStoredUser(): ProfileUser | null {
-    try {
-        const storedUser = localStorage.getItem("user");
-
-        if (!storedUser) return null;
-
-        const parsed: unknown = JSON.parse(storedUser);
-
-        if (
-            typeof parsed === "object" &&
-            parsed !== null &&
-            "username" in parsed &&
-            typeof parsed.username === "string"
-        ) {
-            return parsed as ProfileUser;
-        }
-
-        return null;
-    } catch {
-        return null;
-    }
-}
 
 function formatRole(role?: string) {
     if (!role) return "Member";
@@ -84,7 +62,13 @@ function ProfileField({
 function UserIcon() {
     return (
         <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+                d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
         </svg>
     );
 }
@@ -92,8 +76,22 @@ function UserIcon() {
 function MailIcon() {
     return (
         <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-            <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.7" />
-            <path d="m4 7 8 6 8-6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            <rect
+                x="3"
+                y="5"
+                width="18"
+                height="14"
+                rx="2"
+                stroke="currentColor"
+                strokeWidth="1.7"
+            />
+            <path
+                d="m4 7 8 6 8-6"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
         </svg>
     );
 }
@@ -101,7 +99,13 @@ function MailIcon() {
 function PhoneIcon() {
     return (
         <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-            <path d="M7 3H5a2 2 0 0 0-2 2 16 16 0 0 0 16 16 2 2 0 0 0 2-2v-2l-5-2-2 3a13 13 0 0 1-6-6l3-2-2-5Z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+                d="M7 3H5a2 2 0 0 0-2 2 16 16 0 0 0 16 16 2 2 0 0 0 2-2v-2l-5-2-2 3a13 13 0 0 1-6-6l3-2-2-5Z"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
         </svg>
     );
 }
@@ -109,8 +113,20 @@ function PhoneIcon() {
 function ShieldIcon() {
     return (
         <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-            <path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="m9 12 2 2 4-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+                d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+            <path
+                d="m9 12 2 2 4-4"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
         </svg>
     );
 }
@@ -118,7 +134,13 @@ function ShieldIcon() {
 function TrashIcon() {
     return (
         <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
-            <path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+                d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
         </svg>
     );
 }
@@ -126,7 +148,13 @@ function TrashIcon() {
 function VerifyIcon() {
     return (
         <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
-            <path d="m5 12 4 4L19 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+                d="m5 12 4 4L19 6"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
         </svg>
     );
 }
@@ -134,7 +162,13 @@ function VerifyIcon() {
 function EditIcon() {
     return (
         <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-            <path d="m15 5 4 4M4 20l4-.8L19 8a2.8 2.8 0 0 0-4-4L4 15v5Z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            <path
+                d="m15 5 4 4M4 20l4-.8L19 8a2.8 2.8 0 0 0-4-4L4 15v5Z"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
         </svg>
     );
 }
@@ -144,6 +178,7 @@ export default function ProfilePage() {
 
     const [user, setUser] = useState<ProfileUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [profileError, setProfileError] = useState("");
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -151,27 +186,32 @@ export default function ProfilePage() {
     const [isSendingOtp, setIsSendingOtp] = useState(false);
     const [verificationError, setVerificationError] = useState("");
 
+    const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "");
+
+    const loadProfile = useCallback(async () => {
+        setIsLoading(true);
+        setProfileError("");
+
+        try {
+            const response = await getProfile();
+            setUser(response.user);
+        } catch (error: unknown) {
+            setProfileError(getErrorMessage(error));
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        void loadProfile();
+    }, [loadProfile]);
+
     const closeEditForm = useCallback(() => {
         setIsEditOpen(false);
     }, []);
 
-    useEffect(() => {
-        setUser(getStoredUser());
-        setIsLoading(false);
-    }, []);
-
-    const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "");
-
     function handleProfileUpdated(updatedUser: ProfileUser) {
         setUser(updatedUser);
-
-        try {
-            localStorage.setItem("user", JSON.stringify(updatedUser));
-            window.dispatchEvent(new Event("auth-change"));
-        } catch {
-            setUser(updatedUser);
-        }
-
         setIsEditOpen(false);
     }
 
@@ -200,11 +240,10 @@ export default function ProfilePage() {
         try {
             await deleteProfile();
 
-            localStorage.removeItem("user");
-            window.dispatchEvent(new Event("auth-change"));
-
             setUser(null);
             setIsDeleteOpen(false);
+
+            window.dispatchEvent(new Event("auth-change"));
 
             router.replace("/");
             router.refresh();
@@ -214,7 +253,37 @@ export default function ProfilePage() {
         }
     }
 
-    if (isLoading) return <ProfileSkeleton />;
+    if (isLoading) {
+        return <ProfileSkeleton />;
+    }
+
+    if (profileError) {
+        return (
+            <main className="min-h-[65vh] bg-[#FFFCF6] px-5 py-16 sm:px-8">
+                <div className="mx-auto max-w-lg rounded-3xl border border-[#E6EDE4] bg-white p-8 text-center shadow-sm">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F0F6ED] text-[#166534]">
+                        <UserIcon />
+                    </div>
+
+                    <h1 className="mt-5 text-2xl font-extrabold text-[#14532D]">
+                        Unable to load profile
+                    </h1>
+
+                    <p role="alert" className="mt-3 text-sm leading-6 text-[#718174]">
+                        {profileError}
+                    </p>
+
+                    <button
+                        type="button"
+                        onClick={() => void loadProfile()}
+                        className="mt-6 inline-flex items-center justify-center rounded-xl bg-[#166534] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#14532D]"
+                    >
+                        Try again
+                    </button>
+                </div>
+            </main>
+        );
+    }
 
     if (!user) {
         return (
@@ -297,14 +366,21 @@ export default function ProfilePage() {
                                     {formatRole(user.role)}
                                 </p>
 
-                                <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#D7E9D5] bg-[#F0F7ED] px-3 py-1.5 text-xs font-semibold text-[#287341]">
+                                <span
+                                    className={`mt-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${user.is_verified
+                                            ? "border-[#D7E9D5] bg-[#F0F7ED] text-[#287341]"
+                                            : "border-[#E8DFC7] bg-[#FAF5E8] text-[#8A7138]"
+                                        }`}
+                                >
                                     <span
                                         className={`h-2 w-2 rounded-full ${user.is_verified
-                                            ? "bg-[#35A45C]"
-                                            : "bg-[#B7A16A]"
+                                                ? "bg-[#35A45C]"
+                                                : "bg-[#B7A16A]"
                                             }`}
                                     />
-                                    {user.is_verified ? "Verified account" : "Not verified"}
+                                    {user.is_verified
+                                        ? "Verified account"
+                                        : "Not verified"}
                                 </span>
                             </div>
 
@@ -319,7 +395,9 @@ export default function ProfilePage() {
                                         className="flex w-full items-center justify-center gap-2 rounded-xl border border-[#BBD9BC] bg-[#F0F7ED] px-4 py-3 text-sm font-semibold text-[#166534] transition hover:bg-[#E4F1E4] disabled:cursor-not-allowed disabled:opacity-60"
                                     >
                                         <VerifyIcon />
-                                        {isSendingOtp ? "Sending OTP..." : "Verify Email"}
+                                        {isSendingOtp
+                                            ? "Sending OTP..."
+                                            : "Verify Email"}
                                     </button>
                                 )}
 
@@ -505,7 +583,9 @@ export default function ProfilePage() {
                                 disabled={isDeleting}
                                 className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                {isDeleting ? "Deleting account..." : "Delete account"}
+                                {isDeleting
+                                    ? "Deleting account..."
+                                    : "Delete account"}
                             </button>
                         </div>
                     </section>
