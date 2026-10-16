@@ -100,7 +100,7 @@ def profile_view(request):
     
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def verify_email(request):
+def verify_email_view(request):
     if request.method == 'POST':
         errors = {}
         otp = request.data.get('otp', '')
