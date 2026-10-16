@@ -3,9 +3,44 @@ import type {
     EmailVerificationRequestResponse,
     EmailVerificationResponse,
     ProfileDeleteResponse,
+    ProfileGetResponse,
     ProfileUpdatePayload,
     ProfileUpdateResponse,
+    ProfileUser,
 } from "@/types/profile";
+
+function isProfileUser(value: unknown): value is ProfileUser {
+    return (
+        typeof value === "object" &&
+        value !== null &&
+        "username" in value &&
+        typeof value.username === "string"
+    );
+}
+
+export async function getProfile(): Promise<ProfileGetResponse> {
+    const response = await authFetch("/profile/", {
+        method: "GET",
+    });
+
+    if (typeof response !== "object" || response === null) {
+        throw {
+            message: "The server returned an invalid profile response.",
+        };
+    }
+
+    if ("user" in response && isProfileUser(response.user)) {
+        return { user: response.user };
+    }
+
+    if (isProfileUser(response)) {
+        return { user: response };
+    }
+
+    throw {
+        message: "The server returned an invalid profile response.",
+    };
+}
 
 export async function updateProfile(
     payload: ProfileUpdatePayload,
@@ -30,7 +65,8 @@ export async function updateProfile(
     if (
         typeof response !== "object" ||
         response === null ||
-        !("user" in response)
+        !("user" in response) ||
+        !isProfileUser(response.user)
     ) {
         throw {
             message: "The server returned an invalid profile response.",
@@ -49,7 +85,8 @@ export async function deleteProfile(): Promise<ProfileDeleteResponse> {
     if (
         typeof response !== "object" ||
         response === null ||
-        !("message" in response)
+        !("message" in response) ||
+        typeof response.message !== "string"
     ) {
         throw {
             message: "The server returned an invalid delete response.",
