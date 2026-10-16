@@ -65,6 +65,10 @@ def profile_view(request):
     if request.method == 'PATCH':
         otp = f"{secrets.randbelow(1000000):06d}"
         user = User.objects.get(pk=request.user.pk)
+        
+        if user.is_verified:
+            return Response({"message": "Email is already verified."}, status=status.HTTP_400_BAD_REQUEST)
+        
         hashed_otp = make_password(otp)
         user.hashed_otp = hashed_otp
         user.otp_expires_at = timezone.now() + timedelta(minutes=10)
