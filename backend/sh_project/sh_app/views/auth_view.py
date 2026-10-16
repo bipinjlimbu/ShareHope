@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
-from ..email_service import send_welcome_email
+from ..email_service import welcome_email
 from ..models import User
 from ..serializers import UserSerializer
 
@@ -90,7 +90,7 @@ def register_view(request):
         profile_picture=profile_picture
     )
     user.save()
-    send_welcome_email(user)
+    welcome_email(user)
     return Response({'message': 'User registered successfully.'}, status=status.HTTP_201_CREATED)
 
 
