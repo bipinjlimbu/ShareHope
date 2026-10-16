@@ -11,6 +11,10 @@ export type ProfileUser = AuthUser & {
     profile_picture?: string | null;
 };
 
+export type ProfileGetResponse = {
+    user: ProfileUser;
+};
+
 export type ProfileUpdatePayload = {
     username: string;
     first_name: string;
