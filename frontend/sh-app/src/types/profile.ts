@@ -33,4 +33,8 @@ export type EmailVerificationRequestResponse = {
     message: string;
 };
 
+export type EmailVerificationResponse = {
+    message: string;
+};
+
 export type ProfileFormErrors = Record<string, string | string[]>;
