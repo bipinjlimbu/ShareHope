@@ -17,7 +17,15 @@ class User(AbstractUser):
     phone = models.CharField(max_length=20, blank=True)
     profile_picture = models.ImageField(upload_to="profile_pictures/", blank=True, null=True)
     is_verified = models.BooleanField(default=False)
+    hashed_otp = models.CharField(max_length=128, blank=True, null=True)
+    otp_expires_at = models.DateTimeField(blank=True, null=True)
     
+    def save(self, *args, **kwargs):
+        if self.otp_expires_at and self.otp_expires_at < timezone.now():
+            self.hashed_otp = None
+            self.otp_expires_at = None
+        super().save(*args, **kwargs)
+
     def save(self, *args, **kwargs):
         if self.is_staff or self.is_superuser:
             self.role = self.Role.ADMIN
