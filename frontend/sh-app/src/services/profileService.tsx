@@ -1,5 +1,6 @@
 import { authFetch } from "@/lib/api";
 import type {
+    EmailVerificationRequestResponse,
     ProfileDeleteResponse,
     ProfileUpdatePayload,
     ProfileUpdateResponse,
@@ -55,4 +56,24 @@ export async function deleteProfile(): Promise<ProfileDeleteResponse> {
     }
 
     return response as ProfileDeleteResponse;
+}
+
+export async function requestEmailVerification(): Promise<EmailVerificationRequestResponse> {
+    const response = await authFetch("/profile/", {
+        method: "PATCH",
+        body: JSON.stringify({}),
+    });
+
+    if (
+        typeof response !== "object" ||
+        response === null ||
+        !("message" in response) ||
+        typeof response.message !== "string"
+    ) {
+        throw {
+            message: "The server returned an invalid email verification response.",
+        };
+    }
+
+    return response as EmailVerificationRequestResponse;
 }
