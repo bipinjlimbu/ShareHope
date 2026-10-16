@@ -50,7 +50,6 @@ function getErrorMessage(error: unknown): string {
         if (typeof response.message === "string") return response.message;
         if (typeof response.detail === "string") return response.detail;
         if (typeof response.error === "string") return response.error;
-
         if (typeof response.email === "string") return response.email;
     }
 
@@ -128,6 +127,14 @@ function VerifyIcon() {
     return (
         <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
             <path d="m5 12 4 4L19 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+    );
+}
+
+function EditIcon() {
+    return (
+        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+            <path d="m15 5 4 4M4 20l4-.8L19 8a2.8 2.8 0 0 0-4-4L4 15v5Z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
     );
 }
@@ -216,13 +223,19 @@ export default function ProfilePage() {
                     <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E4F1E4] text-[#166534]">
                         <UserIcon />
                     </div>
+
                     <h1 className="mt-5 text-2xl font-extrabold text-[#14532D]">
                         Sign in to view your profile
                     </h1>
+
                     <p className="mt-3 text-sm leading-6 text-[#718174]">
                         Log in to see your account information and profile details.
                     </p>
-                    <Link href="/login" className="mt-6 inline-flex items-center justify-center rounded-xl bg-[#166534] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#14532D]">
+
+                    <Link
+                        href="/login"
+                        className="mt-6 inline-flex items-center justify-center rounded-xl bg-[#166534] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#14532D]"
+                    >
                         Log in
                     </Link>
                 </div>
@@ -231,6 +244,7 @@ export default function ProfilePage() {
     }
 
     const username = user.username;
+
     const fullName = [user.first_name, user.last_name]
         .filter((name) => name?.trim())
         .join(" ");
@@ -247,10 +261,14 @@ export default function ProfilePage() {
             <main className="min-h-screen bg-[#FFFCF6] px-5 py-10 sm:px-8 sm:py-14">
                 <div className="mx-auto max-w-5xl">
                     <div className="mb-8">
-                        <p className="text-sm font-semibold text-[#35A45C]">Account settings</p>
+                        <p className="text-sm font-semibold text-[#35A45C]">
+                            Account settings
+                        </p>
+
                         <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-[#14532D] sm:text-4xl">
                             My Profile
                         </h1>
+
                         <p className="mt-3 text-sm leading-6 text-[#718174] sm:text-base">
                             Manage your personal details and account information.
                         </p>
@@ -260,7 +278,11 @@ export default function ProfilePage() {
                         <aside className="rounded-3xl border border-[#E6EDE4] bg-white p-6 shadow-sm sm:p-7">
                             <div className="flex flex-col items-center text-center">
                                 {profilePicture ? (
-                                    <img src={profilePicture} alt={`${fullName || username}'s profile`} className="h-24 w-24 rounded-full border-4 border-[#F0F6ED] bg-[#E4F1E4] object-cover" />
+                                    <img
+                                        src={profilePicture}
+                                        alt={`${fullName || username}'s profile`}
+                                        className="h-24 w-24 rounded-full border-4 border-[#F0F6ED] bg-[#E4F1E4] object-cover"
+                                    />
                                 ) : (
                                     <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-[#F0F6ED] bg-[#E4F1E4] text-3xl font-extrabold uppercase text-[#166534]">
                                         {(fullName || username).charAt(0) || "U"}
@@ -270,10 +292,18 @@ export default function ProfilePage() {
                                 <h2 className="mt-4 max-w-full break-words text-xl font-extrabold text-[#14532D]">
                                     {fullName || "Name not provided"}
                                 </h2>
-                                <p className="mt-1 text-sm text-[#718174]">{formatRole(user.role)}</p>
+
+                                <p className="mt-1 text-sm text-[#718174]">
+                                    {formatRole(user.role)}
+                                </p>
 
                                 <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-[#D7E9D5] bg-[#F0F7ED] px-3 py-1.5 text-xs font-semibold text-[#287341]">
-                                    <span className={`h-2 w-2 rounded-full ${user.is_verified ? "bg-[#35A45C]" : "bg-[#B7A16A]"}`} />
+                                    <span
+                                        className={`h-2 w-2 rounded-full ${user.is_verified
+                                            ? "bg-[#35A45C]"
+                                            : "bg-[#B7A16A]"
+                                            }`}
+                                    />
                                     {user.is_verified ? "Verified account" : "Not verified"}
                                 </span>
                             </div>
@@ -281,13 +311,6 @@ export default function ProfilePage() {
                             <div className="my-6 border-t border-[#E6EDE4]" />
 
                             <div className="space-y-3">
-                                <button type="button" onClick={() => setIsEditOpen(true)} className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#166534] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#14532D]">
-                                    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
-                                        <path d="m15 5 4 4M4 20l4-.8L19 8a2.8 2.8 0 0 0-4-4L4 15l0 5Z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                    Edit Profile
-                                </button>
-
                                 {!user.is_verified && (
                                     <button
                                         type="button"
@@ -310,11 +333,14 @@ export default function ProfilePage() {
                                     className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     <TrashIcon />
-                                    Delete Profile
+                                    Delete Account
                                 </button>
 
                                 {verificationError && (
-                                    <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm leading-5 text-red-700">
+                                    <p
+                                        role="alert"
+                                        className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm leading-5 text-red-700"
+                                    >
                                         {verificationError}
                                     </p>
                                 )}
@@ -328,21 +354,50 @@ export default function ProfilePage() {
                         <section className="min-w-0 rounded-3xl border border-[#E6EDE4] bg-white p-5 shadow-sm sm:p-7">
                             <div className="flex items-start justify-between gap-4">
                                 <div>
-                                    <h2 className="text-lg font-extrabold text-[#14532D] sm:text-xl">Personal information</h2>
+                                    <h2 className="text-lg font-extrabold text-[#14532D] sm:text-xl">
+                                        Personal information
+                                    </h2>
+
                                     <p className="mt-1 text-sm leading-6 text-[#718174]">
                                         Your details associated with ShareHope.
                                     </p>
                                 </div>
-                                <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#F0F6ED] text-[#287341] sm:flex">
-                                    <UserIcon />
-                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditOpen(true)}
+                                    aria-label="Edit profile"
+                                    title="Edit profile"
+                                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#D7E9D5] bg-[#F0F7ED] text-[#287341] transition hover:border-[#A8CCA9] hover:bg-[#E4F1E4] focus:outline-none focus:ring-2 focus:ring-[#35A45C] focus:ring-offset-2"
+                                >
+                                    <EditIcon />
+                                </button>
                             </div>
 
                             <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                                <ProfileField label="Username" value={user.username} icon={<UserIcon />} />
-                                <ProfileField label="Email address" value={user.email} icon={<MailIcon />} />
-                                <ProfileField label="Phone number" value={user.phone} icon={<PhoneIcon />} />
-                                <ProfileField label="Account role" value={formatRole(user.role)} icon={<ShieldIcon />} />
+                                <ProfileField
+                                    label="Username"
+                                    value={user.username}
+                                    icon={<UserIcon />}
+                                />
+
+                                <ProfileField
+                                    label="Email address"
+                                    value={user.email}
+                                    icon={<MailIcon />}
+                                />
+
+                                <ProfileField
+                                    label="Phone number"
+                                    value={user.phone}
+                                    icon={<PhoneIcon />}
+                                />
+
+                                <ProfileField
+                                    label="Account role"
+                                    value={formatRole(user.role)}
+                                    icon={<ShieldIcon />}
+                                />
                             </div>
 
                             <div className="mt-6 rounded-2xl border border-[#E6EDE4] bg-[#F7F9F4] p-4 sm:p-5">
@@ -350,8 +405,12 @@ export default function ProfilePage() {
                                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#287341] shadow-sm">
                                         <ShieldIcon />
                                     </div>
+
                                     <div>
-                                        <h3 className="text-sm font-bold text-[#24432D]">Account security</h3>
+                                        <h3 className="text-sm font-bold text-[#24432D]">
+                                            Account security
+                                        </h3>
+
                                         <p className="mt-1 text-sm leading-6 text-[#718174]">
                                             {user.is_verified
                                                 ? "Your email address is verified. Keep your account information up to date."
@@ -383,7 +442,10 @@ export default function ProfilePage() {
                     className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-5 py-8"
                     role="presentation"
                     onMouseDown={(event) => {
-                        if (event.target === event.currentTarget && !isDeleting) {
+                        if (
+                            event.target === event.currentTarget &&
+                            !isDeleting
+                        ) {
                             setIsDeleteOpen(false);
                             setDeleteError("");
                         }
@@ -400,15 +462,26 @@ export default function ProfilePage() {
                             <TrashIcon />
                         </div>
 
-                        <h2 id="delete-profile-title" className="mt-5 text-xl font-extrabold text-[#14532D]">
-                            Delete your profile?
+                        <h2
+                            id="delete-profile-title"
+                            className="mt-5 text-xl font-extrabold text-[#14532D]"
+                        >
+                            Delete your account?
                         </h2>
-                        <p id="delete-profile-description" className="mt-3 text-sm leading-6 text-[#718174]">
-                            This will permanently delete your ShareHope account. This action cannot be undone.
+
+                        <p
+                            id="delete-profile-description"
+                            className="mt-3 text-sm leading-6 text-[#718174]"
+                        >
+                            This will permanently delete your ShareHope account.
+                            This action cannot be undone.
                         </p>
 
                         {deleteError && (
-                            <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm leading-5 text-red-700">
+                            <p
+                                role="alert"
+                                className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm leading-5 text-red-700"
+                            >
                                 {deleteError}
                             </p>
                         )}
@@ -425,13 +498,14 @@ export default function ProfilePage() {
                             >
                                 Cancel
                             </button>
+
                             <button
                                 type="button"
                                 onClick={handleDeleteProfile}
                                 disabled={isDeleting}
                                 className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                {isDeleting ? "Deleting profile..." : "Delete permanently"}
+                                {isDeleting ? "Deleting account..." : "Delete account"}
                             </button>
                         </div>
                     </section>
