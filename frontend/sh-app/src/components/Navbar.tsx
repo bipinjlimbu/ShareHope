@@ -1,9 +1,8 @@
-
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { AuthUser } from "@/types/auth";
-import { authFetch } from "@/lib/api";
+import { getProfile } from "@/services/profileService";
 import LogoutButton from "@/components/LogoutButton";
 import NavbarSkeleton from "@/components/skeleton/NavbarSkeleton";
 
@@ -14,78 +13,33 @@ const links = [
     { label: "About", href: "/about" },
 ];
 
-function getStoredUser(): AuthUser | null {
-    try {
-        const storedUser = localStorage.getItem("user");
-
-        if (!storedUser) return null;
-
-        const parsedUser: unknown = JSON.parse(storedUser);
-
-        if (
-            typeof parsedUser === "object" &&
-            parsedUser !== null &&
-            "username" in parsedUser &&
-            typeof parsedUser.username === "string"
-        ) {
-            return parsedUser as AuthUser;
-        }
-
-        return null;
-    } catch {
-        return null;
-    }
-}
-
-function clearStoredUser(): void {
-    localStorage.removeItem("user");
-    window.dispatchEvent(new Event("auth-change"));
-}
-
 export default function Navbar() {
     const [menuOpen, setMenuOpen] = useState(false);
     const [user, setUser] = useState<AuthUser | null>(null);
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-    const syncUser = useCallback(() => {
-        setUser(getStoredUser());
-        setIsCheckingAuth(false);
-    }, []);
-
     useEffect(() => {
         let active = true;
 
-        async function checkSession() {
-            const cachedUser = getStoredUser();
-
-            if (!cachedUser) {
-                if (active) {
-                    setUser(null);
-                    setIsCheckingAuth(false);
-                }
-                return;
-            }
-
+        async function syncUser() {
             try {
-                await authFetch("/profile/", {
-                    method: "GET",
-                });
+                const response = await getProfile();
 
                 if (active) {
-                    setUser(getStoredUser());
-                    setIsCheckingAuth(false);
+                    setUser(response.user);
                 }
             } catch {
-                clearStoredUser();
-
                 if (active) {
                     setUser(null);
+                }
+            } finally {
+                if (active) {
                     setIsCheckingAuth(false);
                 }
             }
         }
 
-        void checkSession();
+        void syncUser();
 
         window.addEventListener("auth-change", syncUser);
         window.addEventListener("storage", syncUser);
@@ -95,7 +49,7 @@ export default function Navbar() {
             window.removeEventListener("auth-change", syncUser);
             window.removeEventListener("storage", syncUser);
         };
-    }, [syncUser]);
+    }, []);
 
     if (isCheckingAuth) {
         return <NavbarSkeleton />;
@@ -136,7 +90,11 @@ export default function Navbar() {
 
                 <nav className="hidden items-center gap-8 md:flex">
                     {links.map((link) => (
-                        <a key={link.href} href={link.href} className="text-sm font-medium text-[#536458] transition hover:text-[#166534]">
+                        <a
+                            key={link.href}
+                            href={link.href}
+                            className="text-sm font-medium text-[#536458] transition hover:text-[#166534]"
+                        >
                             {link.label}
                         </a>
                     ))}
@@ -145,7 +103,11 @@ export default function Navbar() {
                 <div className="hidden items-center gap-3 md:flex">
                     {user ? (
                         <>
-                            <a href="/profile" className={profileLinkClass} aria-label={`View ${username}'s profile`}>
+                            <a
+                                href="/profile"
+                                className={profileLinkClass}
+                                aria-label={`View ${username}'s profile`}
+                            >
                                 {user.profile_picture ? (
                                     <img
                                         src={`${API_URL}${user.profile_picture}`}
@@ -165,10 +127,16 @@ export default function Navbar() {
                         </>
                     ) : (
                         <>
-                            <a href="/login" className="rounded-xl px-4 py-2.5 text-sm font-semibold text-[#31523C] transition hover:bg-[#EDF5EC]">
+                            <a
+                                href="/login"
+                                className="rounded-xl px-4 py-2.5 text-sm font-semibold text-[#31523C] transition hover:bg-[#EDF5EC]"
+                            >
                                 Log in
                             </a>
-                            <a href="/register" className="rounded-xl bg-[#166534] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#14532D]">
+                            <a
+                                href="/register"
+                                className="rounded-xl bg-[#166534] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#14532D]"
+                            >
                                 Get started
                             </a>
                         </>
@@ -184,11 +152,21 @@ export default function Navbar() {
                 >
                     {menuOpen ? (
                         <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-                            <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            <path
+                                d="m6 6 12 12M18 6 6 18"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                            />
                         </svg>
                     ) : (
                         <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
-                            <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                            <path
+                                d="M4 7h16M4 12h16M4 17h16"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                            />
                         </svg>
                     )}
                 </button>
@@ -198,36 +176,64 @@ export default function Navbar() {
                 <div className="border-t border-[#E6EDE4] bg-[#FFFCF6] px-5 py-5 md:hidden">
                     <nav className="mx-auto flex max-w-7xl flex-col gap-1">
                         {links.map((link) => (
-                            <a key={link.href} href={link.href} onClick={closeMenu} className="rounded-xl px-4 py-3 text-sm font-medium text-[#31523C] transition hover:bg-[#EDF5EC]">
+                            <a
+                                key={link.href}
+                                href={link.href}
+                                onClick={closeMenu}
+                                className="rounded-xl px-4 py-3 text-sm font-medium text-[#31523C] transition hover:bg-[#EDF5EC]"
+                            >
                                 {link.label}
                             </a>
                         ))}
 
                         {user ? (
                             <>
-                                <a href="/profile" onClick={closeMenu} className="mt-2 flex items-center gap-3 rounded-xl px-4 py-3 transition hover:bg-[#EDF5EC]">
+                                <a
+                                    href="/profile"
+                                    onClick={closeMenu}
+                                    className="mt-2 flex items-center gap-3 rounded-xl px-4 py-3 transition hover:bg-[#EDF5EC]"
+                                >
                                     {user.profile_picture ? (
-                                        <img src={`${API_URL}${user.profile_picture}`} alt="" className="h-10 w-10 rounded-full border border-[#DDE7DC] object-cover" />
+                                        <img
+                                            src={`${API_URL}${user.profile_picture}`}
+                                            alt=""
+                                            className="h-10 w-10 rounded-full border border-[#DDE7DC] object-cover"
+                                        />
                                     ) : (
                                         <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E4F1E4] text-sm font-bold uppercase text-[#166534]">
                                             {username.charAt(0) || "U"}
                                         </span>
                                     )}
                                     <span className="min-w-0">
-                                        <span className="block text-xs text-[#718174]">Signed in as</span>
-                                        <span className="block truncate text-sm font-semibold text-[#31523C]">{username}</span>
+                                        <span className="block text-xs text-[#718174]">
+                                            Signed in as
+                                        </span>
+                                        <span className="block truncate text-sm font-semibold text-[#31523C]">
+                                            {username}
+                                        </span>
                                     </span>
                                 </a>
                                 <div className="mt-3">
-                                    <LogoutButton onLoggedOut={closeMenu} className={`${logoutClass} w-full`} />
+                                    <LogoutButton
+                                        onLoggedOut={closeMenu}
+                                        className={`${logoutClass} w-full`}
+                                    />
                                 </div>
                             </>
                         ) : (
                             <div className="mt-3 grid grid-cols-2 gap-3">
-                                <a href="/login" onClick={closeMenu} className="rounded-xl border border-[#DDE7DC] px-4 py-3 text-center text-sm font-semibold text-[#14532D]">
+                                <a
+                                    href="/login"
+                                    onClick={closeMenu}
+                                    className="rounded-xl border border-[#DDE7DC] px-4 py-3 text-center text-sm font-semibold text-[#14532D]"
+                                >
                                     Log in
                                 </a>
-                                <a href="/register" onClick={closeMenu} className="rounded-xl bg-[#166534] px-4 py-3 text-center text-sm font-semibold text-white">
+                                <a
+                                    href="/register"
+                                    onClick={closeMenu}
+                                    className="rounded-xl bg-[#166534] px-4 py-3 text-center text-sm font-semibold text-white"
+                                >
                                     Get started
                                 </a>
                             </div>
