@@ -1,11 +1,15 @@
+from datetime import timedelta, timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from django.contrib.auth.hashers import make_password
 from ..models import User
 from ..serializers import UserSerializer
+from ..email_service import send_email
+import secrets
 
-@api_view(['GET', 'PUT', 'DELETE'])
+@api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def profile_view(request):
     if request.method == 'GET':
@@ -13,8 +17,8 @@ def profile_view(request):
         serializer = UserSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-    errors = {}
     if request.method == 'PUT':
+        errors = {}
         username = request.data.get('username', '')
         first_name = request.data.get('first_name', '')
         last_name = request.data.get('last_name', '')
@@ -45,6 +49,18 @@ def profile_view(request):
             user.profile_picture = profile_picture
         user.save()
         return Response({"message": "Profile updated successfully", "user": UserSerializer(user).data}, status=status.HTTP_200_OK)
+    
+    if request.method == 'PATCH':
+        otp = f"{secrets.randbelow(1000000):06d}"
+        user = User.objects.get(pk=request.user.pk)
+        hashed_otp = make_password(otp)
+        user.hashed_otp = hashed_otp
+        user.otp_expires_at = timezone.now() + timedelta(minutes=10)
+        user.save()
+        subject = "Verify Your Email - ShareHope"
+        message = f"Your OTP for email verification is: {otp}. Please use this to verify your email address."
+        send_email(subject, message, request.user.email)
+        return Response({"message": "OTP sent for email verification."}, status=status.HTTP_200_OK)
     
     if request.method == 'DELETE':
         user = request.user
