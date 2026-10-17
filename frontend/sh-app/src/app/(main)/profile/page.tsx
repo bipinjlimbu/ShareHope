@@ -190,6 +190,13 @@ export default function ProfilePage() {
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "");
 
+    const dashboardRoutes: Record<string, string> = {
+        ADMIN: "/admin/dashboard",
+        DONOR: "/donor/dashboard",
+        NGO_ADMIN: "/ngo-admin/dashboard",
+        NGO_STAFF: "/ngo-staff/dashboard",
+    };
+
     const loadProfile = useCallback(async () => {
         setIsLoading(true);
         setProfileError("");
@@ -341,6 +348,10 @@ export default function ProfilePage() {
                 : `${API_URL ?? ""}${user.profile_picture}`
             : null;
 
+    const dashboardLink = user.role
+        ? dashboardRoutes[user.role]
+        : undefined;
+
     return (
         <>
             <main className="min-h-screen bg-[#FFFCF6] px-5 py-10 sm:px-8 sm:py-14">
@@ -403,7 +414,20 @@ export default function ProfilePage() {
                             <div className="my-6 border-t border-[#E6EDE4]" />
 
                             <div className="space-y-3">
-                                {!user.is_verified && (
+                                {user.is_verified ? (
+                                    dashboardLink ? (
+                                        <Link
+                                            href={dashboardLink}
+                                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#166534] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#14532D]"
+                                        >
+                                            Access Dashboard
+                                        </Link>
+                                    ) : (
+                                        <p className="text-sm leading-5 text-[#718174]">
+                                            Dashboard access is unavailable for this account role.
+                                        </p>
+                                    )
+                                ) : (
                                     <button
                                         type="button"
                                         onClick={handleRequestEmailVerification}
@@ -445,79 +469,83 @@ export default function ProfilePage() {
                             </p>
                         </aside>
 
-                        <section className="min-w-0 rounded-3xl border border-[#E6EDE4] bg-white p-5 shadow-sm sm:p-7">
-                            <div className="flex items-start justify-between gap-4">
-                                <div>
-                                    <h2 className="text-lg font-extrabold text-[#14532D] sm:text-xl">
-                                        Personal information
-                                    </h2>
-
-                                    <p className="mt-1 text-sm leading-6 text-[#718174]">
-                                        Your details associated with ShareHope.
-                                    </p>
-                                </div>
-
-                                <button
-                                    type="button"
-                                    onClick={() => setIsEditOpen(true)}
-                                    aria-label="Edit profile"
-                                    title="Edit profile"
-                                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#D7E9D5] bg-[#F0F7ED] text-[#287341] transition hover:border-[#A8CCA9] hover:bg-[#E4F1E4] focus:outline-none focus:ring-2 focus:ring-[#35A45C] focus:ring-offset-2"
-                                >
-                                    <EditIcon />
-                                </button>
-                            </div>
-
-                            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                                <ProfileField
-                                    label="Username"
-                                    value={user.username}
-                                    icon={<UserIcon />}
-                                />
-
-                                <ProfileField
-                                    label="Email address"
-                                    value={user.email}
-                                    icon={<MailIcon />}
-                                />
-
-                                <ProfileField
-                                    label="Phone number"
-                                    value={user.phone}
-                                    icon={<PhoneIcon />}
-                                />
-
-                                <ProfileField
-                                    label="Account role"
-                                    value={formatRole(user.role)}
-                                    icon={<ShieldIcon />}
-                                />
-                            </div>
-
-                            <div className="mt-6 rounded-2xl border border-[#E6EDE4] bg-[#F7F9F4] p-4 sm:p-5">
-                                <div className="flex items-start gap-3">
-                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#287341] shadow-sm">
-                                        <ShieldIcon />
-                                    </div>
-
+                        <div className="min-w-0 space-y-6">
+                            <section className="min-w-0 rounded-3xl border border-[#E6EDE4] bg-white p-5 shadow-sm sm:p-7">
+                                <div className="flex items-start justify-between gap-4">
                                     <div>
-                                        <h3 className="text-sm font-bold text-[#24432D]">
-                                            Account security
-                                        </h3>
+                                        <h2 className="text-lg font-extrabold text-[#14532D] sm:text-xl">
+                                            Personal information
+                                        </h2>
 
                                         <p className="mt-1 text-sm leading-6 text-[#718174]">
-                                            {user.is_verified
-                                                ? "Your email address is verified. Keep your account information up to date."
-                                                : "Verify your email address to help secure your ShareHope account."}
+                                            Your details associated with ShareHope.
                                         </p>
                                     </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsEditOpen(true)}
+                                        aria-label="Edit profile"
+                                        title="Edit profile"
+                                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[#D7E9D5] bg-[#F0F7ED] text-[#287341] transition hover:border-[#A8CCA9] hover:bg-[#E4F1E4] focus:outline-none focus:ring-2 focus:ring-[#35A45C] focus:ring-offset-2"
+                                    >
+                                        <EditIcon />
+                                    </button>
                                 </div>
-                            </div>
-                        </section>
+
+                                <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                                    <ProfileField
+                                        label="Username"
+                                        value={user.username}
+                                        icon={<UserIcon />}
+                                    />
+
+                                    <ProfileField
+                                        label="Email address"
+                                        value={user.email}
+                                        icon={<MailIcon />}
+                                    />
+
+                                    <ProfileField
+                                        label="Phone number"
+                                        value={user.phone}
+                                        icon={<PhoneIcon />}
+                                    />
+
+                                    <ProfileField
+                                        label="Account role"
+                                        value={formatRole(user.role)}
+                                        icon={<ShieldIcon />}
+                                    />
+                                </div>
+
+                                <div className="mt-6 rounded-2xl border border-[#E6EDE4] bg-[#F7F9F4] p-4 sm:p-5">
+                                    <div className="flex items-start gap-3">
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#287341] shadow-sm">
+                                            <ShieldIcon />
+                                        </div>
+
+                                        <div>
+                                            <h3 className="text-sm font-bold text-[#24432D]">
+                                                Account security
+                                            </h3>
+
+                                            <p className="mt-1 text-sm leading-6 text-[#718174]">
+                                                {user.is_verified
+                                                    ? "Your email address is verified. Keep your account information up to date."
+                                                    : "Verify your email address to help secure your ShareHope account."}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+                        </div>
                     </div>
 
                     <p className="mt-6 text-center text-xs text-[#879487]">
-                        Thank you for being part of ShareHope.
+                        {user.is_verified
+                            ? "Thank you for being part of ShareHope."
+                            : "Please verify your email to access your ShareHope dashboard."}
                     </p>
                 </div>
             </main>
