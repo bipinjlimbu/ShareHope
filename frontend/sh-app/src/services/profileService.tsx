@@ -7,6 +7,7 @@ import type {
     ProfileUpdatePayload,
     ProfileUpdateResponse,
     ProfileUser,
+    ResendOTPResponse,
 } from "@/types/profile";
 
 function isProfileUser(value: unknown): value is ProfileUser {
@@ -15,6 +16,17 @@ function isProfileUser(value: unknown): value is ProfileUser {
         value !== null &&
         "username" in value &&
         typeof value.username === "string"
+    );
+}
+
+function isMessageResponse(
+    value: unknown,
+): value is { message: string } {
+    return (
+        typeof value === "object" &&
+        value !== null &&
+        "message" in value &&
+        typeof value.message === "string"
     );
 }
 
@@ -66,7 +78,8 @@ export async function updateProfile(
         typeof response !== "object" ||
         response === null ||
         !("user" in response) ||
-        !isProfileUser(response.user)
+        !isProfileUser(response.user) ||
+        !isMessageResponse(response)
     ) {
         throw {
             message: "The server returned an invalid profile response.",
@@ -82,12 +95,7 @@ export async function deleteProfile(): Promise<ProfileDeleteResponse> {
         body: JSON.stringify({}),
     });
 
-    if (
-        typeof response !== "object" ||
-        response === null ||
-        !("message" in response) ||
-        typeof response.message !== "string"
-    ) {
+    if (!isMessageResponse(response)) {
         throw {
             message: "The server returned an invalid delete response.",
         };
@@ -102,12 +110,7 @@ export async function requestEmailVerification(): Promise<EmailVerificationReque
         body: JSON.stringify({}),
     });
 
-    if (
-        typeof response !== "object" ||
-        response === null ||
-        !("message" in response) ||
-        typeof response.message !== "string"
-    ) {
+    if (!isMessageResponse(response)) {
         throw {
             message: "The server returned an invalid email verification response.",
         };
@@ -124,16 +127,26 @@ export async function verifyEmail(
         body: JSON.stringify({ otp }),
     });
 
-    if (
-        typeof response !== "object" ||
-        response === null ||
-        !("message" in response) ||
-        typeof response.message !== "string"
-    ) {
+    if (!isMessageResponse(response)) {
         throw {
             message: "The server returned an invalid email verification response.",
         };
     }
 
     return response as EmailVerificationResponse;
+}
+
+export async function resendOTP(): Promise<ResendOTPResponse> {
+    const response = await authFetch("/profile/resend-otp/", {
+        method: "POST",
+        body: JSON.stringify({}),
+    });
+
+    if (!isMessageResponse(response)) {
+        throw {
+            message: "The server returned an invalid OTP resend response.",
+        };
+    }
+
+    return response as ResendOTPResponse;
 }
