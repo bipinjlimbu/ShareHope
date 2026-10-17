@@ -1,5 +1,7 @@
 export type ToastType = "success" | "error" | "info";
 
+export type VerificationStatus = "pending" | "success" | "failed";
+
 export type ToastItem = {
     id: number;
     message: string;
