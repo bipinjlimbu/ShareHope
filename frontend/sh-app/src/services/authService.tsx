@@ -1,4 +1,5 @@
 import { apiFetch } from "@/lib/api";
+import { setAuthStatus } from "@/lib/authStatus";
 import type {
     RegisterPayload,
     RegisterResponse,
@@ -16,16 +17,25 @@ function getCookie(name: string): string | null {
         .split("; ")
         .find((item) => item.startsWith(`${name}=`));
 
-    return cookie ? decodeURIComponent(cookie.substring(name.length + 1)) : null;
+    return cookie
+        ? decodeURIComponent(
+            cookie.substring(name.length + 1)
+        )
+        : null;
 }
 
-export async function registerUser(payload: RegisterPayload): Promise<RegisterResponse> {
+export async function registerUser(
+    payload: RegisterPayload
+): Promise<RegisterResponse> {
     const formData = new FormData();
 
     formData.append("username", payload.username);
     formData.append("email", payload.email);
     formData.append("password", payload.password);
-    formData.append("confirm_password", payload.confirm_password);
+    formData.append(
+        "confirm_password",
+        payload.confirm_password
+    );
 
     if (payload.first_name) {
         formData.append("first_name", payload.first_name);
@@ -44,7 +54,10 @@ export async function registerUser(payload: RegisterPayload): Promise<RegisterRe
     }
 
     if (payload.profile_picture) {
-        formData.append("profile_picture", payload.profile_picture);
+        formData.append(
+            "profile_picture",
+            payload.profile_picture
+        );
     }
 
     return apiFetch("/register/", {
@@ -53,14 +66,22 @@ export async function registerUser(payload: RegisterPayload): Promise<RegisterRe
     });
 }
 
-export async function loginUser(payload: LoginPayload): Promise<LoginResponse> {
-    return apiFetch("/login/", {
+export async function loginUser(
+    payload: LoginPayload
+): Promise<LoginResponse> {
+    const response = await apiFetch("/login/", {
         method: "POST",
         body: JSON.stringify(payload),
     });
+
+    setAuthStatus(true);
+
+    return response;
 }
 
-export async function refreshSession(): Promise<{ message: string }> {
+export async function refreshSession(): Promise<{
+    message: string;
+}> {
     return apiFetch("/token/refresh/", {
         method: "POST",
         body: JSON.stringify({}),
@@ -76,7 +97,7 @@ export async function logoutUser(): Promise<LogoutResponse> {
         );
     }
 
-    return apiFetch("/logout/", {
+    const response = await apiFetch("/logout/", {
         method: "POST",
         credentials: "include",
         headers: {
@@ -84,6 +105,10 @@ export async function logoutUser(): Promise<LogoutResponse> {
         },
         body: JSON.stringify({}),
     });
+
+    setAuthStatus(false);
+
+    return response;
 }
 
 export async function getCsrfToken(): Promise<void> {
