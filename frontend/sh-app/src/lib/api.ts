@@ -1,38 +1,65 @@
+import { setAuthStatus } from "@/lib/authStatus";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 function getCsrfToken(): string | undefined {
-    if (typeof document === "undefined") return undefined;
+    if (typeof document === "undefined") {
+        return undefined;
+    }
 
     const csrfCookie = document.cookie
         .split("; ")
         .find((cookie) => cookie.startsWith("csrftoken="));
 
     return csrfCookie
-        ? decodeURIComponent(csrfCookie.substring("csrftoken=".length))
+        ? decodeURIComponent(
+            csrfCookie.substring("csrftoken=".length)
+        )
         : undefined;
 }
 
-function clearClientSession(): void {
-    if (typeof window === "undefined") return;
+function getErrorStatus(error: unknown): number | undefined {
+    if (
+        typeof error === "object" &&
+        error !== null &&
+        "status" in error &&
+        typeof error.status === "number"
+    ) {
+        return error.status;
+    }
 
-    localStorage.removeItem("user");
-    window.dispatchEvent(new Event("auth-change"));
+    return undefined;
 }
 
 function redirectToLogin(): void {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined") {
+        return;
+    }
 
-    const publicPaths = ["/login", "/register"];
+    const publicPaths = [
+        "/",
+        "/login",
+        "/register",
+        "/campaigns",
+        "/about",
+    ];
 
-    if (!publicPaths.includes(window.location.pathname)) {
+    const currentPath = window.location.pathname;
+
+    const isPublicPath = publicPaths.some(
+        (path) =>
+            currentPath === path ||
+            (path !== "/" && currentPath.startsWith(`${path}/`))
+    );
+
+    if (!isPublicPath) {
         window.location.replace("/login");
     }
 }
 
 export async function apiFetch(
     endpoint: string,
-    options?: RequestInit,
+    options?: RequestInit
 ) {
     const isFormData =
         typeof FormData !== "undefined" &&
@@ -45,7 +72,9 @@ export async function apiFetch(
         headers.set("Content-Type", "application/json");
     }
 
-    if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    if (
+        ["POST", "PUT", "PATCH", "DELETE"].includes(method)
+    ) {
         const csrfToken = getCsrfToken();
 
         if (csrfToken) {
@@ -63,7 +92,9 @@ export async function apiFetch(
 
     if (!response.ok) {
         throw {
-            ...(typeof data === "object" && data !== null ? data : {}),
+            ...(typeof data === "object" && data !== null
+                ? data
+                : {}),
             status: response.status,
         };
     }
@@ -71,22 +102,9 @@ export async function apiFetch(
     return data;
 }
 
-function getErrorStatus(error: unknown): number | undefined {
-    if (
-        typeof error === "object" &&
-        error !== null &&
-        "status" in error &&
-        typeof error.status === "number"
-    ) {
-        return error.status;
-    }
-
-    return undefined;
-}
-
 export async function authFetch(
     endpoint: string,
-    options?: RequestInit,
+    options?: RequestInit
 ) {
     try {
         return await apiFetch(endpoint, options);
@@ -96,7 +114,7 @@ export async function authFetch(
         }
 
         if (endpoint === "/token/refresh/") {
-            clearClientSession();
+            setAuthStatus(false);
             redirectToLogin();
             throw error;
         }
@@ -107,9 +125,10 @@ export async function authFetch(
                 body: JSON.stringify({}),
             });
         } catch (refreshError: unknown) {
-            if (getErrorStatus(refreshError) === 401 ||
-                getErrorStatus(refreshError) === 400) {
-                clearClientSession();
+            const status = getErrorStatus(refreshError);
+
+            if (status === 401 || status === 400) {
+                setAuthStatus(false);
                 redirectToLogin();
             }
 
@@ -120,7 +139,7 @@ export async function authFetch(
             return await apiFetch(endpoint, options);
         } catch (retryError: unknown) {
             if (getErrorStatus(retryError) === 401) {
-                clearClientSession();
+                setAuthStatus(false);
                 redirectToLogin();
             }
 
