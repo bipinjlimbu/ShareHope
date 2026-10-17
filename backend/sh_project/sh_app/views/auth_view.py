@@ -15,7 +15,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from ..email_service import welcome_email
 from ..models import User
 from ..serializers import UserSerializer
-
+import re
 
 def set_auth_cookies(response, access_token, refresh_token=None):
     secure_cookie = not settings.DEBUG
@@ -59,22 +59,48 @@ def register_view(request):
     role = request.data.get('role', User.Role.DONOR)
     phone = request.data.get('phone', '')
     profile_picture = request.FILES.get('profile_picture', None)
+    
+    username_pattern = r'^[a-zA-Z0-9_]{3,30}$'
+    first_name_pattern = r'^[a-zA-Z]{1,30}$'
+    last_name_pattern = r'^[a-zA-Z]{1,30}$'
+    email_pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+    password_pattern = r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$'
+    phone_pattern = r'^\+?\d{10,15}$'
+    profile_picture_pattern = r'^.*\.(jpg|jpeg|png|gif)$'
 
     if not username:
         errors['username'] = 'Username is required.'
     elif User.objects.filter(username=username).exists():
         errors['username'] = 'Username already exists.'
+    elif not re.match(username_pattern, username):
+        errors['username'] = 'Username must be 3-30 characters long and can only contain letters, numbers, and underscores.'
+        
+    if first_name and not re.match(first_name_pattern, first_name):
+        errors['first_name'] = 'First name can only contain letters and must be 1-30 characters long.'
+
+    if last_name and not re.match(last_name_pattern, last_name):
+        errors['last_name'] = 'Last name can only contain letters and must be 1-30 characters long.'
 
     if not email:
         errors['email'] = 'Email is required.'
     elif User.objects.filter(email__iexact=email).exists():
         errors['email'] = 'Email already exists.'
-
+    elif not re.match(email_pattern, email):
+        errors['email'] = 'Invalid email format.'
+        
     if not password:
         errors['password'] = 'Password is required.'
+    elif not re.match(password_pattern, password):
+        errors['password'] = 'Password must be at least 8 characters long, contain at least one letter, one number, and one special character.'
 
     if password != confirm_password:
         errors['confirm_password'] = 'Passwords do not match.'
+        
+    if phone and not re.match(phone_pattern, phone):
+        errors['phone'] = 'Phone number must be 10-15 digits long and can optionally start with a +.'
+        
+    if profile_picture and not re.match(profile_picture_pattern, profile_picture.name):
+        errors['profile_picture'] = 'Profile picture must be a valid image file (jpg, jpeg, png, gif).'
 
     if errors:
         return Response(errors, status=status.HTTP_400_BAD_REQUEST)
