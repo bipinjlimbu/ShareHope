@@ -128,3 +128,24 @@ def verify_email_view(request):
         send_email(subject, message, request.user.email)
         
         return Response({"message": "Email verified successfully"}, status=status.HTTP_200_OK)
+    
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def resend_otp_view(request):
+    if request.method == 'POST':
+        user = User.objects.get(pk=request.user.pk)
+        
+        if user.is_verified:
+            return Response({"message": "Email is already verified."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        otp = f"{secrets.randbelow(1000000):06d}"
+        hashed_otp = make_password(otp)
+        user.hashed_otp = hashed_otp
+        user.otp_expires_at = timezone.now() + timedelta(minutes=10)
+        user.save()
+        
+        subject = "Resend OTP for Email Verification - ShareHope"
+        message = f"Your new OTP for email verification is: {otp}. Please use this to verify your email address."
+        send_email(subject, message, request.user.email)
+        
+        return Response({"message": "New OTP sent for email verification."}, status=status.HTTP_200_OK)
