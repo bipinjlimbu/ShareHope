@@ -41,4 +41,8 @@ export type EmailVerificationResponse = {
     message: string;
 };
 
+export type ResendOTPResponse = {
+    message: string;
+};
+
 export type ProfileFormErrors = Record<string, string | string[]>;
