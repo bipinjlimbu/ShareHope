@@ -21,8 +21,7 @@ import {
     requestEmailVerification,
     verifyEmail,
 } from "@/services/profileService";
-
-type VerificationStatus = "pending" | "success" | "failed";
+import type { VerificationStatus } from "@/types/toast";
 
 export default function VerifyEmailPage() {
     const router = useRouter();
@@ -54,6 +53,7 @@ export default function VerifyEmailPage() {
 
                 if (response.user.is_verified) {
                     setIsAlreadyVerified(true);
+
                     showToast(
                         "Your email is already verified. Redirecting to your profile.",
                         "info"
@@ -61,7 +61,7 @@ export default function VerifyEmailPage() {
 
                     redirectTimeout = setTimeout(() => {
                         router.replace("/profile");
-                    }, 3200);
+                    }, 3500);
 
                     return;
                 }
@@ -71,6 +71,7 @@ export default function VerifyEmailPage() {
                 if (!isMounted) return;
 
                 setProfileCheckFailed(true);
+
                 showToast(
                     "Unable to check your verification status. Please try again.",
                     "error"
@@ -99,7 +100,7 @@ export default function VerifyEmailPage() {
         const timeoutId = setTimeout(() => {
             router.push("/profile");
             router.refresh();
-        }, 3200);
+        }, 3500);
 
         return () => clearTimeout(timeoutId);
     }, [status, router]);
@@ -122,11 +123,13 @@ export default function VerifyEmailPage() {
             setDigits(nextValues);
             setFieldError("");
             setErrorMessage("");
+
             inputRefs.current[Math.min(pastedDigits.length, 5)]?.focus();
             return;
         }
 
         nextDigits[index] = value;
+
         setDigits(nextDigits);
         setFieldError("");
         setErrorMessage("");
@@ -173,6 +176,7 @@ export default function VerifyEmailPage() {
         setDigits(nextDigits);
         setFieldError("");
         setErrorMessage("");
+
         inputRefs.current[Math.min(pastedDigits.length, 5)]?.focus();
     }
 
@@ -188,7 +192,10 @@ export default function VerifyEmailPage() {
             const response = error as Record<string, unknown>;
 
             if (typeof response.otp === "string") {
-                return { message: response.otp, otpError: true };
+                return {
+                    message: response.otp,
+                    otpError: true,
+                };
             }
 
             if (Array.isArray(response.otp)) {
@@ -237,7 +244,13 @@ export default function VerifyEmailPage() {
 
         if (otp.length !== 6) {
             setFieldError("Please enter the complete six-digit OTP.");
-            inputRefs.current[digits.findIndex((digit) => !digit)]?.focus();
+
+            const firstEmptyIndex = digits.findIndex((digit) => !digit);
+
+            if (firstEmptyIndex !== -1) {
+                inputRefs.current[firstEmptyIndex]?.focus();
+            }
+
             return;
         }
 
@@ -256,9 +269,11 @@ export default function VerifyEmailPage() {
             const details = getErrorDetails(error);
 
             if (details.otpError) {
-                setFailedMessage(details.message || "The OTP is invalid.");
+                const message = details.message || "The OTP is invalid.";
+
+                setFailedMessage(message);
                 setStatus("failed");
-                showToast(details.message || "The OTP is invalid.", "error");
+                showToast(message, "error");
             } else {
                 setErrorMessage(details.message);
                 showToast(details.message, "error");
@@ -283,6 +298,7 @@ export default function VerifyEmailPage() {
             setStatus("pending");
             setFailedMessage("");
             setSuccessMessage(message);
+
             showToast(message, "success");
 
             requestAnimationFrame(() => {
@@ -301,7 +317,7 @@ export default function VerifyEmailPage() {
 
                 window.setTimeout(() => {
                     router.replace("/profile");
-                }, 3200);
+                }, 3500);
             } else {
                 setFailedMessage(details.message);
                 showToast(details.message, "error");
@@ -324,6 +340,7 @@ export default function VerifyEmailPage() {
 
             setDigits(["", "", "", "", "", ""]);
             setSuccessMessage(message);
+
             showToast(message, "success");
 
             requestAnimationFrame(() => {
@@ -342,7 +359,7 @@ export default function VerifyEmailPage() {
 
                 window.setTimeout(() => {
                     router.replace("/profile");
-                }, 3200);
+                }, 3500);
             } else {
                 setErrorMessage(details.message);
                 showToast(details.message, "error");
