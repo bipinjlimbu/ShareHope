@@ -223,7 +223,7 @@ export default function ProfilePage() {
 
         try {
             await requestEmailVerification();
-            router.push("/verify-email");
+            router.push("/profile/verify-email");
         } catch (error: unknown) {
             setVerificationError(getErrorMessage(error));
         } finally {
@@ -368,14 +368,14 @@ export default function ProfilePage() {
 
                                 <span
                                     className={`mt-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${user.is_verified
-                                            ? "border-[#D7E9D5] bg-[#F0F7ED] text-[#287341]"
-                                            : "border-[#E8DFC7] bg-[#FAF5E8] text-[#8A7138]"
+                                        ? "border-[#D7E9D5] bg-[#F0F7ED] text-[#287341]"
+                                        : "border-[#E8DFC7] bg-[#FAF5E8] text-[#8A7138]"
                                         }`}
                                 >
                                     <span
                                         className={`h-2 w-2 rounded-full ${user.is_verified
-                                                ? "bg-[#35A45C]"
-                                                : "bg-[#B7A16A]"
+                                            ? "bg-[#35A45C]"
+                                            : "bg-[#B7A16A]"
                                             }`}
                                     />
                                     {user.is_verified
