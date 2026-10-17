@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { registerUser } from "@/services/authService";
 import RegisterSkeleton from "@/components/skeleton/RegisterSkeleton";
+import { useToast } from "@/components/ToastProvider";
 import type { RegisterPayload, RegisterErrors } from "@/types/auth";
 
 const initialForm: RegisterPayload = {
@@ -26,6 +27,8 @@ const initialForm: RegisterPayload = {
 
 export default function RegisterPage() {
     const router = useRouter();
+    const { showToast } = useToast();
+
     const [pageReady, setPageReady] = useState(false);
     const [form, setForm] = useState<RegisterPayload>({ ...initialForm });
     const [errors, setErrors] = useState<RegisterErrors>({});
@@ -105,6 +108,11 @@ export default function RegisterPage() {
             const response = await registerUser(form);
 
             setSuccess(response.message);
+            showToast(
+                response.message || "Your account has been created successfully.",
+                "success"
+            );
+
             setForm({ ...initialForm });
 
             window.setTimeout(() => {
@@ -141,18 +149,30 @@ export default function RegisterPage() {
             setErrors(backendErrors);
 
             const nonFieldErrors = response.non_field_errors;
+            let errorMessage = "Unable to create your account. Please try again.";
 
             if (Array.isArray(nonFieldErrors)) {
-                setGeneralError(nonFieldErrors.join(" "));
+                errorMessage = nonFieldErrors.join(" ");
             } else if (typeof nonFieldErrors === "string") {
-                setGeneralError(nonFieldErrors);
+                errorMessage = nonFieldErrors;
             } else if (typeof response.detail === "string") {
-                setGeneralError(response.detail);
+                errorMessage = response.detail;
             } else if (typeof response.message === "string") {
-                setGeneralError(response.message);
+                errorMessage = response.message;
             } else if (typeof response.error === "string") {
-                setGeneralError(response.error);
+                errorMessage = response.error;
+            } else {
+                const fieldMessages = Object.values(backendErrors).flatMap(
+                    (value) => (Array.isArray(value) ? value : [value])
+                );
+
+                if (fieldMessages.length > 0) {
+                    errorMessage = fieldMessages.join(" ");
+                }
             }
+
+            setGeneralError(errorMessage);
+            showToast(errorMessage, "error");
         } finally {
             setLoading(false);
         }
