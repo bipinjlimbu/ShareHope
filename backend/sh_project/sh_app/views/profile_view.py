@@ -9,6 +9,7 @@ from ..models import User
 from ..serializers import UserSerializer
 from ..email_service import send_email
 import secrets
+import re
 
 @api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
@@ -27,15 +28,38 @@ def profile_view(request):
         phone = request.data.get('phone', '')
         profile_picture = request.FILES.get('profile_picture', None)
         
+        username_pattern = r'^[a-zA-Z0-9_]{3,30}$'
+        first_name_pattern = r'^[a-zA-Z]{1,30}$'
+        last_name_pattern = r'^[a-zA-Z]{1,30}$'
+        email_pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+        phone_pattern = r'^\+?\d{10,15}$'
+        profile_picture_pattern = r'^.*\.(jpg|jpeg|png|gif)$'
+        
         if not username:
             errors['username'] = 'Username is required.'
         elif User.objects.exclude(pk=request.user.pk).filter(username=username).exists():
             errors['username'] = 'Username already exists.'
+        elif not re.match(username_pattern, username):
+            errors['username'] = 'Username must be 3-30 characters long and can only contain letters, numbers, and underscores.'
+            
+        if first_name and not re.match(first_name_pattern, first_name):
+            errors['first_name'] = 'First name can only contain letters and must be 1-30 characters long.'
+            
+        if last_name and not re.match(last_name_pattern, last_name):
+            errors['last_name'] = 'Last name can only contain letters and must be 1-30 characters long.'
             
         if not email:
             errors['email'] = 'Email is required.'
         elif User.objects.exclude(pk=request.user.pk).filter(email=email).exists():
             errors['email'] = 'Email already exists.'
+        elif not re.match(email_pattern, email):
+            errors['email'] = 'Invalid email format.'
+            
+        if phone and not re.match(phone_pattern, phone):
+            errors['phone'] = 'Phone number must be 10-15 digits long and can optionally start with a +.'
+            
+        if profile_picture and not re.match(profile_picture_pattern, profile_picture.name):
+            errors['profile_picture'] = 'Profile picture must be a valid image file (jpg, jpeg, png, gif).'
             
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
