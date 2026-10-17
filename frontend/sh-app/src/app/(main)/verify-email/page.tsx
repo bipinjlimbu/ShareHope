@@ -12,24 +12,43 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import VerifyEmailSkeleton from "@/components/skeleton/VerifyEmailSkeleton";
+import EmailVerificationSuccess from "@/components/EmailVerificationSuccess";
+import EmailVerificationFailed from "@/components/EmailVerificationFailed";
 import {
+    resendOTP,
     requestEmailVerification,
     verifyEmail,
 } from "@/services/profileService";
 
+type VerificationStatus = "pending" | "success" | "failed";
+
 export default function VerifyEmailPage() {
     const router = useRouter();
+
     const [digits, setDigits] = useState(["", "", "", "", "", ""]);
     const [isLoading, setIsLoading] = useState(false);
     const [isResending, setIsResending] = useState(false);
+    const [status, setStatus] = useState<VerificationStatus>("pending");
     const [errorMessage, setErrorMessage] = useState("");
     const [fieldError, setFieldError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
+    const [failedMessage, setFailedMessage] = useState("");
     const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
     useEffect(() => {
         inputRefs.current[0]?.focus();
     }, []);
+
+    useEffect(() => {
+        if (status !== "success") return;
+
+        const timeoutId = window.setTimeout(() => {
+            router.push("/profile");
+            router.refresh();
+        }, 1800);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [status, router]);
 
     function handleChange(
         index: number,
@@ -67,11 +86,7 @@ export default function VerifyEmailPage() {
         index: number,
         event: KeyboardEvent<HTMLInputElement>,
     ) {
-        if (
-            event.key === "Backspace" &&
-            !digits[index] &&
-            index > 0
-        ) {
+        if (event.key === "Backspace" && !digits[index] && index > 0) {
             inputRefs.current[index - 1]?.focus();
         }
 
@@ -107,38 +122,45 @@ export default function VerifyEmailPage() {
         inputRefs.current[Math.min(pastedDigits.length, 5)]?.focus();
     }
 
-    function getErrorMessage(error: unknown): string {
+    function getErrorDetails(error: unknown): {
+        message: string;
+        otpError: boolean;
+    } {
         if (typeof error === "string") {
-            return error;
+            return { message: error, otpError: false };
         }
 
         if (typeof error === "object" && error !== null) {
             const response = error as Record<string, unknown>;
 
-            if (typeof response.message === "string") {
-                return response.message;
-            }
-
-            if (typeof response.detail === "string") {
-                return response.detail;
-            }
-
             if (typeof response.otp === "string") {
-                setFieldError(response.otp);
-                return "";
+                return { message: response.otp, otpError: true };
             }
 
             if (Array.isArray(response.otp)) {
-                setFieldError(response.otp.join(" "));
-                return "";
+                return {
+                    message: response.otp.join(" "),
+                    otpError: true,
+                };
+            }
+
+            if (typeof response.message === "string") {
+                return { message: response.message, otpError: false };
+            }
+
+            if (typeof response.detail === "string") {
+                return { message: response.detail, otpError: false };
             }
 
             if (typeof response.error === "string") {
-                return response.error;
+                return { message: response.error, otpError: false };
             }
         }
 
-        return "Something went wrong. Please try again.";
+        return {
+            message: "Something went wrong. Please try again.",
+            otpError: false,
+        };
     }
 
     async function handleVerify(event: FormEvent<HTMLFormElement>) {
@@ -164,16 +186,15 @@ export default function VerifyEmailPage() {
             setSuccessMessage(
                 response.message || "Your email has been verified successfully.",
             );
-
-            window.setTimeout(() => {
-                router.push("/profile");
-                router.refresh();
-            }, 1000);
+            setStatus("success");
         } catch (error) {
-            const message = getErrorMessage(error);
+            const details = getErrorDetails(error);
 
-            if (message) {
-                setErrorMessage(message);
+            if (details.otpError) {
+                setFailedMessage(details.message || "The OTP is invalid.");
+                setStatus("failed");
+            } else {
+                setErrorMessage(details.message);
             }
         } finally {
             setIsLoading(false);
@@ -187,24 +208,79 @@ export default function VerifyEmailPage() {
         setIsResending(true);
 
         try {
-            const response = await requestEmailVerification();
+            const response = await resendOTP();
+
+            setDigits(["", "", "", "", "", ""]);
+            setStatus("pending");
+            setFailedMessage("");
             setSuccessMessage(
                 response.message || "A new verification code has been sent.",
             );
-            setDigits(["", "", "", "", "", ""]);
-            inputRefs.current[0]?.focus();
-        } catch (error) {
-            const message = getErrorMessage(error);
 
-            if (message) {
-                setErrorMessage(message);
+            requestAnimationFrame(() => {
+                inputRefs.current[0]?.focus();
+            });
+        } catch (error) {
+            const details = getErrorDetails(error);
+
+            if (details.message === "Email is already verified.") {
+                setSuccessMessage(details.message);
+                setStatus("success");
+            } else {
+                setFailedMessage(details.message);
             }
         } finally {
             setIsResending(false);
         }
     }
 
-    if (isLoading && !successMessage) {
+    async function handleInitialSend() {
+        setErrorMessage("");
+        setFieldError("");
+        setSuccessMessage("");
+        setIsResending(true);
+
+        try {
+            const response = await requestEmailVerification();
+
+            setDigits(["", "", "", "", "", ""]);
+            setSuccessMessage(
+                response.message || "A new verification code has been sent.",
+            );
+
+            requestAnimationFrame(() => {
+                inputRefs.current[0]?.focus();
+            });
+        } catch (error) {
+            const details = getErrorDetails(error);
+            setErrorMessage(details.message);
+        } finally {
+            setIsResending(false);
+        }
+    }
+
+    if (status === "success") {
+        return (
+            <EmailVerificationSuccess
+                message={
+                    successMessage ||
+                    "Your email has been verified successfully."
+                }
+            />
+        );
+    }
+
+    if (status === "failed") {
+        return (
+            <EmailVerificationFailed
+                message={failedMessage}
+                isResending={isResending}
+                onResend={handleResend}
+            />
+        );
+    }
+
+    if (isLoading) {
         return <VerifyEmailSkeleton />;
     }
 
@@ -256,8 +332,8 @@ export default function VerifyEmailPage() {
                     </h1>
 
                     <p className="mt-3 text-sm leading-6 text-[#718174]">
-                        Enter the six-digit verification code sent to your email address.
-                        The code expires after a limited time.
+                        Enter the six-digit verification code sent to your
+                        email address. The code expires after a limited time.
                     </p>
                 </div>
 
@@ -279,15 +355,21 @@ export default function VerifyEmailPage() {
                                 }}
                                 type="text"
                                 inputMode="numeric"
-                                autoComplete={index === 0 ? "one-time-code" : "off"}
+                                autoComplete={
+                                    index === 0 ? "one-time-code" : "off"
+                                }
                                 pattern="[0-9]*"
                                 maxLength={6}
                                 aria-label={`Verification digit ${index + 1}`}
                                 aria-invalid={Boolean(fieldError)}
                                 value={digit}
                                 disabled={isLoading}
-                                onChange={(event) => handleChange(index, event)}
-                                onKeyDown={(event) => handleKeyDown(index, event)}
+                                onChange={(event) =>
+                                    handleChange(index, event)
+                                }
+                                onKeyDown={(event) =>
+                                    handleKeyDown(index, event)
+                                }
                                 onPaste={handlePaste}
                                 className={`h-12 min-w-0 flex-1 rounded-xl border bg-[#FFFCF6] text-center text-xl font-bold text-[#14532D] outline-none transition focus:border-[#35A45C] focus:ring-4 focus:ring-[#35A45C]/10 sm:h-14 sm:max-w-12 ${fieldError
                                     ? "border-red-400"
@@ -326,7 +408,7 @@ export default function VerifyEmailPage() {
 
                     <button
                         type="submit"
-                        disabled={!isOtpComplete || isLoading}
+                        disabled={!isOtpComplete || isLoading || isResending}
                         className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-[#166534] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#14532D] focus:outline-none focus:ring-2 focus:ring-[#35A45C] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {isLoading && (
@@ -360,7 +442,7 @@ export default function VerifyEmailPage() {
                     Didn&apos;t receive the code?{" "}
                     <button
                         type="button"
-                        onClick={handleResend}
+                        onClick={handleInitialSend}
                         disabled={isResending || isLoading}
                         className="font-semibold text-[#166534] transition hover:text-[#14532D] disabled:cursor-not-allowed disabled:opacity-60"
                     >
