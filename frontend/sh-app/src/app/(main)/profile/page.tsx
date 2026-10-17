@@ -11,6 +11,7 @@ import {
 } from "@/services/profileService";
 import ProfileSkeleton from "@/components/skeleton/ProfileSkeleton";
 import ProfileForm from "@/components/form/ProfileForm";
+import { useToast } from "@/components/ToastProvider";
 
 function formatRole(role?: string) {
     if (!role) return "Member";
@@ -175,6 +176,7 @@ function EditIcon() {
 
 export default function ProfilePage() {
     const router = useRouter();
+    const { showToast } = useToast();
 
     const [user, setUser] = useState<ProfileUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -196,11 +198,14 @@ export default function ProfilePage() {
             const response = await getProfile();
             setUser(response.user);
         } catch (error: unknown) {
-            setProfileError(getErrorMessage(error));
+            const message = getErrorMessage(error);
+
+            setProfileError(message);
+            showToast(message, "error");
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [showToast]);
 
     useEffect(() => {
         void loadProfile();
@@ -213,6 +218,7 @@ export default function ProfilePage() {
     function handleProfileUpdated(updatedUser: ProfileUser) {
         setUser(updatedUser);
         setIsEditOpen(false);
+        showToast("Your profile has been updated successfully.", "success");
     }
 
     async function handleRequestEmailVerification() {
@@ -223,9 +229,14 @@ export default function ProfilePage() {
 
         try {
             await requestEmailVerification();
+
+            showToast("Verification code sent successfully.", "success");
             router.push("/profile/verify-email");
         } catch (error: unknown) {
-            setVerificationError(getErrorMessage(error));
+            const message = getErrorMessage(error);
+
+            setVerificationError(message);
+            showToast(message, "error");
         } finally {
             setIsSendingOtp(false);
         }
@@ -245,10 +256,15 @@ export default function ProfilePage() {
 
             window.dispatchEvent(new Event("auth-change"));
 
+            showToast("Your account has been deleted successfully.", "success");
+
             router.replace("/");
             router.refresh();
         } catch (error: unknown) {
-            setDeleteError(getErrorMessage(error));
+            const message = getErrorMessage(error);
+
+            setDeleteError(message);
+            showToast(message, "error");
             setIsDeleting(false);
         }
     }
