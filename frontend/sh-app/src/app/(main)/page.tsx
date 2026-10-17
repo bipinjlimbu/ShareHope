@@ -1,10 +1,10 @@
-
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { ProfileUser } from "@/types/profile";
 import { getProfile } from "@/services/profileService";
 import { useToast } from "@/components/ToastProvider";
+import { getAuthStatus } from "@/lib/authStatus";
 
 const campaigns = [
     {
@@ -341,47 +341,98 @@ export default function Home() {
     const [user, setUser] = useState<ProfileUser | null>(null);
     const { showToast } = useToast();
 
-    const loadUser = useCallback(async () => {
-        try {
-            const response = await getProfile();
-            setUser(response.user);
-        } catch (error: unknown) {
-            setUser(null);
+    useEffect(() => {
+        let active = true;
+        let requestId = 0;
 
-            const status =
-                typeof error === "object" &&
-                    error !== null &&
-                    "status" in error
-                    ? error.status
-                    : undefined;
-
-            const message =
-                typeof error === "object" &&
-                    error !== null &&
-                    "message" in error &&
-                    typeof error.message === "string"
-                    ? error.message
-                    : "Unable to load your account information.";
-
-            if (status === 401 || status === 403) {
+        async function loadUser() {
+            if (!getAuthStatus()) {
+                setUser(null);
                 return;
             }
 
-            showToast(message, "error");
-        }
-    }, [showToast]);
+            const currentRequestId = ++requestId;
 
-    useEffect(() => {
-        const handleAuthChange = () => {
+            try {
+                const response = await getProfile();
+
+                if (
+                    active &&
+                    currentRequestId === requestId
+                ) {
+                    setUser(response.user);
+                }
+            } catch (error: unknown) {
+                if (
+                    !active ||
+                    currentRequestId !== requestId
+                ) {
+                    return;
+                }
+
+                setUser(null);
+
+                const status =
+                    typeof error === "object" &&
+                        error !== null &&
+                        "status" in error
+                        ? error.status
+                        : undefined;
+
+                if (status === 401 || status === 403) {
+                    return;
+                }
+
+                const message =
+                    typeof error === "object" &&
+                        error !== null &&
+                        "message" in error &&
+                        typeof error.message === "string"
+                        ? error.message
+                        : "Unable to load your account information.";
+
+                showToast(message, "error");
+            }
+        }
+
+        function handleAuthChange(event: Event) {
+            const customEvent = event as CustomEvent<{
+                authenticated?: boolean;
+            }>;
+
+            if (customEvent.detail?.authenticated === false) {
+                requestId++;
+                setUser(null);
+                return;
+            }
+
+            if (
+                customEvent.detail?.authenticated === true ||
+                getAuthStatus()
+            ) {
+                void loadUser();
+            } else {
+                requestId++;
+                setUser(null);
+            }
+        }
+
+        if (getAuthStatus()) {
             void loadUser();
-        };
+        }
 
         window.addEventListener("auth-change", handleAuthChange);
 
         return () => {
-            window.removeEventListener("auth-change", handleAuthChange);
+            active = false;
+            requestId++;
+
+            window.removeEventListener(
+                "auth-change",
+                handleAuthChange
+            );
         };
-    }, [loadUser]);
+    }, [showToast]);
 
     return (
         <main className="overflow-hidden bg-[#FFFCF6] text-[#183B2A]">
