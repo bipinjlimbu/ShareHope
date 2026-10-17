@@ -14,7 +14,9 @@ import { useRouter } from "next/navigation";
 import VerifyEmailSkeleton from "@/components/skeleton/VerifyEmailSkeleton";
 import EmailVerificationSuccess from "@/components/EmailVerificationSuccess";
 import EmailVerificationFailed from "@/components/EmailVerificationFailed";
+import { useToast } from "@/components/ToastProvider";
 import {
+    getProfile,
     resendOTP,
     requestEmailVerification,
     verifyEmail,
@@ -24,35 +26,87 @@ type VerificationStatus = "pending" | "success" | "failed";
 
 export default function VerifyEmailPage() {
     const router = useRouter();
+    const { showToast } = useToast();
 
     const [digits, setDigits] = useState(["", "", "", "", "", ""]);
     const [isLoading, setIsLoading] = useState(false);
     const [isResending, setIsResending] = useState(false);
+    const [isCheckingProfile, setIsCheckingProfile] = useState(true);
+    const [isAlreadyVerified, setIsAlreadyVerified] = useState(false);
+    const [profileCheckFailed, setProfileCheckFailed] = useState(false);
     const [status, setStatus] = useState<VerificationStatus>("pending");
     const [errorMessage, setErrorMessage] = useState("");
     const [fieldError, setFieldError] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
     const [failedMessage, setFailedMessage] = useState("");
+
     const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
     useEffect(() => {
-        inputRefs.current[0]?.focus();
-    }, []);
+        let isMounted = true;
+        let redirectTimeout: ReturnType<typeof setTimeout> | undefined;
+
+        async function checkVerificationStatus() {
+            try {
+                const response = await getProfile();
+
+                if (!isMounted) return;
+
+                if (response.user.is_verified) {
+                    setIsAlreadyVerified(true);
+                    showToast(
+                        "Your email is already verified. Redirecting to your profile.",
+                        "info"
+                    );
+
+                    redirectTimeout = setTimeout(() => {
+                        router.replace("/profile");
+                    }, 3200);
+
+                    return;
+                }
+
+                inputRefs.current[0]?.focus();
+            } catch {
+                if (!isMounted) return;
+
+                setProfileCheckFailed(true);
+                showToast(
+                    "Unable to check your verification status. Please try again.",
+                    "error"
+                );
+            } finally {
+                if (isMounted) {
+                    setIsCheckingProfile(false);
+                }
+            }
+        }
+
+        void checkVerificationStatus();
+
+        return () => {
+            isMounted = false;
+
+            if (redirectTimeout) {
+                clearTimeout(redirectTimeout);
+            }
+        };
+    }, [router, showToast]);
 
     useEffect(() => {
         if (status !== "success") return;
 
-        const timeoutId = window.setTimeout(() => {
+        const timeoutId = setTimeout(() => {
             router.push("/profile");
             router.refresh();
-        }, 1800);
+        }, 3200);
 
-        return () => window.clearTimeout(timeoutId);
+        return () => clearTimeout(timeoutId);
     }, [status, router]);
 
     function handleChange(
         index: number,
-        event: ChangeEvent<HTMLInputElement>,
+        event: ChangeEvent<HTMLInputElement>
     ) {
         const value = event.target.value.replace(/\D/g, "");
         const nextDigits = [...digits];
@@ -84,7 +138,7 @@ export default function VerifyEmailPage() {
 
     function handleKeyDown(
         index: number,
-        event: KeyboardEvent<HTMLInputElement>,
+        event: KeyboardEvent<HTMLInputElement>
     ) {
         if (event.key === "Backspace" && !digits[index] && index > 0) {
             inputRefs.current[index - 1]?.focus();
@@ -145,15 +199,24 @@ export default function VerifyEmailPage() {
             }
 
             if (typeof response.message === "string") {
-                return { message: response.message, otpError: false };
+                return {
+                    message: response.message,
+                    otpError: false,
+                };
             }
 
             if (typeof response.detail === "string") {
-                return { message: response.detail, otpError: false };
+                return {
+                    message: response.detail,
+                    otpError: false,
+                };
             }
 
             if (typeof response.error === "string") {
-                return { message: response.error, otpError: false };
+                return {
+                    message: response.error,
+                    otpError: false,
+                };
             }
         }
 
@@ -182,19 +245,23 @@ export default function VerifyEmailPage() {
 
         try {
             const response = await verifyEmail(otp);
+            const message =
+                response.message ||
+                "Your email has been verified successfully.";
 
-            setSuccessMessage(
-                response.message || "Your email has been verified successfully.",
-            );
+            setSuccessMessage(message);
             setStatus("success");
+            showToast(message, "success");
         } catch (error) {
             const details = getErrorDetails(error);
 
             if (details.otpError) {
                 setFailedMessage(details.message || "The OTP is invalid.");
                 setStatus("failed");
+                showToast(details.message || "The OTP is invalid.", "error");
             } else {
                 setErrorMessage(details.message);
+                showToast(details.message, "error");
             }
         } finally {
             setIsLoading(false);
@@ -209,13 +276,14 @@ export default function VerifyEmailPage() {
 
         try {
             const response = await resendOTP();
+            const message =
+                response.message || "A new verification code has been sent.";
 
             setDigits(["", "", "", "", "", ""]);
             setStatus("pending");
             setFailedMessage("");
-            setSuccessMessage(
-                response.message || "A new verification code has been sent.",
-            );
+            setSuccessMessage(message);
+            showToast(message, "success");
 
             requestAnimationFrame(() => {
                 inputRefs.current[0]?.focus();
@@ -224,10 +292,19 @@ export default function VerifyEmailPage() {
             const details = getErrorDetails(error);
 
             if (details.message === "Email is already verified.") {
-                setSuccessMessage(details.message);
-                setStatus("success");
+                setIsAlreadyVerified(true);
+
+                showToast(
+                    "Your email is already verified. Redirecting to your profile.",
+                    "info"
+                );
+
+                window.setTimeout(() => {
+                    router.replace("/profile");
+                }, 3200);
             } else {
                 setFailedMessage(details.message);
+                showToast(details.message, "error");
             }
         } finally {
             setIsResending(false);
@@ -242,21 +319,72 @@ export default function VerifyEmailPage() {
 
         try {
             const response = await requestEmailVerification();
+            const message =
+                response.message || "A new verification code has been sent.";
 
             setDigits(["", "", "", "", "", ""]);
-            setSuccessMessage(
-                response.message || "A new verification code has been sent.",
-            );
+            setSuccessMessage(message);
+            showToast(message, "success");
 
             requestAnimationFrame(() => {
                 inputRefs.current[0]?.focus();
             });
         } catch (error) {
             const details = getErrorDetails(error);
-            setErrorMessage(details.message);
+
+            if (details.message === "Email is already verified.") {
+                setIsAlreadyVerified(true);
+
+                showToast(
+                    "Your email is already verified. Redirecting to your profile.",
+                    "info"
+                );
+
+                window.setTimeout(() => {
+                    router.replace("/profile");
+                }, 3200);
+            } else {
+                setErrorMessage(details.message);
+                showToast(details.message, "error");
+            }
         } finally {
             setIsResending(false);
         }
+    }
+
+    if (isCheckingProfile || isAlreadyVerified || isLoading) {
+        return <VerifyEmailSkeleton />;
+    }
+
+    if (profileCheckFailed) {
+        return (
+            <main className="flex min-h-[75vh] flex-col items-center justify-center gap-4 bg-[#FFFCF6] px-5 py-12 text-center">
+                <h1 className="text-xl font-bold text-[#14532D]">
+                    Unable to check your account
+                </h1>
+
+                <p className="max-w-md text-sm leading-6 text-[#718174]">
+                    We couldn&apos;t confirm your email verification status.
+                    The verification form is unavailable until your account
+                    status can be checked.
+                </p>
+
+                <button
+                    type="button"
+                    onClick={() => window.location.reload()}
+                    className="rounded-xl bg-[#166534] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#14532D]"
+                >
+                    Try again
+                </button>
+
+                <Link
+                    href="/profile"
+                    className="text-sm font-semibold text-[#166534] hover:text-[#14532D]"
+                >
+                    Back to profile
+                </Link>
+            </main>
+        );
     }
 
     if (status === "success") {
@@ -280,14 +408,10 @@ export default function VerifyEmailPage() {
         );
     }
 
-    if (isLoading) {
-        return <VerifyEmailSkeleton />;
-    }
-
     const isOtpComplete = digits.every((digit) => digit !== "");
 
     return (
-        <main className="flex min-h-[75vh] items-center justify-center bg-[#FFFCF6] px-5 py-12 sm:px-8">
+        <main className="relative flex min-h-[75vh] items-center justify-center bg-[#FFFCF6] px-5 py-12 sm:px-8">
             <section className="w-full max-w-md rounded-3xl border border-[#E6EDE4] bg-white p-6 shadow-sm sm:p-9">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E4F1E4] text-[#166534]">
                     <svg
@@ -363,7 +487,7 @@ export default function VerifyEmailPage() {
                                 aria-label={`Verification digit ${index + 1}`}
                                 aria-invalid={Boolean(fieldError)}
                                 value={digit}
-                                disabled={isLoading}
+                                disabled={isLoading || isResending}
                                 onChange={(event) =>
                                     handleChange(index, event)
                                 }
@@ -408,33 +532,12 @@ export default function VerifyEmailPage() {
 
                     <button
                         type="submit"
-                        disabled={!isOtpComplete || isLoading || isResending}
+                        disabled={
+                            !isOtpComplete || isLoading || isResending
+                        }
                         className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-[#166534] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#14532D] focus:outline-none focus:ring-2 focus:ring-[#35A45C] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        {isLoading && (
-                            <svg
-                                className="h-4 w-4 animate-spin"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                aria-hidden="true"
-                            >
-                                <circle
-                                    cx="12"
-                                    cy="12"
-                                    r="9"
-                                    stroke="currentColor"
-                                    strokeWidth="3"
-                                    className="opacity-25"
-                                />
-                                <path
-                                    d="M21 12a9 9 0 0 0-9-9"
-                                    stroke="currentColor"
-                                    strokeWidth="3"
-                                    strokeLinecap="round"
-                                />
-                            </svg>
-                        )}
-                        {isLoading ? "Verifying..." : "Verify email"}
+                        Verify email
                     </button>
                 </form>
 
