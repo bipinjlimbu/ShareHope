@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
@@ -371,58 +372,16 @@ export default function Home() {
     }, [showToast]);
 
     useEffect(() => {
-        let active = true;
-
-        const load = async () => {
-            try {
-                const response = await getProfile();
-
-                if (active) {
-                    setUser(response.user);
-                }
-            } catch (error: unknown) {
-                if (!active) return;
-
-                setUser(null);
-
-                const status =
-                    typeof error === "object" &&
-                        error !== null &&
-                        "status" in error
-                        ? error.status
-                        : undefined;
-
-                if (status === 401 || status === 403) {
-                    return;
-                }
-
-                const message =
-                    typeof error === "object" &&
-                        error !== null &&
-                        "message" in error &&
-                        typeof error.message === "string"
-                        ? error.message
-                        : "Unable to load your account information.";
-
-                showToast(message, "error");
-            }
-        };
-
-        void load();
-
         const handleAuthChange = () => {
-            if (active) {
-                void loadUser();
-            }
+            void loadUser();
         };
 
         window.addEventListener("auth-change", handleAuthChange);
 
         return () => {
-            active = false;
             window.removeEventListener("auth-change", handleAuthChange);
         };
-    }, [loadUser, showToast]);
+    }, [loadUser]);
 
     return (
         <main className="overflow-hidden bg-[#FFFCF6] text-[#183B2A]">
