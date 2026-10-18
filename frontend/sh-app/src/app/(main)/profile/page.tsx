@@ -180,13 +180,11 @@ export default function ProfilePage() {
 
     const [user, setUser] = useState<ProfileUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [profileError, setProfileError] = useState("");
+    const [profileError, setProfileError] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
-    const [deleteError, setDeleteError] = useState("");
     const [isSendingOtp, setIsSendingOtp] = useState(false);
-    const [verificationError, setVerificationError] = useState("");
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "");
 
@@ -199,16 +197,14 @@ export default function ProfilePage() {
 
     const loadProfile = useCallback(async () => {
         setIsLoading(true);
-        setProfileError("");
+        setProfileError(false);
 
         try {
             const response = await getProfile();
             setUser(response.user);
         } catch (error: unknown) {
-            const message = getErrorMessage(error);
-
-            setProfileError(message);
-            showToast(message, "error");
+            setProfileError(true);
+            showToast(getErrorMessage(error), "error");
         } finally {
             setIsLoading(false);
         }
@@ -232,7 +228,6 @@ export default function ProfilePage() {
         if (isSendingOtp || user?.is_verified) return;
 
         setIsSendingOtp(true);
-        setVerificationError("");
 
         try {
             await requestEmailVerification();
@@ -240,10 +235,7 @@ export default function ProfilePage() {
             showToast("Verification code sent successfully.", "success");
             router.push("/profile/verify-email");
         } catch (error: unknown) {
-            const message = getErrorMessage(error);
-
-            setVerificationError(message);
-            showToast(message, "error");
+            showToast(getErrorMessage(error), "error");
         } finally {
             setIsSendingOtp(false);
         }
@@ -253,7 +245,6 @@ export default function ProfilePage() {
         if (isDeleting) return;
 
         setIsDeleting(true);
-        setDeleteError("");
 
         try {
             await deleteProfile();
@@ -268,10 +259,8 @@ export default function ProfilePage() {
             router.replace("/");
             router.refresh();
         } catch (error: unknown) {
-            const message = getErrorMessage(error);
-
-            setDeleteError(message);
-            showToast(message, "error");
+            showToast(getErrorMessage(error), "error");
+        } finally {
             setIsDeleting(false);
         }
     }
@@ -282,8 +271,8 @@ export default function ProfilePage() {
 
     if (profileError) {
         return (
-            <main className="min-h-[65vh] bg-[#FFFCF6] px-5 py-16 sm:px-8">
-                <div className="mx-auto max-w-lg rounded-3xl border border-[#E6EDE4] bg-white p-8 text-center shadow-sm">
+            <main className="flex min-h-[65vh] items-center justify-center bg-[#FFFCF6] px-5 py-16 sm:px-8">
+                <div className="text-center">
                     <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F0F6ED] text-[#166534]">
                         <UserIcon />
                     </div>
@@ -291,10 +280,6 @@ export default function ProfilePage() {
                     <h1 className="mt-5 text-2xl font-extrabold text-[#14532D]">
                         Unable to load profile
                     </h1>
-
-                    <p role="alert" className="mt-3 text-sm leading-6 text-[#718174]">
-                        {profileError}
-                    </p>
 
                     <button
                         type="button"
@@ -345,7 +330,7 @@ export default function ProfilePage() {
         typeof user.profile_picture === "string"
             ? user.profile_picture.startsWith("http")
                 ? user.profile_picture
-                : `${API_URL ?? ""}${user.profile_picture}`
+                : `${API_URL ?? ""}${user.profile_picture} `
             : null;
 
     const dashboardLink = user.role
@@ -376,7 +361,7 @@ export default function ProfilePage() {
                                 {profilePicture ? (
                                     <img
                                         src={profilePicture}
-                                        alt={`${fullName || username}'s profile`}
+                                        alt={`${fullName || username} 's profile`}
                                         className="h-24 w-24 rounded-full border-4 border-[#F0F6ED] bg-[#E4F1E4] object-cover"
                                     />
                                 ) : (
@@ -409,7 +394,7 @@ export default function ProfilePage() {
                                         ? "Verified account"
                                         : "Not verified"}
                                 </span>
-                            </div>
+                            </div >
 
                             <div className="my-6 border-t border-[#E6EDE4]" />
 
@@ -443,31 +428,19 @@ export default function ProfilePage() {
 
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        setDeleteError("");
-                                        setIsDeleteOpen(true);
-                                    }}
+                                    onClick={() => setIsDeleteOpen(true)}
                                     disabled={isDeleting}
                                     className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     <TrashIcon />
                                     Delete Account
                                 </button>
-
-                                {verificationError && (
-                                    <p
-                                        role="alert"
-                                        className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm leading-5 text-red-700"
-                                    >
-                                        {verificationError}
-                                    </p>
-                                )}
                             </div>
 
                             <p className="mt-4 text-center text-xs leading-5 text-[#879487]">
                                 Keep your account information up to date.
                             </p>
-                        </aside>
+                        </aside >
 
                         <div className="min-w-0 space-y-6">
                             <section className="min-w-0 rounded-3xl border border-[#E6EDE4] bg-white p-5 shadow-sm sm:p-7">
@@ -540,15 +513,15 @@ export default function ProfilePage() {
                                 </div>
                             </section>
                         </div>
-                    </div>
+                    </div >
 
                     <p className="mt-6 text-center text-xs text-[#879487]">
                         {user.is_verified
                             ? "Thank you for being part of ShareHope."
                             : "Please verify your email to access your ShareHope dashboard."}
                     </p>
-                </div>
-            </main>
+                </div >
+            </main >
 
             {isEditOpen && (
                 <ProfileForm
@@ -559,82 +532,71 @@ export default function ProfilePage() {
                 />
             )}
 
-            {isDeleteOpen && (
-                <div
-                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-5 py-8"
-                    role="presentation"
-                    onMouseDown={(event) => {
-                        if (
-                            event.target === event.currentTarget &&
-                            !isDeleting
-                        ) {
-                            setIsDeleteOpen(false);
-                            setDeleteError("");
-                        }
-                    }}
-                >
-                    <section
-                        role="alertdialog"
-                        aria-modal="true"
-                        aria-labelledby="delete-profile-title"
-                        aria-describedby="delete-profile-description"
-                        className="w-full max-w-md rounded-3xl border border-[#E6EDE4] bg-[#FFFCF6] p-6 shadow-2xl sm:p-8"
+            {
+                isDeleteOpen && (
+                    <div
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-5 py-8"
+                        role="presentation"
+                        onMouseDown={(event) => {
+                            if (
+                                event.target === event.currentTarget &&
+                                !isDeleting
+                            ) {
+                                setIsDeleteOpen(false);
+                            }
+                        }}
                     >
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-red-600">
-                            <TrashIcon />
-                        </div>
-
-                        <h2
-                            id="delete-profile-title"
-                            className="mt-5 text-xl font-extrabold text-[#14532D]"
+                        <section
+                            role="alertdialog"
+                            aria-modal="true"
+                            aria-labelledby="delete-profile-title"
+                            aria-describedby="delete-profile-description"
+                            className="w-full max-w-md rounded-3xl border border-[#E6EDE4] bg-[#FFFCF6] p-6 shadow-2xl sm:p-8"
                         >
-                            Delete your account?
-                        </h2>
+                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-red-600">
+                                <TrashIcon />
+                            </div>
 
-                        <p
-                            id="delete-profile-description"
-                            className="mt-3 text-sm leading-6 text-[#718174]"
-                        >
-                            This will permanently delete your ShareHope account.
-                            This action cannot be undone.
-                        </p>
+                            <h2
+                                id="delete-profile-title"
+                                className="mt-5 text-xl font-extrabold text-[#14532D]"
+                            >
+                                Delete your account?
+                            </h2>
 
-                        {deleteError && (
                             <p
-                                role="alert"
-                                className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm leading-5 text-red-700"
+                                id="delete-profile-description"
+                                className="mt-3 text-sm leading-6 text-[#718174]"
                             >
-                                {deleteError}
+                                This will permanently delete your ShareHope account.
+                                This action cannot be undone.
                             </p>
-                        )}
 
-                        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setIsDeleteOpen(false);
-                                    setDeleteError("");
-                                }}
-                                disabled={isDeleting}
-                                className="rounded-xl border border-[#DDE7DC] px-5 py-3 text-sm font-semibold text-[#31523C] transition hover:bg-[#EDF5EC] disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                                Cancel
-                            </button>
+                            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsDeleteOpen(false)}
+                                    disabled={isDeleting}
+                                    className="rounded-xl border border-[#DDE7DC] px-5 py-3 text-sm font-semibold text-[#31523C] transition hover:bg-[#EDF5EC] disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    Cancel
+                                </button>
 
-                            <button
-                                type="button"
-                                onClick={handleDeleteProfile}
-                                disabled={isDeleting}
-                                className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                                {isDeleting
-                                    ? "Deleting account..."
-                                    : "Delete account"}
-                            </button>
-                        </div>
-                    </section>
-                </div>
-            )}
+                                <button
+                                    type="button"
+                                    onClick={handleDeleteProfile}
+                                    disabled={isDeleting}
+                                    className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    {isDeleting
+                                        ? "Deleting account..."
+                                        : "Delete account"}
+                                </button>
+                            </div>
+                        </section>
+                    </div>
+                )
+            }
         </>
     );
 }
