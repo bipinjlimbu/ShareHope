@@ -1,20 +1,23 @@
 from datetime import timedelta
 from django.conf import settings
 from django.contrib.auth import authenticate
+from django.contrib.auth.hashers import make_password, check_password
 from django.middleware.csrf import get_token
 from rest_framework import status
 from rest_framework.authentication import CSRFCheck
 from rest_framework.decorators import api_view, permission_classes
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
-from ..email_service import welcome_email
+from ..email_service import send_email, welcome_email
 from ..models import User
 from ..serializers import UserSerializer
+import secrets
 import re
 
 def set_auth_cookies(response, access_token, refresh_token=None):
@@ -125,41 +128,63 @@ def get_tokens_for_user(user):
     return {'refresh': str(refresh), 'access': str(refresh.access_token)}
 
 
-@api_view(['POST'])
+@api_view(['POST', 'PATCH'])
 @permission_classes([AllowAny])
 def login_view(request):
-    errors = {}
-    login_credential = request.data.get('login_credential')
-    password = request.data.get('password')
+    if request.method == 'POST':
+        errors = {}
+        login_credential = request.data.get('login_credential')
+        password = request.data.get('password')
 
-    if not login_credential:
-        errors['login_credential'] = 'Username or email is required.'
-    if not password:
-        errors['password'] = 'Password is required.'
+        if not login_credential:
+            errors['login_credential'] = 'Username or email is required.'
+        if not password:
+            errors['password'] = 'Password is required.'
 
-    if errors:
-        return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
 
-    user = authenticate(request, username=login_credential, password=password)
+        user = authenticate(request, username=login_credential, password=password)
 
-    if user is None:
-        try:
-            matched_user = User.objects.get(email=login_credential)
-            user = authenticate(request, username=matched_user.username, password=password)
-        except User.DoesNotExist:
-            user = None
+        if user is None:
+            try:
+                matched_user = User.objects.get(email=login_credential)
+                user = authenticate(request, username=matched_user.username, password=password)
+            except User.DoesNotExist:
+                user = None
 
-    if user is None:
-        return Response({'error': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
+        if user is None:
+            return Response({'error': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
 
-    tokens = get_tokens_for_user(user)
-    response = Response({'message': 'Login successful.', 'user': UserSerializer(user).data}, status=status.HTTP_200_OK)
+        tokens = get_tokens_for_user(user)
+        response = Response({'message': 'Login successful.', 'user': UserSerializer(user).data}, status=status.HTTP_200_OK)
 
-    set_auth_cookies(response, access_token=tokens['access'], refresh_token=tokens['refresh'])
-    set_csrf_cookie(request, response)
+        set_auth_cookies(response, access_token=tokens['access'], refresh_token=tokens['refresh'])
+        set_csrf_cookie(request, response)
 
-    return response
+        return response
+    
+    if request.method == 'PATCH':
+        email = request.data.get('email')
+        if not email:
+            return Response({'error': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        otp = f"{secrets.randbelow(1000000):06d}"
+        user = User.objects.filter(email=email).first()
+        if not user:
+            return Response({'error': 'User with this email does not exist.'}, status=status.HTTP_404_NOT_FOUND)
 
+        hashed_otp = make_password(otp)
+        user.hashed_otp = hashed_otp
+        user.otp_expires_at = timezone.now() + timedelta(minutes=10)
+        user.save()
+        
+        subject = "Reset Your Password - ShareHope"
+        message = f"Your OTP for password reset is: {otp}. Please use this to reset your password. This OTP will expire in 10 minutes."
+        send_email(subject, message, email)
+        
+        return Response({"message": "OTP sent for password reset."}, status=status.HTTP_200_OK)
+        
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
