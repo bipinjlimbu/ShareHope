@@ -4,6 +4,10 @@ export default function ForgotPasswordSuccess({
     email,
     onContinue,
 }: ForgotPasswordSuccessProps) {
+    const handleContinue = () => {
+        onContinue();
+    };
+
     return (
         <div className="rounded-2xl border border-green-200 bg-green-50 p-6 text-center sm:p-8">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
@@ -43,7 +47,7 @@ export default function ForgotPasswordSuccess({
 
             <button
                 type="button"
-                onClick={onContinue}
+                onClick={handleContinue}
                 className="mt-6 flex w-full items-center justify-center rounded-xl bg-green-700 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-200"
             >
                 Continue to reset password
