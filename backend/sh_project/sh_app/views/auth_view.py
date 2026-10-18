@@ -127,8 +127,7 @@ def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
     return {'refresh': str(refresh), 'access': str(refresh.access_token)}
 
-
-@api_view(['POST', 'PATCH'])
+@api_view(['POST','PUT','PATCH'])
 @permission_classes([AllowAny])
 def login_view(request):
     if request.method == 'POST':
@@ -184,8 +183,47 @@ def login_view(request):
         send_email(subject, message, email)
         
         return Response({"message": "OTP sent for password reset."}, status=status.HTTP_200_OK)
+    
+    if request.method == 'PUT':
+        errors = {}
+        email = request.data.get('email')
         
+        user = User.objects.filter(email=email).first()
+        if not user:
+            return Response({'error': 'User with this email does not exist.'}, status=status.HTTP_404_NOT_FOUND)
+                
+        new_password = request.data.get('new_password')
+        confirm_password = request.data.get('confirm_password')
+        
+        password_pattern = r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$'
+        
+        if not password:
+            errors['new_password'] = 'New password is required.'
+        elif not re.match(password_pattern, new_password):
+            errors['new_password'] = 'Password must be at least 8 characters long, contain at least one letter, one number, and one special character.'
+            
+        if not confirm_password:
+            errors['confirm_password'] = 'Confirm password is required.'
+        elif new_password != confirm_password:
+            errors['confirm_password'] = 'Passwords do not match.'
 
+        if errors:
+            return Response({'errors': errors}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user.set_password(new_password)
+        user.save()
+        
+        subject = "Password Reset Successful - ShareHope"
+        message = (
+            f"Hello {user.first_name or user.username},\n\n"
+            "Your password has been successfully reset.\n\n"
+            "If you did not make this change, please contact our support team immediately.\n\n"
+            "Regards,\n"
+            "The ShareHope Team"
+        )
+        send_email(subject, message, user.email)
+        return Response({"message": "Password reset successfully."}, status=status.HTTP_200_OK)
+    
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def refresh_token_view(request):
