@@ -193,7 +193,7 @@ export default function ForgotPasswordPage() {
                         <ForgotPasswordSuccess
                             email={email}
                             onContinue={() =>
-                                router.push("/login/reset-password")
+                                router.push("/login/verify-otp")
                             }
                         />
                     )}
