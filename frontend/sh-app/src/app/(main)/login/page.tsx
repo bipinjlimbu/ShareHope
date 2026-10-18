@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -19,7 +19,6 @@ export default function LoginPage() {
         login_credential: "",
         password: "",
     });
-    const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
@@ -27,27 +26,21 @@ export default function LoginPage() {
         setIsPageLoading(false);
     }, []);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         setFormData({
             ...formData,
             [e.target.name]: e.target.value,
         });
-        setError("");
     };
 
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        setError("");
 
-        if (
-            !formData.login_credential.trim() ||
-            !formData.password
-        ) {
-            const message =
-                "Please enter your username or email and password.";
-
-            setError(message);
-            showToast(message, "error");
+        if (!formData.login_credential.trim() || !formData.password) {
+            showToast(
+                "Please enter your username or email and password.",
+                "error"
+            );
             return;
         }
 
@@ -63,19 +56,14 @@ export default function LoginPage() {
 
             showToast("You have signed in successfully.", "success");
             router.push("/");
-        } catch (err) {
+        } catch (err: unknown) {
             const message =
-                typeof err === "object" &&
-                    err !== null &&
-                    "error" in err
+                typeof err === "object" && err !== null && "error" in err
                     ? String(err.error)
-                    : typeof err === "object" &&
-                        err !== null &&
-                        "detail" in err
+                    : typeof err === "object" && err !== null && "detail" in err
                         ? String(err.detail)
                         : "Unable to log in. Please check your credentials and try again.";
 
-            setError(message);
             showToast(message, "error");
         } finally {
             setLoading(false);
@@ -151,7 +139,6 @@ export default function LoginPage() {
                                 value={formData.login_credential}
                                 onChange={handleChange}
                                 placeholder="Enter your username or email"
-                                required
                                 className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-green-600 focus:ring-4 focus:ring-green-100"
                             />
                         </div>
@@ -175,30 +162,18 @@ export default function LoginPage() {
                                     value={formData.password}
                                     onChange={handleChange}
                                     placeholder="Enter your password"
-                                    required
                                     className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 pr-20 text-sm outline-none transition placeholder:text-slate-400 focus:border-green-600 focus:ring-4 focus:ring-green-100"
                                 />
 
                                 <button
                                     type="button"
-                                    onClick={() =>
-                                        setShowPassword(!showPassword)
-                                    }
+                                    onClick={() => setShowPassword(!showPassword)}
                                     className="absolute inset-y-0 right-3 text-sm font-medium text-green-700 hover:text-green-800"
                                 >
                                     {showPassword ? "Hide" : "Show"}
                                 </button>
                             </div>
                         </div>
-
-                        {error && (
-                            <div
-                                role="alert"
-                                className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-                            >
-                                {error}
-                            </div>
-                        )}
 
                         <button
                             type="submit"
