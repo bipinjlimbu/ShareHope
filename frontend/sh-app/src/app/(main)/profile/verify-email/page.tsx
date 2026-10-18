@@ -34,9 +34,7 @@ export default function VerifyEmailPage() {
     const [isAlreadyVerified, setIsAlreadyVerified] = useState(false);
     const [profileCheckFailed, setProfileCheckFailed] = useState(false);
     const [status, setStatus] = useState<VerificationStatus>("pending");
-    const [errorMessage, setErrorMessage] = useState("");
     const [fieldError, setFieldError] = useState("");
-    const [successMessage, setSuccessMessage] = useState("");
     const [failedMessage, setFailedMessage] = useState("");
 
     const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
@@ -122,7 +120,6 @@ export default function VerifyEmailPage() {
 
             setDigits(nextValues);
             setFieldError("");
-            setErrorMessage("");
 
             inputRefs.current[Math.min(pastedDigits.length, 5)]?.focus();
             return;
@@ -132,7 +129,6 @@ export default function VerifyEmailPage() {
 
         setDigits(nextDigits);
         setFieldError("");
-        setErrorMessage("");
 
         if (value && index < 5) {
             inputRefs.current[index + 1]?.focus();
@@ -175,7 +171,6 @@ export default function VerifyEmailPage() {
 
         setDigits(nextDigits);
         setFieldError("");
-        setErrorMessage("");
 
         inputRefs.current[Math.min(pastedDigits.length, 5)]?.focus();
     }
@@ -238,9 +233,7 @@ export default function VerifyEmailPage() {
 
         const otp = digits.join("");
 
-        setErrorMessage("");
         setFieldError("");
-        setSuccessMessage("");
 
         if (otp.length !== 6) {
             setFieldError("Please enter the complete six-digit OTP.");
@@ -262,7 +255,6 @@ export default function VerifyEmailPage() {
                 response.message ||
                 "Your email has been verified successfully.";
 
-            setSuccessMessage(message);
             setStatus("success");
             showToast(message, "success");
         } catch (error) {
@@ -275,7 +267,6 @@ export default function VerifyEmailPage() {
                 setStatus("failed");
                 showToast(message, "error");
             } else {
-                setErrorMessage(details.message);
                 showToast(details.message, "error");
             }
         } finally {
@@ -284,9 +275,7 @@ export default function VerifyEmailPage() {
     }
 
     async function handleResend() {
-        setErrorMessage("");
         setFieldError("");
-        setSuccessMessage("");
         setIsResending(true);
 
         try {
@@ -297,7 +286,6 @@ export default function VerifyEmailPage() {
             setDigits(["", "", "", "", "", ""]);
             setStatus("pending");
             setFailedMessage("");
-            setSuccessMessage(message);
 
             showToast(message, "success");
 
@@ -328,9 +316,7 @@ export default function VerifyEmailPage() {
     }
 
     async function handleInitialSend() {
-        setErrorMessage("");
         setFieldError("");
-        setSuccessMessage("");
         setIsResending(true);
 
         try {
@@ -339,7 +325,6 @@ export default function VerifyEmailPage() {
                 response.message || "A new verification code has been sent.";
 
             setDigits(["", "", "", "", "", ""]);
-            setSuccessMessage(message);
 
             showToast(message, "success");
 
@@ -361,7 +346,6 @@ export default function VerifyEmailPage() {
                     router.replace("/profile");
                 }, 3500);
             } else {
-                setErrorMessage(details.message);
                 showToast(details.message, "error");
             }
         } finally {
@@ -379,12 +363,6 @@ export default function VerifyEmailPage() {
                 <h1 className="text-xl font-bold text-[#14532D]">
                     Unable to check your account
                 </h1>
-
-                <p className="max-w-md text-sm leading-6 text-[#718174]">
-                    We couldn&apos;t confirm your email verification status.
-                    The verification form is unavailable until your account
-                    status can be checked.
-                </p>
 
                 <button
                     type="button"
@@ -405,14 +383,7 @@ export default function VerifyEmailPage() {
     }
 
     if (status === "success") {
-        return (
-            <EmailVerificationSuccess
-                message={
-                    successMessage ||
-                    "Your email has been verified successfully."
-                }
-            />
-        );
+        return <EmailVerificationSuccess />;
     }
 
     if (status === "failed") {
@@ -527,24 +498,6 @@ export default function VerifyEmailPage() {
                         >
                             {fieldError}
                         </p>
-                    )}
-
-                    {errorMessage && (
-                        <div
-                            role="alert"
-                            className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-                        >
-                            {errorMessage}
-                        </div>
-                    )}
-
-                    {successMessage && (
-                        <div
-                            role="status"
-                            className="mt-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
-                        >
-                            {successMessage}
-                        </div>
                     )}
 
                     <button
