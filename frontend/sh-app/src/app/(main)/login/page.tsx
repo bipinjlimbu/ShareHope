@@ -122,7 +122,7 @@ export default function LoginPage() {
                         </p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-5">
+                    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                         <div>
                             <label
                                 htmlFor="login_credential"
@@ -151,6 +151,13 @@ export default function LoginPage() {
                                 >
                                     Password
                                 </label>
+
+                                <Link
+                                    href="/login/forgot-password"
+                                    className="text-sm font-semibold text-green-700 transition hover:text-green-800"
+                                >
+                                    Forgot password?
+                                </Link>
                             </div>
 
                             <div className="relative">
