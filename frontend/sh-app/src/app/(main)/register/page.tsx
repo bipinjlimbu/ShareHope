@@ -34,7 +34,6 @@ export default function RegisterPage() {
     const [pageReady, setPageReady] = useState(false);
     const [form, setForm] = useState<RegisterPayload>({ ...initialForm });
     const [errors, setErrors] = useState<RegisterErrors>({});
-    const [generalError, setGeneralError] = useState("");
     const [success, setSuccess] = useState("");
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
@@ -64,7 +63,6 @@ export default function RegisterPage() {
             [name]: undefined,
         }));
 
-        setGeneralError("");
         setSuccess("");
     };
 
@@ -80,8 +78,6 @@ export default function RegisterPage() {
             ...previous,
             profile_picture: undefined,
         }));
-
-        setGeneralError("");
     };
 
     const fieldError = (field: string) => {
@@ -102,18 +98,17 @@ export default function RegisterPage() {
         event.preventDefault();
 
         setErrors({});
-        setGeneralError("");
         setSuccess("");
         setLoading(true);
 
         try {
             const response = await registerUser(form);
 
-            setSuccess(response.message);
-            showToast(
-                response.message || "Your account has been created successfully.",
-                "success"
-            );
+            const successMessage =
+                response.message || "Your account has been created successfully.";
+
+            setSuccess(successMessage);
+            showToast(successMessage, "success");
 
             setForm({ ...initialForm });
 
@@ -151,30 +146,28 @@ export default function RegisterPage() {
             setErrors(backendErrors);
 
             const nonFieldErrors = response.non_field_errors;
-            let errorMessage = "Unable to create your account. Please try again.";
+            let globalError = "";
 
             if (Array.isArray(nonFieldErrors)) {
-                errorMessage = nonFieldErrors.join(" ");
+                globalError = nonFieldErrors.join(" ");
             } else if (typeof nonFieldErrors === "string") {
-                errorMessage = nonFieldErrors;
+                globalError = nonFieldErrors;
             } else if (typeof response.detail === "string") {
-                errorMessage = response.detail;
+                globalError = response.detail;
             } else if (typeof response.message === "string") {
-                errorMessage = response.message;
+                globalError = response.message;
             } else if (typeof response.error === "string") {
-                errorMessage = response.error;
-            } else {
-                const fieldMessages = Object.values(backendErrors).flatMap(
-                    (value) => (Array.isArray(value) ? value : [value])
-                );
-
-                if (fieldMessages.length > 0) {
-                    errorMessage = fieldMessages.join(" ");
-                }
+                globalError = response.error;
             }
 
-            setGeneralError(errorMessage);
-            showToast(errorMessage, "error");
+            if (globalError) {
+                showToast(globalError, "error");
+            } else if (Object.keys(backendErrors).length === 0) {
+                showToast(
+                    "Unable to create your account. Please try again.",
+                    "error"
+                );
+            }
         } finally {
             setLoading(false);
         }
@@ -245,15 +238,6 @@ export default function RegisterPage() {
                                 Fill in your details to join ShareHope.
                             </p>
                         </div>
-
-                        {generalError && (
-                            <div
-                                role="alert"
-                                className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-                            >
-                                {generalError}
-                            </div>
-                        )}
 
                         {success && (
                             <div
@@ -408,7 +392,7 @@ export default function RegisterPage() {
                                         autoComplete="new-password"
                                         value={form.password}
                                         onChange={handleChange}
-                                        className={`${inputClass} pr-20`}
+                                        className={`${inputClass} pr - 20`}
                                         placeholder="Create a password"
                                     />
                                     <button
@@ -436,7 +420,7 @@ export default function RegisterPage() {
                                         autoComplete="new-password"
                                         value={form.confirm_password}
                                         onChange={handleChange}
-                                        className={`${inputClass} pr-20`}
+                                        className={`${inputClass} pr - 20`}
                                         placeholder="Enter your password again"
                                     />
                                     <button
