@@ -268,3 +268,38 @@ def logout_view(request):
 @permission_classes([AllowAny])
 def csrf_token_view(request):
     return Response({'message': 'CSRF cookie set.'}, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def verify_otp_view(request):
+    if request.method == 'POST':
+        otp = request.data.get('otp', '')
+        email = request.data.get('email', '')
+        user = User.objects.filter(email=email).first()
+        if not user:
+            return Response({'error': 'User with this email does not exist.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        if not otp:
+            return Response({'error': 'OTP is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if user.otp_expires_at and timezone.now() > user.otp_expires_at:
+            return Response({'error': 'OTP has expired.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not user.hashed_otp or not check_password(otp, user.hashed_otp):
+            return Response({'error': 'Invalid OTP.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user.hashed_otp = None
+        user.otp_expires_at = None
+        user.save()
+        
+        subject = "OTP Verified - ShareHope"
+        message = (
+            f"Hello {user.first_name or user.username},\n\n"
+            "Your OTP has been successfully verified. You can now proceed to reset your password.\n\n"
+            "If you did not request this, please contact our support team immediately.\n\n"
+            "Regards,\n"
+            "The ShareHope Team"
+        )
+        send_email(subject, message, email)
+        
+        return Response({"message": "OTP verified successfully."}, status=status.HTTP_200_OK)
