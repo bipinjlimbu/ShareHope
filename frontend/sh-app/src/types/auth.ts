@@ -50,3 +50,13 @@ export interface ForgotPasswordPayload {
 export interface ForgotPasswordResponse {
     message: string;
 }
+
+export interface ForgotPasswordSuccessProps {
+    email: string;
+    onContinue: () => void;
+}
+
+export interface ForgotPasswordFailedProps {
+    message: string;
+    onRetry: () => void;
+}
