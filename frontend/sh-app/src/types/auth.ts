@@ -60,3 +60,5 @@ export interface ForgotPasswordFailedProps {
     message: string;
     onRetry: () => void;
 }
+
+export type PageStatus = "form" | "success" | "failed";
