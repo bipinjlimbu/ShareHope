@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import type { AuthUser } from "@/types/auth";
 import { getProfile } from "@/services/profileService";
 import { getAuthStatus } from "@/lib/authStatus";
 import LogoutButton from "@/components/LogoutButton";
 import NavbarSkeleton from "@/components/skeleton/NavbarSkeleton";
+import NavLogo from "@/images/NavLogo.png";
 
 const links = [
     { label: "Home", href: "/" },
@@ -36,24 +38,15 @@ export default function Navbar() {
             try {
                 const response = await getProfile();
 
-                if (
-                    active &&
-                    currentRequestId === requestId
-                ) {
+                if (active && currentRequestId === requestId) {
                     setUser(response.user);
                 }
             } catch {
-                if (
-                    active &&
-                    currentRequestId === requestId
-                ) {
+                if (active && currentRequestId === requestId) {
                     setUser(null);
                 }
             } finally {
-                if (
-                    active &&
-                    currentRequestId === requestId
-                ) {
+                if (active && currentRequestId === requestId) {
                     setIsCheckingAuth(false);
                 }
             }
@@ -97,14 +90,8 @@ export default function Navbar() {
             active = false;
             requestId++;
 
-            window.removeEventListener(
-                "auth-change",
-                handleAuthChange
-            );
-            window.removeEventListener(
-                "storage",
-                handleStorageChange
-            );
+            window.removeEventListener("auth-change", handleAuthChange);
+            window.removeEventListener("storage", handleStorageChange);
         };
     }, []);
 
@@ -128,26 +115,17 @@ export default function Navbar() {
     return (
         <header className="sticky top-0 z-50 border-b border-[#E6EDE4] bg-[#FFFCF6]/95 backdrop-blur-xl">
             <div className="mx-auto flex min-h-[76px] max-w-7xl items-center justify-between gap-5 px-5 sm:px-8 lg:px-12">
-                <a href="/" className="flex shrink-0 items-center gap-2.5">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#166534] text-white shadow-sm">
-                        <svg
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            className="h-5 w-5"
-                            aria-hidden="true"
-                        >
-                            <path
-                                d="M20.8 4.8a5.5 5.5 0 0 0-7.8 0L12 5.9l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.3 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"
-                                stroke="currentColor"
-                                strokeWidth="1.7"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
-                        </svg>
-                    </span>
-                    <span className="text-xl font-extrabold tracking-tight text-[#14532D]">
-                        Share<span className="text-[#35A45C]">Hope</span>
-                    </span>
+                <a
+                    href="/"
+                    aria-label="ShareHope home"
+                    className="flex shrink-0 items-center"
+                >
+                    <Image
+                        src={NavLogo}
+                        alt="ShareHope"
+                        priority
+                        className="h-auto w-[170px] object-contain sm:w-[190px]"
+                    />
                 </a>
 
                 <nav className="hidden items-center gap-8 md:flex">
