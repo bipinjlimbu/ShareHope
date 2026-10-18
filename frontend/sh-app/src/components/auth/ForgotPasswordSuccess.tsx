@@ -50,7 +50,7 @@ export default function ForgotPasswordSuccess({
                 onClick={handleContinue}
                 className="mt-6 flex w-full items-center justify-center rounded-xl bg-green-700 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-200"
             >
-                Continue to reset password
+                Verify OTP
             </button>
         </div>
     );
