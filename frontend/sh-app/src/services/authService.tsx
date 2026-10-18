@@ -6,6 +6,8 @@ import type {
     LoginPayload,
     LoginResponse,
     LogoutResponse,
+    ForgotPasswordPayload,
+    ForgotPasswordResponse,
 } from "@/types/auth";
 
 function getCookie(name: string): string | null {
@@ -77,6 +79,15 @@ export async function loginUser(
     setAuthStatus(true);
 
     return response;
+}
+
+export async function requestPasswordResetOtp(
+    payload: ForgotPasswordPayload
+): Promise<ForgotPasswordResponse> {
+    return apiFetch("/login/", {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+    });
 }
 
 export async function refreshSession(): Promise<{
