@@ -42,3 +42,11 @@ export interface LoginResponse {
 export interface LogoutResponse {
     message: string;
 }
+
+export interface ForgotPasswordPayload {
+    email: string;
+}
+
+export interface ForgotPasswordResponse {
+    message: string;
+}
