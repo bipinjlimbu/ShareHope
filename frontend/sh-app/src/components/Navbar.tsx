@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { AuthUser } from "@/types/auth";
 import { getProfile } from "@/services/profileService";
+import { getAuthStatus } from "@/lib/authStatus";
 import LogoutButton from "@/components/LogoutButton";
 import NavbarSkeleton from "@/components/skeleton/NavbarSkeleton";
 
@@ -20,34 +21,90 @@ export default function Navbar() {
 
     useEffect(() => {
         let active = true;
+        let requestId = 0;
 
         async function syncUser() {
+            if (!getAuthStatus()) {
+                requestId++;
+                setUser(null);
+                setIsCheckingAuth(false);
+                return;
+            }
+
+            const currentRequestId = ++requestId;
+
             try {
                 const response = await getProfile();
 
-                if (active) {
+                if (
+                    active &&
+                    currentRequestId === requestId
+                ) {
                     setUser(response.user);
                 }
             } catch {
-                if (active) {
+                if (
+                    active &&
+                    currentRequestId === requestId
+                ) {
                     setUser(null);
                 }
             } finally {
-                if (active) {
+                if (
+                    active &&
+                    currentRequestId === requestId
+                ) {
                     setIsCheckingAuth(false);
                 }
             }
         }
 
+        function handleAuthChange(event: Event) {
+            const customEvent = event as CustomEvent<{
+                authenticated?: boolean;
+            }>;
+
+            if (customEvent.detail?.authenticated === false) {
+                requestId++;
+                setUser(null);
+                setIsCheckingAuth(false);
+                return;
+            }
+
+            if (
+                customEvent.detail?.authenticated === true ||
+                getAuthStatus()
+            ) {
+                setIsCheckingAuth(true);
+                void syncUser();
+            } else {
+                requestId++;
+                setUser(null);
+                setIsCheckingAuth(false);
+            }
+        }
+
+        function handleStorageChange() {
+            void syncUser();
+        }
+
         void syncUser();
 
-        window.addEventListener("auth-change", syncUser);
-        window.addEventListener("storage", syncUser);
+        window.addEventListener("auth-change", handleAuthChange);
+        window.addEventListener("storage", handleStorageChange);
 
         return () => {
             active = false;
-            window.removeEventListener("auth-change", syncUser);
-            window.removeEventListener("storage", syncUser);
+            requestId++;
+
+            window.removeEventListener(
+                "auth-change",
+                handleAuthChange
+            );
+            window.removeEventListener(
+                "storage",
+                handleStorageChange
+            );
         };
     }, []);
 
@@ -73,7 +130,12 @@ export default function Navbar() {
             <div className="mx-auto flex min-h-[76px] max-w-7xl items-center justify-between gap-5 px-5 sm:px-8 lg:px-12">
                 <a href="/" className="flex shrink-0 items-center gap-2.5">
                     <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#166534] text-white shadow-sm">
-                        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            className="h-5 w-5"
+                            aria-hidden="true"
+                        >
                             <path
                                 d="M20.8 4.8a5.5 5.5 0 0 0-7.8 0L12 5.9l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1.1L12 21l7.8-7.3 1.1-1.1a5.5 5.5 0 0 0-.1-7.8Z"
                                 stroke="currentColor"
@@ -146,12 +208,21 @@ export default function Navbar() {
                 <button
                     type="button"
                     onClick={() => setMenuOpen(!menuOpen)}
-                    aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
+                    aria-label={
+                        menuOpen
+                            ? "Close navigation menu"
+                            : "Open navigation menu"
+                    }
                     aria-expanded={menuOpen}
                     className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#DDE7DC] text-[#14532D] md:hidden"
                 >
                     {menuOpen ? (
-                        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            className="h-5 w-5"
+                            aria-hidden="true"
+                        >
                             <path
                                 d="m6 6 12 12M18 6 6 18"
                                 stroke="currentColor"
@@ -160,7 +231,12 @@ export default function Navbar() {
                             />
                         </svg>
                     ) : (
-                        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            className="h-5 w-5"
+                            aria-hidden="true"
+                        >
                             <path
                                 d="M4 7h16M4 12h16M4 17h16"
                                 stroke="currentColor"
