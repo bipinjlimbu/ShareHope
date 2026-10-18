@@ -7,11 +7,13 @@ import {
     type FormEvent,
 } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { registerUser } from "@/services/authService";
 import RegisterSkeleton from "@/components/skeleton/RegisterSkeleton";
 import { useToast } from "@/components/ToastProvider";
 import type { RegisterPayload, RegisterErrors } from "@/types/auth";
+import FooterLogo from "@/images/FooterLogo.png";
 
 const initialForm: RegisterPayload = {
     username: "",
@@ -190,13 +192,17 @@ export default function RegisterPage() {
                     <div className="absolute -bottom-24 -left-20 h-72 w-72 rounded-full bg-lime-300/10" />
 
                     <div className="relative">
-                        <Link href="/" className="inline-flex items-center gap-3">
-                            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-xl font-bold text-green-800">
-                                S
-                            </span>
-                            <span className="text-2xl font-bold tracking-tight">
-                                ShareHope
-                            </span>
+                        <Link
+                            href="/"
+                            aria-label="ShareHope home"
+                            className="inline-flex w-fit items-center"
+                        >
+                            <Image
+                                src={FooterLogo}
+                                alt="ShareHope"
+                                priority
+                                className="h-auto w-[150px] object-contain sm:w-[170px]"
+                            />
                         </Link>
 
                         <div className="mt-16 sm:mt-20">
