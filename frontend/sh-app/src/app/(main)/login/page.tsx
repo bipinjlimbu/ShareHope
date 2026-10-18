@@ -3,10 +3,12 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { loginUser } from "@/services/authService";
 import type { LoginPayload } from "@/types/auth";
 import LoginSkeleton from "@/components/skeleton/LoginSkeleton";
 import { useToast } from "@/components/ToastProvider";
+import FooterLogo from "@/images/FooterLogo.png";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -52,12 +54,11 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
-            const response = await loginUser({
+            await loginUser({
                 login_credential: formData.login_credential.trim(),
                 password: formData.password,
             });
 
-            localStorage.setItem("user", JSON.stringify(response.user));
             window.dispatchEvent(new Event("auth-change"));
 
             showToast("You have signed in successfully.", "success");
@@ -91,16 +92,18 @@ export default function LoginPage() {
                 <section className="flex flex-col justify-between bg-green-700 p-8 text-white sm:p-12">
                     <Link
                         href="/"
-                        className="text-2xl font-bold tracking-tight"
+                        aria-label="ShareHope home"
+                        className="inline-flex w-fit items-center"
                     >
-                        ShareHope<span className="text-green-200">.</span>
+                        <Image
+                            src={FooterLogo}
+                            alt="ShareHope"
+                            priority
+                            className="h-auto w-[150px] object-contain sm:w-[170px]"
+                        />
                     </Link>
 
                     <div className="my-12">
-                        <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15 text-3xl">
-                            ♥
-                        </div>
-
                         <h1 className="text-3xl font-bold leading-tight sm:text-4xl">
                             Make kindness go further.
                         </h1>
