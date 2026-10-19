@@ -61,4 +61,23 @@ export interface ForgotPasswordFailedProps {
     onRetry: () => void;
 }
 
+export interface VerifyOtpPayload {
+    email: string;
+    otp: string;
+}
+
+export interface VerifyOtpResponse {
+    message: string;
+}
+
+export interface VerifyOtpSuccessProps {
+    email: string;
+    onContinue: () => void;
+}
+
+export interface VerifyOtpFailedProps {
+    message: string;
+    onRetry: () => void;
+}
+
 export type PageStatus = "form" | "success" | "failed";
