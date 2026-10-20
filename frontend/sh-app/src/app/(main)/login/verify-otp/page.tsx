@@ -22,6 +22,28 @@ import Image from "next/image";
 
 const OTP_LENGTH = 6;
 
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+        return error.message;
+    }
+
+    if (typeof error === "object" && error !== null) {
+        if ("error" in error && typeof error.error === "string") {
+            return error.error;
+        }
+
+        if ("detail" in error && typeof error.detail === "string") {
+            return error.detail;
+        }
+
+        if ("message" in error && typeof error.message === "string") {
+            return error.message;
+        }
+    }
+
+    return "OTP verification failed. Please try again.";
+}
+
 function VerifyOtpContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -113,7 +135,12 @@ function VerifyOtpContent() {
             return;
         }
 
-        setOtp(digits.split("").concat(Array(OTP_LENGTH).fill("")).slice(0, OTP_LENGTH));
+        setOtp(
+            digits
+                .split("")
+                .concat(Array(OTP_LENGTH).fill(""))
+                .slice(0, OTP_LENGTH)
+        );
 
         inputRefs.current[Math.min(digits.length, OTP_LENGTH - 1)]?.focus();
     };
@@ -144,11 +171,7 @@ function VerifyOtpContent() {
 
             setStatus("success");
         } catch (error: unknown) {
-            setErrorMessage(
-                error instanceof Error
-                    ? error.message
-                    : "OTP verification failed. Please try again."
-            );
+            setErrorMessage(getErrorMessage(error));
             setStatus("failed");
         } finally {
             setSubmitting(false);
@@ -163,9 +186,7 @@ function VerifyOtpContent() {
     };
 
     const handleContinue = () => {
-        router.push(
-            `/login/reset-password?email=${encodeURIComponent(email)}`
-        );
+        router.push("/login/reset-password");
     };
 
     if (isPageLoading || !email.trim()) {
