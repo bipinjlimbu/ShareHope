@@ -5,10 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { requestPasswordResetOtp } from "@/services/authService";
 import { useToast } from "@/components/ToastProvider";
-import ForgotPasswordSuccess from "@/components/auth/ForgotPasswordSuccess";
-import ForgotPasswordFailed from "@/components/auth/ForgotPasswordFailed";
 import ForgotPasswordSkeleton from "@/components/skeleton/ForgotPasswordSkeleton";
-import type { PageStatus } from "@/types/auth";
+import type { ForgotPasswordPayload } from "@/types/auth";
 import FooterLogo from "@/images/FooterLogo.png";
 import Image from "next/image";
 
@@ -45,8 +43,6 @@ export default function ForgotPasswordPage() {
     const [isPageLoading, setIsPageLoading] = useState(true);
     const [email, setEmail] = useState("");
     const [loading, setLoading] = useState(false);
-    const [status, setStatus] = useState<PageStatus>("form");
-    const [failureMessage, setFailureMessage] = useState("");
 
     useEffect(() => {
         setIsPageLoading(false);
@@ -54,11 +50,6 @@ export default function ForgotPasswordPage() {
 
     const handleEmailChange = (event: ChangeEvent<HTMLInputElement>) => {
         setEmail(event.target.value);
-
-        if (status === "failed") {
-            setStatus("form");
-            setFailureMessage("");
-        }
     };
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -79,18 +70,25 @@ export default function ForgotPasswordPage() {
         }
 
         setLoading(true);
-        setFailureMessage("");
 
         try {
-            await requestPasswordResetOtp({
+            const payload: ForgotPasswordPayload = {
                 email: normalizedEmail,
-            });
+            };
+
+            const response = await requestPasswordResetOtp(payload);
 
             setEmail(normalizedEmail);
-            setStatus("success");
+            showToast(
+                response.message || "Password-reset OTP sent successfully.",
+                "success"
+            );
+
+            router.push(
+                `/login/verify-otp?email=${encodeURIComponent(normalizedEmail)}`
+            );
         } catch (error: unknown) {
-            setFailureMessage(getErrorMessage(error));
-            setStatus("failed");
+            showToast(getErrorMessage(error), "error");
         } finally {
             setLoading(false);
         }
@@ -134,79 +132,56 @@ export default function ForgotPasswordPage() {
                 </section>
 
                 <section className="p-6 sm:p-10 md:p-12">
-                    {status === "form" && (
-                        <>
-                            <div className="mb-8">
-                                <p className="text-sm font-semibold uppercase tracking-widest text-green-700">
-                                    Account recovery
-                                </p>
+                    <div className="mb-8">
+                        <p className="text-sm font-semibold uppercase tracking-widest text-green-700">
+                            Account recovery
+                        </p>
 
-                                <h2 className="mt-2 text-3xl font-bold tracking-tight">
-                                    Forgot password?
-                                </h2>
+                        <h2 className="mt-2 text-3xl font-bold tracking-tight">
+                            Forgot password?
+                        </h2>
 
-                                <p className="mt-3 text-sm leading-6 text-slate-500">
-                                    Enter the email address associated with
-                                    your account. We'll send you a one-time
-                                    password-reset code.
-                                </p>
-                            </div>
+                        <p className="mt-3 text-sm leading-6 text-slate-500">
+                            Enter the email address associated with
+                            your account. We'll send you a one-time
+                            password-reset code.
+                        </p>
+                    </div>
 
-                            <form
-                                onSubmit={handleSubmit}
-                                className="space-y-5"
-                                noValidate
+                    <form
+                        onSubmit={handleSubmit}
+                        className="space-y-5"
+                        noValidate
+                    >
+                        <div>
+                            <label
+                                htmlFor="email"
+                                className="mb-2 block text-sm font-medium text-slate-700"
                             >
-                                <div>
-                                    <label
-                                        htmlFor="email"
-                                        className="mb-2 block text-sm font-medium text-slate-700"
-                                    >
-                                        Email address
-                                    </label>
+                                Email address
+                            </label>
 
-                                    <input
-                                        id="email"
-                                        name="email"
-                                        type="email"
-                                        autoComplete="email"
-                                        value={email}
-                                        onChange={handleEmailChange}
-                                        placeholder="Enter your registered email"
-                                        disabled={loading}
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-green-600 focus:ring-4 focus:ring-green-100 disabled:cursor-not-allowed disabled:bg-slate-50"
-                                    />
-                                </div>
+                            <input
+                                id="email"
+                                name="email"
+                                type="email"
+                                autoComplete="email"
+                                value={email}
+                                onChange={handleEmailChange}
+                                placeholder="Enter your registered email"
+                                disabled={loading}
+                                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-green-600 focus:ring-4 focus:ring-green-100 disabled:cursor-not-allowed disabled:bg-slate-50"
+                            />
+                        </div>
 
-                                <button
-                                    type="submit"
-                                    disabled={loading}
-                                    className="flex w-full items-center justify-center rounded-xl bg-green-700 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-200 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                    {loading ? "Sending OTP..." : "Send reset OTP"}
-                                </button>
-                            </form>
-                        </>
-                    )}
-
-                    {status === "success" && (
-                        <ForgotPasswordSuccess
-                            email={email}
-                            onContinue={() =>
-                                router.push(`/login/verify-otp?email=${encodeURIComponent(email)}`)
-                            }
-                        />
-                    )}
-
-                    {status === "failed" && (
-                        <ForgotPasswordFailed
-                            message={failureMessage}
-                            onRetry={() => {
-                                setFailureMessage("");
-                                setStatus("form");
-                            }}
-                        />
-                    )}
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="flex w-full items-center justify-center rounded-xl bg-green-700 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-200 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {loading ? "Sending OTP..." : "Send reset OTP"}
+                        </button>
+                    </form>
 
                     <p className="mt-8 text-center text-sm text-slate-600">
                         Remember your password?{" "}
