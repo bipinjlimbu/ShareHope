@@ -80,6 +80,14 @@ export interface VerifyOtpFailedProps {
     onRetry: () => void;
 }
 
+export interface ResendOtpPayload {
+    email: string;
+}
+
+export interface ResendOtpResponse {
+    message: string;
+}
+
 export interface ResetPasswordPayload {
     new_password: string;
     confirm_password: string;
