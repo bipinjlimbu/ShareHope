@@ -19,6 +19,8 @@ class User(AbstractUser):
     is_verified = models.BooleanField(default=False)
     hashed_otp = models.CharField(max_length=128, blank=True, null=True)
     otp_expires_at = models.DateTimeField(blank=True, null=True)
+    reset_hash = models.CharField(max_length=128, blank=True, null=True)
+    reset_expires_at = models.DateTimeField(blank=True, null=True)
     
     def save(self, *args, **kwargs):
         if self.otp_expires_at and self.otp_expires_at < timezone.now():
