@@ -321,3 +321,24 @@ def verify_otp_view(request):
         )
         
         return response
+    
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def resend_reset_otp_view(request):
+    if request.method == 'POST':
+        email = request.data.get('email', '')
+        user = User.objects.filter(email=email).first()
+        if not user:
+            return Response({'error': 'User with this email does not exist.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        otp = f"{secrets.randbelow(1000000):06d}"
+        hashed_otp = make_password(otp)
+        user.hashed_otp = hashed_otp
+        user.otp_expires_at = timezone.now() + timedelta(minutes=10)
+        user.save()
+        
+        subject = "Resend OTP for Password Reset - ShareHope"
+        message = f"Your new OTP for password reset is: {otp}. Please use this to reset your password. This OTP will expire in 10 minutes."
+        send_email(subject, message, email)
+        
+        return Response({"message": "New OTP sent for password reset."}, status=status.HTTP_200_OK)
