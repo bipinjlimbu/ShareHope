@@ -6,14 +6,12 @@ export default function VerifyOtpSkeleton() {
         <main className="flex min-h-screen animate-pulse items-center justify-center bg-white px-4 py-12 text-slate-900">
             <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl md:grid-cols-2">
                 <section className="flex flex-col justify-between bg-green-700 p-8 sm:p-12">
-                    <div>
-                        <Image
-                            src={FooterLogo}
-                            alt="ShareHope"
-                            priority
-                            className="h-auto w-[150px] object-contain sm:w-[170px]"
-                        />
-                    </div>
+                    <Image
+                        src={FooterLogo}
+                        alt="ShareHope"
+                        priority
+                        className="h-auto w-[150px] object-contain sm:w-[170px]"
+                    />
 
                     <div className="my-12">
                         <div className="h-9 w-4/5 rounded-lg bg-green-600 sm:h-11" />
@@ -33,17 +31,23 @@ export default function VerifyOtpSkeleton() {
 
                     <div className="mt-8">
                         <div className="mb-2 h-4 w-36 rounded bg-slate-200" />
-                        <div className="h-14 w-full rounded-xl bg-slate-100" />
+
+                        <div className="flex items-center justify-between gap-2">
+                            {Array.from({ length: 6 }).map((_, index) => (
+                                <div
+                                    key={index}
+                                    className="h-12 min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-100 sm:h-14"
+                                />
+                            ))}
+                        </div>
+
                         <div className="mt-2 h-3 w-44 rounded bg-slate-100" />
                     </div>
 
                     <div className="mt-5 h-12 w-full rounded-xl bg-green-100" />
-
                     <div className="mx-auto mt-6 h-4 w-56 max-w-full rounded bg-slate-100" />
                     <div className="mx-auto mt-5 h-4 w-40 max-w-full rounded bg-slate-100" />
-                    <div className="mt-8 flex justify-center">
-                        <div className="h-4 w-64 max-w-full rounded bg-slate-100" />
-                    </div>
+                    <div className="mt-8 h-4 w-full rounded bg-slate-100" />
                 </section>
             </div>
         </main>
