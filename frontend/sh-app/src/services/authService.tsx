@@ -10,6 +10,8 @@ import type {
     ForgotPasswordResponse,
     VerifyOtpPayload,
     VerifyOtpResponse,
+    ResetPasswordPayload,
+    ResetPasswordResponse,
 } from "@/types/auth";
 
 function getCookie(name: string): string | null {
@@ -89,6 +91,16 @@ export async function verifyPasswordResetOtp(
 ): Promise<VerifyOtpResponse> {
     return apiFetch("/login/verify-otp/", {
         method: "POST",
+        body: JSON.stringify(payload),
+    });
+}
+
+export async function resetPassword(
+    payload: ResetPasswordPayload
+): Promise<ResetPasswordResponse> {
+    return apiFetch("/login/", {
+        method: "PUT",
+        credentials: "include",
         body: JSON.stringify(payload),
     });
 }
