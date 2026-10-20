@@ -72,9 +72,7 @@ export async function apiFetch(
         headers.set("Content-Type", "application/json");
     }
 
-    if (
-        ["POST", "PUT", "PATCH", "DELETE"].includes(method)
-    ) {
+    if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
         const csrfToken = getCsrfToken();
 
         if (csrfToken) {
