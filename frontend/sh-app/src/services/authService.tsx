@@ -10,6 +10,8 @@ import type {
     ForgotPasswordResponse,
     VerifyOtpPayload,
     VerifyOtpResponse,
+    ResendOtpPayload,
+    ResendOtpResponse,
     ResetPasswordPayload,
     ResetPasswordResponse,
 } from "@/types/auth";
@@ -90,6 +92,15 @@ export async function verifyPasswordResetOtp(
     payload: VerifyOtpPayload
 ): Promise<VerifyOtpResponse> {
     return apiFetch("/login/verify-otp/", {
+        method: "POST",
+        body: JSON.stringify(payload),
+    });
+}
+
+export async function resendPasswordResetOtp(
+    payload: ResendOtpPayload
+): Promise<ResendOtpResponse> {
+    return apiFetch("/login/resend-reset-otp/", {
         method: "POST",
         body: JSON.stringify(payload),
     });
