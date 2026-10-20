@@ -17,6 +17,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from ..email_service import send_email, welcome_email
 from ..models import User
 from ..serializers import UserSerializer
+import hashlib
 import secrets
 import re
 
@@ -288,8 +289,13 @@ def verify_otp_view(request):
         if not user.hashed_otp or not check_password(otp, user.hashed_otp):
             return Response({'error': 'Invalid OTP.'}, status=status.HTTP_400_BAD_REQUEST)
         
+        raw_token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+        
         user.hashed_otp = None
         user.otp_expires_at = None
+        user.reset_hash = token_hash
+        user.reset_expires_at = timezone.now() + timedelta(minutes=10)
         user.save()
         
         subject = "OTP Verified - ShareHope"
@@ -302,4 +308,16 @@ def verify_otp_view(request):
         )
         send_email(subject, message, email)
         
-        return Response({"message": "OTP verified successfully."}, status=status.HTTP_200_OK)
+        response = Response({"message": "OTP verified successfully."}, status=status.HTTP_200_OK)
+        
+        response.set_cookie(
+            key='reset_hash', 
+            value=raw_token, 
+            httponly=True, 
+            secure=not settings.DEBUG, 
+            samesite='Lax', 
+            max_age=int(timedelta(minutes=10).total_seconds()), 
+            path='/'
+        )
+        
+        return response
