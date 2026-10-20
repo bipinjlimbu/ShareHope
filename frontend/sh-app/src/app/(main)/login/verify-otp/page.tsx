@@ -12,7 +12,10 @@ import {
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { verifyPasswordResetOtp } from "@/services/authService";
+import {
+    verifyPasswordResetOtp,
+    resendPasswordResetOtp,
+} from "@/services/authService";
 import VerifyOtpSuccess from "@/components/auth/VerifyOtpSuccess";
 import VerifyOtpFailed from "@/components/auth/VerifyOtpFailed";
 import VerifyOtpSkeleton from "@/components/skeleton/VerifyOtpSkeleton";
@@ -41,7 +44,7 @@ function getErrorMessage(error: unknown): string {
         }
     }
 
-    return "OTP verification failed. Please try again.";
+    return "Something went wrong. Please try again.";
 }
 
 function VerifyOtpContent() {
@@ -53,7 +56,10 @@ function VerifyOtpContent() {
     const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
     const [status, setStatus] = useState<PageStatus>("form");
     const [submitting, setSubmitting] = useState(false);
+    const [resending, setResending] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+    const [resendMessage, setResendMessage] = useState("");
+    const [resendError, setResendError] = useState("");
 
     const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
@@ -148,7 +154,7 @@ function VerifyOtpContent() {
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        if (submitting) {
+        if (submitting || resending) {
             return;
         }
 
@@ -162,6 +168,8 @@ function VerifyOtpContent() {
 
         setSubmitting(true);
         setErrorMessage("");
+        setResendMessage("");
+        setResendError("");
 
         try {
             await verifyPasswordResetOtp({
@@ -175,6 +183,33 @@ function VerifyOtpContent() {
             setStatus("failed");
         } finally {
             setSubmitting(false);
+        }
+    };
+
+    const handleResendOtp = async () => {
+        if (resending || submitting) {
+            return;
+        }
+
+        setResending(true);
+        setResendMessage("");
+        setResendError("");
+
+        try {
+            const response = await resendPasswordResetOtp({ email });
+
+            setOtp(Array(OTP_LENGTH).fill(""));
+            setErrorMessage("");
+            setStatus("form");
+            setResendMessage(
+                response.message || "A new OTP has been sent to your email."
+            );
+
+            inputRefs.current[0]?.focus();
+        } catch (error: unknown) {
+            setResendError(getErrorMessage(error));
+        } finally {
+            setResending(false);
         }
     };
 
@@ -274,7 +309,7 @@ function VerifyOtpContent() {
                                                 }
                                                 maxLength={6}
                                                 value={digit}
-                                                disabled={submitting}
+                                                disabled={submitting || resending}
                                                 aria-label={`OTP digit ${index + 1}`}
                                                 onChange={(event) =>
                                                     handleOtpChange(index, event)
@@ -296,9 +331,27 @@ function VerifyOtpContent() {
                                     </p>
                                 </div>
 
+                                {resendMessage && (
+                                    <p
+                                        role="status"
+                                        className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm leading-6 text-green-800"
+                                    >
+                                        {resendMessage}
+                                    </p>
+                                )}
+
+                                {resendError && (
+                                    <p
+                                        role="alert"
+                                        className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700"
+                                    >
+                                        {resendError}
+                                    </p>
+                                )}
+
                                 <button
                                     type="submit"
-                                    disabled={submitting}
+                                    disabled={submitting || resending}
                                     className="flex w-full items-center justify-center rounded-xl bg-green-700 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-200 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     {submitting ? (
@@ -316,11 +369,11 @@ function VerifyOtpContent() {
                                 Didn't receive the code?{" "}
                                 <button
                                     type="button"
-                                    disabled
-                                    title="Resend OTP will be implemented later"
-                                    className="cursor-not-allowed font-semibold text-green-700 opacity-60"
+                                    onClick={handleResendOtp}
+                                    disabled={resending || submitting}
+                                    className="font-semibold text-green-700 transition hover:text-green-800 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
-                                    Resend OTP
+                                    {resending ? "Sending..." : "Resend OTP"}
                                 </button>
                             </div>
 
