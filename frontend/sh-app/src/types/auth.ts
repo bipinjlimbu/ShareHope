@@ -80,4 +80,22 @@ export interface VerifyOtpFailedProps {
     onRetry: () => void;
 }
 
+export interface ResetPasswordPayload {
+    new_password: string;
+    confirm_password: string;
+}
+
+export interface ResetPasswordResponse {
+    message: string;
+}
+
+export interface ResetPasswordSuccessProps {
+    onContinue: () => void;
+}
+
+export interface ResetPasswordFailedProps {
+    message: string;
+    onRetry: () => void;
+}
+
 export type PageStatus = "form" | "success" | "failed";
