@@ -16,17 +16,19 @@ import {
     verifyPasswordResetOtp,
     resendPasswordResetOtp,
 } from "@/services/authService";
-import VerifyOtpSuccess from "@/components/auth/VerifyOtpSuccess";
-import VerifyOtpFailed from "@/components/auth/VerifyOtpFailed";
+import { useToast } from "@/components/ToastProvider";
 import VerifyOtpSkeleton from "@/components/skeleton/VerifyOtpSkeleton";
-import type { PageStatus } from "@/types/auth";
 import FooterLogo from "@/images/FooterLogo.png";
 import Image from "next/image";
 
 const OTP_LENGTH = 6;
 
 function getErrorMessage(error: unknown): string {
-    if (error instanceof Error) {
+    if (typeof error === "string" && error.trim()) {
+        return error;
+    }
+
+    if (error instanceof Error && error.message.trim()) {
         return error.message;
     }
 
@@ -42,6 +44,18 @@ function getErrorMessage(error: unknown): string {
         if ("message" in error && typeof error.message === "string") {
             return error.message;
         }
+
+        if ("non_field_errors" in error) {
+            const errors = error.non_field_errors;
+
+            if (Array.isArray(errors) && typeof errors[0] === "string") {
+                return errors[0];
+            }
+
+            if (typeof errors === "string") {
+                return errors;
+            }
+        }
     }
 
     return "Something went wrong. Please try again.";
@@ -50,16 +64,14 @@ function getErrorMessage(error: unknown): string {
 function VerifyOtpContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { showToast } = useToast();
+
     const email = searchParams.get("email") ?? "";
 
     const [isPageLoading, setIsPageLoading] = useState(true);
     const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
-    const [status, setStatus] = useState<PageStatus>("form");
     const [submitting, setSubmitting] = useState(false);
     const [resending, setResending] = useState(false);
-    const [errorMessage, setErrorMessage] = useState("");
-    const [resendMessage, setResendMessage] = useState("");
-    const [resendError, setResendError] = useState("");
 
     const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
@@ -93,11 +105,7 @@ function VerifyOtpContent() {
 
         setOtp(nextOtp);
 
-        const nextIndex = Math.min(
-            index + digits.length,
-            OTP_LENGTH - 1
-        );
-
+        const nextIndex = Math.min(index + digits.length, OTP_LENGTH - 1);
         inputRefs.current[nextIndex]?.focus();
     };
 
@@ -161,26 +169,26 @@ function VerifyOtpContent() {
         const cleanOtp = otp.join("");
 
         if (!/^\d{6}$/.test(cleanOtp)) {
-            setErrorMessage("Enter the six-digit OTP sent to your email.");
-            setStatus("failed");
+            showToast("Enter the six-digit OTP sent to your email.", "error");
             return;
         }
 
         setSubmitting(true);
-        setErrorMessage("");
-        setResendMessage("");
-        setResendError("");
 
         try {
-            await verifyPasswordResetOtp({
+            const response = await verifyPasswordResetOtp({
                 email,
                 otp: cleanOtp,
             });
 
-            setStatus("success");
+            showToast(
+                response?.message || "Email verified successfully.",
+                "success"
+            );
+
+            router.push("/login/reset-password");
         } catch (error: unknown) {
-            setErrorMessage(getErrorMessage(error));
-            setStatus("failed");
+            showToast(getErrorMessage(error), "error");
         } finally {
             setSubmitting(false);
         }
@@ -192,36 +200,23 @@ function VerifyOtpContent() {
         }
 
         setResending(true);
-        setResendMessage("");
-        setResendError("");
 
         try {
             const response = await resendPasswordResetOtp({ email });
 
             setOtp(Array(OTP_LENGTH).fill(""));
-            setErrorMessage("");
-            setStatus("form");
-            setResendMessage(
-                response.message || "A new OTP has been sent to your email."
+
+            showToast(
+                response?.message || "A new OTP has been sent to your email.",
+                "success"
             );
 
             inputRefs.current[0]?.focus();
         } catch (error: unknown) {
-            setResendError(getErrorMessage(error));
+            showToast(getErrorMessage(error), "error");
         } finally {
             setResending(false);
         }
-    };
-
-    const handleRetry = () => {
-        setOtp(Array(OTP_LENGTH).fill(""));
-        setErrorMessage("");
-        setStatus("form");
-        inputRefs.current[0]?.focus();
-    };
-
-    const handleContinue = () => {
-        router.push("/login/reset-password");
     };
 
     if (isPageLoading || !email.trim()) {
@@ -262,145 +257,107 @@ function VerifyOtpContent() {
                 </section>
 
                 <section className="p-6 sm:p-10 md:p-12">
-                    {status === "form" && (
-                        <>
-                            <div className="mb-8">
-                                <p className="text-sm font-semibold uppercase tracking-widest text-green-700">
-                                    Account recovery
-                                </p>
+                    <div className="mb-8">
+                        <p className="text-sm font-semibold uppercase tracking-widest text-green-700">
+                            Account recovery
+                        </p>
 
-                                <h2 className="mt-2 text-3xl font-bold tracking-tight">
-                                    Verify your OTP
-                                </h2>
+                        <h2 className="mt-2 text-3xl font-bold tracking-tight">
+                            Verify your OTP
+                        </h2>
 
-                                <p className="mt-3 text-sm leading-6 text-slate-500">
-                                    Enter the six-digit verification code sent
-                                    to your email address.
-                                </p>
+                        <p className="mt-3 text-sm leading-6 text-slate-500">
+                            Enter the six-digit verification code sent to your
+                            email address.
+                        </p>
 
-                                <p className="mt-3 break-all text-sm font-semibold text-green-800">
-                                    {email}
-                                </p>
-                            </div>
+                        <p className="mt-3 break-all text-sm font-semibold text-green-800">
+                            {email}
+                        </p>
+                    </div>
 
-                            <form
-                                onSubmit={handleSubmit}
-                                className="space-y-5"
-                                noValidate
+                    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+                        <div>
+                            <label
+                                htmlFor="otp-0"
+                                className="mb-2 block text-sm font-medium text-slate-700"
                             >
-                                <div>
-                                    <label className="mb-2 block text-sm font-medium text-slate-700">
-                                        Verification code
-                                    </label>
+                                Verification code
+                            </label>
 
-                                    <div className="flex items-center justify-between gap-2">
-                                        {otp.map((digit, index) => (
-                                            <input
-                                                key={index}
-                                                ref={(element) => {
-                                                    inputRefs.current[index] = element;
-                                                }}
-                                                type="text"
-                                                inputMode="numeric"
-                                                autoComplete={
-                                                    index === 0
-                                                        ? "one-time-code"
-                                                        : "off"
-                                                }
-                                                maxLength={6}
-                                                value={digit}
-                                                disabled={submitting || resending}
-                                                aria-label={`OTP digit ${index + 1}`}
-                                                onChange={(event) =>
-                                                    handleOtpChange(index, event)
-                                                }
-                                                onKeyDown={(event) =>
-                                                    handleOtpKeyDown(index, event)
-                                                }
-                                                onPaste={handleOtpPaste}
-                                                onFocus={(event) =>
-                                                    event.currentTarget.select()
-                                                }
-                                                className="h-12 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-1 text-center text-lg font-semibold text-slate-900 outline-none transition focus:border-green-600 focus:ring-4 focus:ring-green-100 disabled:cursor-not-allowed disabled:bg-slate-50 sm:h-14"
-                                            />
-                                        ))}
-                                    </div>
-
-                                    <p className="mt-2 text-xs text-slate-500">
-                                        Your OTP expires after 10 minutes.
-                                    </p>
-                                </div>
-
-                                {resendMessage && (
-                                    <p
-                                        role="status"
-                                        className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm leading-6 text-green-800"
-                                    >
-                                        {resendMessage}
-                                    </p>
-                                )}
-
-                                {resendError && (
-                                    <p
-                                        role="alert"
-                                        className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700"
-                                    >
-                                        {resendError}
-                                    </p>
-                                )}
-
-                                <button
-                                    type="submit"
-                                    disabled={submitting || resending}
-                                    className="flex w-full items-center justify-center rounded-xl bg-green-700 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-200 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                    {submitting ? (
-                                        <>
-                                            <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                                            Verifying...
-                                        </>
-                                    ) : (
-                                        "Verify OTP"
-                                    )}
-                                </button>
-                            </form>
-
-                            <div className="mt-6 text-center text-sm text-slate-600">
-                                Didn't receive the code?{" "}
-                                <button
-                                    type="button"
-                                    onClick={handleResendOtp}
-                                    disabled={resending || submitting}
-                                    className="font-semibold text-green-700 transition hover:text-green-800 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                    {resending ? "Sending..." : "Resend OTP"}
-                                </button>
+                            <div className="flex items-center justify-between gap-2">
+                                {otp.map((digit, index) => (
+                                    <input
+                                        key={index}
+                                        id={index === 0 ? "otp-0" : undefined}
+                                        ref={(element) => {
+                                            inputRefs.current[index] = element;
+                                        }}
+                                        type="text"
+                                        inputMode="numeric"
+                                        autoComplete={
+                                            index === 0 ? "one-time-code" : "off"
+                                        }
+                                        maxLength={6}
+                                        value={digit}
+                                        disabled={submitting || resending}
+                                        aria-label={`OTP digit ${index + 1}`}
+                                        onChange={(event) =>
+                                            handleOtpChange(index, event)
+                                        }
+                                        onKeyDown={(event) =>
+                                            handleOtpKeyDown(index, event)
+                                        }
+                                        onPaste={handleOtpPaste}
+                                        onFocus={(event) =>
+                                            event.currentTarget.select()
+                                        }
+                                        className="h-12 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-1 text-center text-lg font-semibold text-slate-900 outline-none transition focus:border-green-600 focus:ring-4 focus:ring-green-100 disabled:cursor-not-allowed disabled:bg-slate-50 sm:h-14"
+                                    />
+                                ))}
                             </div>
 
-                            <div className="mt-5 text-center">
-                                <Link
-                                    href="/login/forgot-password"
-                                    className="text-sm font-medium text-slate-500 transition hover:text-green-700"
-                                >
-                                    Back to forgot password
-                                </Link>
-                            </div>
-                        </>
-                    )}
+                            <p className="mt-2 text-xs text-slate-500">
+                                Your OTP expires after 10 minutes.
+                            </p>
+                        </div>
 
-                    {status === "failed" && (
-                        <VerifyOtpFailed
-                            message={errorMessage}
-                            onRetry={handleRetry}
-                        />
-                    )}
+                        <button
+                            type="submit"
+                            disabled={submitting || resending}
+                            className="flex w-full items-center justify-center rounded-xl bg-green-700 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-green-800 focus:outline-none focus:ring-4 focus:ring-green-200 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {submitting ? (
+                                <>
+                                    <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                                    Verifying...
+                                </>
+                            ) : (
+                                "Verify OTP"
+                            )}
+                        </button>
+                    </form>
 
-                    {status === "success" && (
-                        <VerifyOtpSuccess
-                            email={email}
-                            onContinue={handleContinue}
-                        />
-                    )}
+                    <div className="mt-6 text-center text-sm text-slate-600">
+                        Didn't receive the code?{" "}
+                        <button
+                            type="button"
+                            onClick={handleResendOtp}
+                            disabled={resending || submitting}
+                            className="font-semibold text-green-700 transition hover:text-green-800 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {resending ? "Sending..." : "Resend OTP"}
+                        </button>
+                    </div>
+
+                    <div className="mt-5 text-center">
+                        <Link
+                            href="/login/forgot-password"
+                            className="text-sm font-medium text-slate-500 transition hover:text-green-700"
+                        >
+                            Back to forgot password
+                        </Link>
+                    </div>
 
                     <p className="mt-8 text-center text-sm text-slate-600">
                         Remember your password?{" "}
