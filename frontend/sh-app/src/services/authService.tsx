@@ -22,9 +22,7 @@ function getCookie(name: string): string | null {
         .find((item) => item.startsWith(`${name}=`));
 
     return cookie
-        ? decodeURIComponent(
-            cookie.substring(name.length + 1)
-        )
+        ? decodeURIComponent(cookie.substring(name.length + 1))
         : null;
 }
 
@@ -36,10 +34,7 @@ export async function registerUser(
     formData.append("username", payload.username);
     formData.append("email", payload.email);
     formData.append("password", payload.password);
-    formData.append(
-        "confirm_password",
-        payload.confirm_password
-    );
+    formData.append("confirm_password", payload.confirm_password);
 
     if (payload.first_name) {
         formData.append("first_name", payload.first_name);
@@ -58,10 +53,7 @@ export async function registerUser(
     }
 
     if (payload.profile_picture) {
-        formData.append(
-            "profile_picture",
-            payload.profile_picture
-        );
+        formData.append("profile_picture", payload.profile_picture);
     }
 
     return apiFetch("/register/", {
@@ -101,9 +93,7 @@ export async function verifyPasswordResetOtp(
     });
 }
 
-export async function refreshSession(): Promise<{
-    message: string;
-}> {
+export async function refreshSession(): Promise<{ message: string }> {
     return apiFetch("/token/refresh/", {
         method: "POST",
         body: JSON.stringify({}),
