@@ -3,8 +3,12 @@
 import {
     Suspense,
     useEffect,
+    useRef,
     useState,
     type FormEvent,
+    type ChangeEvent,
+    type KeyboardEvent,
+    type ClipboardEvent,
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -16,16 +20,20 @@ import type { PageStatus } from "@/types/auth";
 import FooterLogo from "@/images/FooterLogo.png";
 import Image from "next/image";
 
+const OTP_LENGTH = 6;
+
 function VerifyOtpContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const email = searchParams.get("email") ?? "";
 
     const [isPageLoading, setIsPageLoading] = useState(true);
-    const [otp, setOtp] = useState("");
+    const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
     const [status, setStatus] = useState<PageStatus>("form");
     const [submitting, setSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+
+    const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
     useEffect(() => {
         if (!email.trim()) {
@@ -36,6 +44,80 @@ function VerifyOtpContent() {
         setIsPageLoading(false);
     }, [email, router]);
 
+    const handleOtpChange = (
+        index: number,
+        event: ChangeEvent<HTMLInputElement>
+    ) => {
+        const value = event.target.value.replace(/\D/g, "");
+        const nextOtp = [...otp];
+
+        if (!value) {
+            nextOtp[index] = "";
+            setOtp(nextOtp);
+            return;
+        }
+
+        const digits = value.split("");
+
+        digits.slice(0, OTP_LENGTH - index).forEach((digit, offset) => {
+            nextOtp[index + offset] = digit;
+        });
+
+        setOtp(nextOtp);
+
+        const nextIndex = Math.min(
+            index + digits.length,
+            OTP_LENGTH - 1
+        );
+
+        inputRefs.current[nextIndex]?.focus();
+    };
+
+    const handleOtpKeyDown = (
+        index: number,
+        event: KeyboardEvent<HTMLInputElement>
+    ) => {
+        if (event.key === "Backspace") {
+            event.preventDefault();
+
+            const nextOtp = [...otp];
+
+            if (nextOtp[index]) {
+                nextOtp[index] = "";
+                setOtp(nextOtp);
+            } else if (index > 0) {
+                nextOtp[index - 1] = "";
+                setOtp(nextOtp);
+                inputRefs.current[index - 1]?.focus();
+            }
+        }
+
+        if (event.key === "ArrowLeft" && index > 0) {
+            inputRefs.current[index - 1]?.focus();
+        }
+
+        if (event.key === "ArrowRight" && index < OTP_LENGTH - 1) {
+            inputRefs.current[index + 1]?.focus();
+        }
+    };
+
+    const handleOtpPaste = (event: ClipboardEvent<HTMLInputElement>) => {
+        event.preventDefault();
+
+        const digits = event.clipboardData
+            .getData("text")
+            .replace(/\D/g, "")
+            .slice(0, OTP_LENGTH);
+
+        if (!digits) {
+            return;
+        }
+
+        setOtp(digits.split("").concat(Array(OTP_LENGTH).fill("")).slice(0, OTP_LENGTH));
+
+        inputRefs.current[Math.min(digits.length, OTP_LENGTH - 1)]?.focus();
+    };
+
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
@@ -43,7 +125,7 @@ function VerifyOtpContent() {
             return;
         }
 
-        const cleanOtp = otp.trim();
+        const cleanOtp = otp.join("");
 
         if (!/^\d{6}$/.test(cleanOtp)) {
             setErrorMessage("Enter the six-digit OTP sent to your email.");
@@ -74,9 +156,10 @@ function VerifyOtpContent() {
     };
 
     const handleRetry = () => {
-        setOtp("");
+        setOtp(Array(OTP_LENGTH).fill(""));
         setErrorMessage("");
         setStatus("form");
+        inputRefs.current[0]?.focus();
     };
 
     const handleContinue = () => {
@@ -150,33 +233,42 @@ function VerifyOtpContent() {
                                 noValidate
                             >
                                 <div>
-                                    <label
-                                        htmlFor="otp"
-                                        className="mb-2 block text-sm font-medium text-slate-700"
-                                    >
+                                    <label className="mb-2 block text-sm font-medium text-slate-700">
                                         Verification code
                                     </label>
 
-                                    <input
-                                        id="otp"
-                                        name="otp"
-                                        type="text"
-                                        inputMode="numeric"
-                                        autoComplete="one-time-code"
-                                        maxLength={6}
-                                        value={otp}
-                                        onChange={(event) => {
-                                            setOtp(
-                                                event.target.value.replace(
-                                                    /\D/g,
-                                                    ""
-                                                )
-                                            );
-                                        }}
-                                        placeholder="Enter 6-digit OTP"
-                                        disabled={submitting}
-                                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3.5 text-center text-lg font-semibold tracking-[0.4em] text-slate-900 outline-none transition placeholder:tracking-normal placeholder:text-slate-400 focus:border-green-600 focus:ring-4 focus:ring-green-100 disabled:cursor-not-allowed disabled:bg-slate-50"
-                                    />
+                                    <div className="flex items-center justify-between gap-2">
+                                        {otp.map((digit, index) => (
+                                            <input
+                                                key={index}
+                                                ref={(element) => {
+                                                    inputRefs.current[index] = element;
+                                                }}
+                                                type="text"
+                                                inputMode="numeric"
+                                                autoComplete={
+                                                    index === 0
+                                                        ? "one-time-code"
+                                                        : "off"
+                                                }
+                                                maxLength={6}
+                                                value={digit}
+                                                disabled={submitting}
+                                                aria-label={`OTP digit ${index + 1}`}
+                                                onChange={(event) =>
+                                                    handleOtpChange(index, event)
+                                                }
+                                                onKeyDown={(event) =>
+                                                    handleOtpKeyDown(index, event)
+                                                }
+                                                onPaste={handleOtpPaste}
+                                                onFocus={(event) =>
+                                                    event.currentTarget.select()
+                                                }
+                                                className="h-12 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-1 text-center text-lg font-semibold text-slate-900 outline-none transition focus:border-green-600 focus:ring-4 focus:ring-green-100 disabled:cursor-not-allowed disabled:bg-slate-50 sm:h-14"
+                                            />
+                                        ))}
+                                    </div>
 
                                     <p className="mt-2 text-xs text-slate-500">
                                         Your OTP expires after 10 minutes.
