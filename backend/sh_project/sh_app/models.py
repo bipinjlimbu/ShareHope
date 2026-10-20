@@ -27,6 +27,12 @@ class User(AbstractUser):
             self.hashed_otp = None
             self.otp_expires_at = None
         super().save(*args, **kwargs)
+        
+    def save(self, *args, **kwargs):
+        if self.reset_expires_at and self.reset_expires_at < timezone.now():
+            self.reset_hash = None
+            self.reset_expires_at = None
+        super().save(*args, **kwargs)
 
     def save(self, *args, **kwargs):
         if self.is_staff or self.is_superuser:
