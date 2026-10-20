@@ -187,18 +187,16 @@ def login_view(request):
     
     if request.method == 'PUT':
         errors = {}
-        email = request.data.get('email')
-        
-        user = User.objects.filter(email=email).first()
-        if not user:
-            return Response({'error': 'User with this email does not exist.'}, status=status.HTTP_404_NOT_FOUND)
+        reset_hash = request.COOKIES.get('reset_hash')
                 
+        if not reset_hash:
+            return Response({'error': 'Reset hash is missing. Please verify your OTP again.'}, status=status.HTTP_400_BAD_REQUEST)
+        
         new_password = request.data.get('new_password')
         confirm_password = request.data.get('confirm_password')
-        
         password_pattern = r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$'
-        
-        if not password:
+            
+        if not new_password:
             errors['new_password'] = 'New password is required.'
         elif not re.match(password_pattern, new_password):
             errors['new_password'] = 'Password must be at least 8 characters long, contain at least one letter, one number, and one special character.'
@@ -207,24 +205,26 @@ def login_view(request):
             errors['confirm_password'] = 'Confirm password is required.'
         elif new_password != confirm_password:
             errors['confirm_password'] = 'Passwords do not match.'
-
+            
         if errors:
-            return Response({'errors': errors}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        user = User.objects.filter(reset_hash=hashlib.sha256(reset_hash.encode()).hexdigest()).first()
+        if not user:
+            return Response({'error': 'Invalid reset hash. Please verify your OTP again.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if user.reset_expires_at and timezone.now() > user.reset_expires_at:
+            return Response({'error': 'Reset hash has expired. Please verify your OTP again.'}, status=status.HTTP_400_BAD_REQUEST)
         
         user.set_password(new_password)
+        user.reset_hash = None
+        user.reset_expires_at = None
         user.save()
         
-        subject = "Password Reset Successful - ShareHope"
-        message = (
-            f"Hello {user.first_name or user.username},\n\n"
-            "Your password has been successfully reset.\n\n"
-            "If you did not make this change, please contact our support team immediately.\n\n"
-            "Regards,\n"
-            "The ShareHope Team"
-        )
-        send_email(subject, message, user.email)
-        return Response({"message": "Password reset successfully."}, status=status.HTTP_200_OK)
-    
+        response = Response({'message': 'Password reset successful. You can now log in with your new password.'}, status=status.HTTP_200_OK)
+        response.delete_cookie('reset_hash', path='/')
+        return response
+        
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def refresh_token_view(request):
