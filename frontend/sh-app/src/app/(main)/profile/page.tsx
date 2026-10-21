@@ -189,10 +189,10 @@ export default function ProfilePage() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "");
 
     const dashboardRoutes: Record<string, string> = {
-        ADMIN: "/admin/dashboard",
-        DONOR: "/donor/dashboard",
-        NGO_ADMIN: "/ngo-admin/dashboard",
-        NGO_STAFF: "/ngo-staff/dashboard",
+        ADMIN: "/dashboard/admin",
+        DONOR: "/dashboard/donor",
+        NGO_ADMIN: "/dashboard/ngo-admin",
+        NGO_STAFF: "/dashboard/ngo-staff",
     };
 
     const loadProfile = useCallback(async () => {
