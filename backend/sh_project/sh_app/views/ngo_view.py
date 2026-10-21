@@ -49,6 +49,8 @@ def register_ngo_view(request):
             
         if not email:
             errors['email'] = 'NGO email is required.'
+        elif NGO.objects.filter(status=NGO.Status.APPROVED, email=email).exists():
+            errors['email'] = 'NGO with this email already exists.'
         elif not re.match(email_pattern, email):
             errors['email'] = 'Invalid email format.'
             
