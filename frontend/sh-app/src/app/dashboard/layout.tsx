@@ -7,7 +7,7 @@ import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardSkeleton from "@/components/skeleton/DashboardSkeleton";
 import { getCurrentUser } from "@/services/authService";
-import type { User } from "@/types/auth";
+import type { AuthUser } from "@/types/auth";
 
 interface DashboardLayoutProps {
     children: ReactNode;
@@ -19,7 +19,7 @@ export default function DashboardLayout({
     const router = useRouter();
     const pathname = usePathname();
 
-    const [user, setUser] = useState<User | null>(null);
+    const [user, setUser] = useState<AuthUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
