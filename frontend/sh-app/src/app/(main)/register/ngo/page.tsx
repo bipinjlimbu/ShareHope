@@ -1,484 +1,500 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
     ArrowLeft,
     Building2,
     CheckCircle2,
-    FileText,
     ImagePlus,
     LoaderCircle,
+    ShieldCheck,
     Upload,
 } from "lucide-react";
-import Link from "next/link";
+import FooterLogo from "@/images/FooterLogo.png";
 import { registerNGO } from "@/services/ngoService";
+import NGORegistrationSkeleton from "@/components/skeleton/NGORegistrationSkeleton";
+import { useToast } from "@/components/ToastProvider";
 import type {
     NGORegistrationErrors,
-    NGORegistrationFormErrors,
     NGORegistrationPayload,
 } from "@/types/ngo";
 
-function getErrorMessage(error: unknown): string {
-    if (
-        typeof error === "object" &&
-        error !== null &&
-        "message" in error &&
-        typeof error.message === "string"
-    ) {
-        return error.message;
+const initialForm: NGORegistrationPayload = {
+    name: "",
+    registration_number: "",
+    description: "",
+    email: "",
+    phone: "",
+    address: "",
+    ngo_logo: null,
+    ngo_document_type: "",
+    ngo_document_file: null,
+};
+
+function getErrorMessage(value: unknown): string | undefined {
+    if (typeof value === "string") return value;
+
+    if (Array.isArray(value)) {
+        return value.map(String).join(" ");
     }
 
-    return "Unable to register your NGO. Please try again.";
+    return undefined;
 }
-
-function mapRegistrationErrors(
-    error: unknown
-): NGORegistrationFormErrors {
-    if (typeof error !== "object" || error === null) {
-        return { general: getErrorMessage(error) };
-    }
-
-    const response = error as NGORegistrationErrors;
-    const mapped: NGORegistrationFormErrors = {};
-
-    const fields: Array<keyof NGORegistrationFormErrors> = [
-        "name",
-        "registration_number",
-        "description",
-        "email",
-        "phone",
-        "address",
-        "ngo_logo",
-        "ngo_document_type",
-        "ngo_document_file",
-    ];
-
-    for (const field of fields) {
-        const value = response[field];
-
-        if (typeof value === "string") {
-            mapped[field] = value;
-        } else if (Array.isArray(value)) {
-            mapped[field] = value.join(" ");
-        }
-    }
-
-    if (response.detail && typeof response.detail === "string") {
-        mapped.general = response.detail;
-    } else if (response.message && typeof response.message === "string") {
-        mapped.general = response.message;
-    } else if (Object.keys(mapped).length === 0) {
-        mapped.general = getErrorMessage(error);
-    }
-
-    return mapped;
-}
-
-const inputClass =
-    "mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10";
-
-const labelClass = "text-sm font-semibold text-slate-700";
 
 export default function NGORegistrationPage() {
     const router = useRouter();
+    const { showToast } = useToast();
 
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [errors, setErrors] =
-        useState<NGORegistrationFormErrors>({});
+    const [form, setForm] = useState<NGORegistrationPayload>(initialForm);
+    const [errors, setErrors] = useState<NGORegistrationErrors>({});
+    const [submitting, setSubmitting] = useState(false);
+    const [pageReady, setPageReady] = useState(false);
+
+    useEffect(() => {
+        setPageReady(true);
+    }, []);
+
+    if (!pageReady) {
+        return <NGORegistrationSkeleton />;
+    }
+
+    function handleChange(
+        event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    ) {
+        const { name, value } = event.target;
+
+        setForm((previous) => ({
+            ...previous,
+            [name]: value,
+        }));
+
+        setErrors((previous) => {
+            const updated = { ...previous };
+            delete updated[name];
+            delete updated.non_field_errors;
+            delete updated.detail;
+            return updated;
+        });
+    }
+
+    function handleFileChange(
+        event: ChangeEvent<HTMLInputElement>,
+        field: "ngo_logo" | "ngo_document_file"
+    ) {
+        const file = event.target.files?.[0] ?? null;
+
+        setForm((previous) => ({
+            ...previous,
+            [field]: file,
+        }));
+
+        setErrors((previous) => {
+            const updated = { ...previous };
+            delete updated[field];
+            delete updated.non_field_errors;
+            delete updated.detail;
+            return updated;
+        });
+    }
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        setSubmitting(true);
         setErrors({});
 
-        const form = event.currentTarget;
-        const formData = new FormData(form);
-
-        const ngoLogo = formData.get("ngo_logo");
-        const ngoDocumentFile = formData.get("ngo_document_file");
-
-        if (!(ngoLogo instanceof File) || ngoLogo.size === 0) {
-            setErrors({ ngo_logo: "Please upload your NGO logo." });
-            return;
-        }
-
-        if (
-            !(ngoDocumentFile instanceof File) ||
-            ngoDocumentFile.size === 0
-        ) {
-            setErrors({
-                ngo_document_file: "Please upload your NGO document.",
-            });
-            return;
-        }
-
-        const payload: NGORegistrationPayload = {
-            name: String(formData.get("name") ?? "").trim(),
-            registration_number: String(
-                formData.get("registration_number") ?? ""
-            ).trim(),
-            description: String(
-                formData.get("description") ?? ""
-            ).trim(),
-            email: String(formData.get("email") ?? "").trim(),
-            phone: String(formData.get("phone") ?? "").trim(),
-            address: String(formData.get("address") ?? "").trim(),
-            ngo_logo: ngoLogo,
-            ngo_document_type: String(
-                formData.get("ngo_document_type") ?? ""
-            ).trim(),
-            ngo_document_file: ngoDocumentFile,
-        };
-
-        setIsSubmitting(true);
-
         try {
-            await registerNGO(payload);
-            router.replace("/dashboard/ngo/pending");
+            const response = await registerNGO(form);
+
+            showToast(
+                response.message || "NGO registration submitted successfully.",
+                "success"
+            );
+
+            router.push("/dashboard/ngo/pending");
         } catch (error: unknown) {
-            setErrors(mapRegistrationErrors(error));
+            const backendErrors =
+                error && typeof error === "object"
+                    ? (error as NGORegistrationErrors)
+                    : {};
+
+            setErrors(backendErrors);
+
+            const generalError =
+                getErrorMessage(backendErrors.non_field_errors) ||
+                getErrorMessage(backendErrors.detail) ||
+                getErrorMessage(backendErrors.message) ||
+                getErrorMessage(backendErrors.error);
+
+            if (generalError) {
+                showToast(generalError, "error");
+            } else {
+                showToast(
+                    "NGO registration failed. Please review the errors returned by the server.",
+                    "error"
+                );
+            }
         } finally {
-            setIsSubmitting(false);
+            setSubmitting(false);
         }
     }
 
+    function renderError(field: string) {
+        const message = getErrorMessage(errors[field]);
+
+        if (!message) return null;
+
+        return <p className="mt-1.5 text-sm text-red-600">{message}</p>;
+    }
+
+    const generalError =
+        getErrorMessage(errors.non_field_errors) ||
+        getErrorMessage(errors.detail) ||
+        getErrorMessage(errors.message) ||
+        getErrorMessage(errors.error);
+
     return (
-        <div className="mx-auto max-w-4xl space-y-8 pb-10">
-            <Link
-                href="/dashboard"
-                className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-emerald-700"
-            >
-                <ArrowLeft size={17} />
-                Back to dashboard
-            </Link>
-
-            <header className="space-y-3">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
-                    <Building2 size={28} />
-                </div>
-
-                <p className="text-sm font-semibold uppercase tracking-wider text-emerald-700">
-                    NGO onboarding
-                </p>
-
-                <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-                    Register your NGO
-                </h1>
-
-                <p className="max-w-2xl text-sm leading-6 text-slate-600 sm:text-base">
-                    Submit your organization details and supporting
-                    documents for Admin review. Your NGO dashboard will
-                    become available after approval.
-                </p>
-            </header>
-
-            <div className="flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                <FileText
-                    className="mt-0.5 shrink-0 text-amber-700"
-                    size={21}
-                />
-                <div>
-                    <p className="font-semibold text-amber-900">
-                        Approval is required
-                    </p>
-                    <p className="mt-1 text-sm leading-6 text-amber-800">
-                        Your NGO registration will start with Pending
-                        status. You can access the NGO dashboard after
-                        the Admin approves your registration.
-                    </p>
-                </div>
-            </div>
-
-            {errors.general && (
-                <div
-                    role="alert"
-                    className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+        <main className="min-h-screen bg-[#FFFCF6] px-4 py-8 sm:px-6 lg:py-12">
+            <div className="mx-auto max-w-6xl">
+                <Link
+                    href="/register"
+                    className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-green-800 transition hover:text-green-950"
                 >
-                    {errors.general}
-                </div>
-            )}
+                    <ArrowLeft size={17} />
+                    Back to registration
+                </Link>
 
-            <form
-                onSubmit={handleSubmit}
-                className="space-y-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8"
-            >
-                <section className="space-y-5">
-                    <div>
-                        <h2 className="text-lg font-bold text-slate-900">
-                            Organization details
-                        </h2>
-                        <p className="mt-1 text-sm text-slate-500">
-                            Enter your NGO's official information.
-                        </p>
-                    </div>
+                <div className="grid overflow-hidden rounded-3xl border border-green-950/10 bg-white shadow-xl shadow-green-950/5 lg:grid-cols-[0.9fr_1.1fr]">
+                    <aside className="relative flex flex-col justify-between overflow-hidden bg-[#14532D] p-7 text-white sm:p-10 lg:p-12">
+                        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full border border-white/10" />
+                        <div className="absolute -bottom-28 -left-16 h-72 w-72 rounded-full border border-white/10" />
 
-                    <div className="grid gap-5 sm:grid-cols-2">
-                        <div>
-                            <label htmlFor="name" className={labelClass}>
-                                NGO name *
-                            </label>
-                            <input
-                                id="name"
-                                name="name"
-                                type="text"
-                                required
-                                maxLength={150}
-                                autoComplete="organization"
-                                placeholder="Enter registered NGO name"
-                                className={inputClass}
-                                aria-invalid={Boolean(errors.name)}
-                            />
-                            {errors.name && (
-                                <p className="mt-1.5 text-sm text-red-600">
-                                    {errors.name}
-                                </p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label
-                                htmlFor="registration_number"
-                                className={labelClass}
-                            >
-                                Registration number *
-                            </label>
-                            <input
-                                id="registration_number"
-                                name="registration_number"
-                                type="text"
-                                required
-                                placeholder="Official registration number"
-                                className={inputClass}
-                                aria-invalid={Boolean(
-                                    errors.registration_number
-                                )}
-                            />
-                            {errors.registration_number && (
-                                <p className="mt-1.5 text-sm text-red-600">
-                                    {errors.registration_number}
-                                </p>
-                            )}
-                        </div>
-
-                        <div className="sm:col-span-2">
-                            <label
-                                htmlFor="description"
-                                className={labelClass}
-                            >
-                                Organization description *
-                            </label>
-                            <textarea
-                                id="description"
-                                name="description"
-                                required
-                                rows={4}
-                                placeholder="Describe your mission, activities, and the communities you support."
-                                className={`${inputClass} resize-y`}
-                                aria-invalid={Boolean(errors.description)}
-                            />
-                            {errors.description && (
-                                <p className="mt-1.5 text-sm text-red-600">
-                                    {errors.description}
-                                </p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label htmlFor="email" className={labelClass}>
-                                Contact email *
-                            </label>
-                            <input
-                                id="email"
-                                name="email"
-                                type="email"
-                                required
-                                autoComplete="email"
-                                placeholder="contact@example.org"
-                                className={inputClass}
-                                aria-invalid={Boolean(errors.email)}
-                            />
-                            {errors.email && (
-                                <p className="mt-1.5 text-sm text-red-600">
-                                    {errors.email}
-                                </p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label htmlFor="phone" className={labelClass}>
-                                Contact phone *
-                            </label>
-                            <input
-                                id="phone"
-                                name="phone"
-                                type="tel"
-                                required
-                                autoComplete="tel"
-                                placeholder="+977..."
-                                className={inputClass}
-                                aria-invalid={Boolean(errors.phone)}
-                            />
-                            {errors.phone && (
-                                <p className="mt-1.5 text-sm text-red-600">
-                                    {errors.phone}
-                                </p>
-                            )}
-                        </div>
-
-                        <div className="sm:col-span-2">
-                            <label htmlFor="address" className={labelClass}>
-                                Organization address *
-                            </label>
-                            <input
-                                id="address"
-                                name="address"
-                                type="text"
-                                required
-                                autoComplete="street-address"
-                                placeholder="City, district, province"
-                                className={inputClass}
-                                aria-invalid={Boolean(errors.address)}
-                            />
-                            {errors.address && (
-                                <p className="mt-1.5 text-sm text-red-600">
-                                    {errors.address}
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                </section>
-
-                <div className="border-t border-slate-100" />
-
-                <section className="space-y-5">
-                    <div>
-                        <h2 className="text-lg font-bold text-slate-900">
-                            Logo and verification document
-                        </h2>
-                        <p className="mt-1 text-sm text-slate-500">
-                            Upload the NGO logo and an official document
-                            for verification.
-                        </p>
-                    </div>
-
-                    <div>
-                        <label htmlFor="ngo_logo" className={labelClass}>
-                            NGO logo * (JPG, JPEG, PNG)
-                        </label>
-                        <div className="mt-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 transition hover:border-emerald-400">
-                            <div className="flex items-center gap-3">
-                                <ImagePlus
-                                    size={24}
-                                    className="shrink-0 text-emerald-700"
+                        <div className="relative z-10">
+                            <Link href="/" className="inline-flex items-center">
+                                <Image
+                                    src={FooterLogo}
+                                    alt="ShareHope"
+                                    width={160}
+                                    height={56}
+                                    className="h-12 w-auto object-contain"
+                                    priority
                                 />
-                                <input
-                                    id="ngo_logo"
-                                    name="ngo_logo"
-                                    type="file"
-                                    required
-                                    accept=".jpg,.jpeg,.png,image/jpeg,image/png"
-                                    className="min-w-0 flex-1 text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-emerald-100 file:px-3 file:py-2 file:font-semibold file:text-emerald-800 hover:file:bg-emerald-200"
-                                    aria-invalid={Boolean(errors.ngo_logo)}
-                                />
+                            </Link>
+
+                            <div className="mt-14">
+                                <div className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10">
+                                    <Building2 size={29} />
+                                </div>
+
+                                <h1 className="max-w-md text-3xl font-bold leading-tight sm:text-4xl">
+                                    Register your NGO with ShareHope
+                                </h1>
+
+                                <p className="mt-5 max-w-md leading-7 text-green-50/80">
+                                    Create your organization profile to manage campaigns, receive
+                                    donations, and maintain transparent donation records.
+                                </p>
                             </div>
                         </div>
-                        {errors.ngo_logo && (
-                            <p className="mt-1.5 text-sm text-red-600">
-                                {errors.ngo_logo}
-                            </p>
-                        )}
-                    </div>
 
-                    <div className="grid gap-5 sm:grid-cols-2">
-                        <div>
-                            <label
-                                htmlFor="ngo_document_type"
-                                className={labelClass}
-                            >
-                                Document type *
-                            </label>
-                            <input
-                                id="ngo_document_type"
-                                name="ngo_document_type"
-                                type="text"
-                                required
-                                placeholder="e.g. Registration certificate"
-                                className={inputClass}
-                                aria-invalid={Boolean(
-                                    errors.ngo_document_type
-                                )}
-                            />
-                            {errors.ngo_document_type && (
-                                <p className="mt-1.5 text-sm text-red-600">
-                                    {errors.ngo_document_type}
-                                </p>
-                            )}
-                        </div>
-
-                        <div>
-                            <label
-                                htmlFor="ngo_document_file"
-                                className={labelClass}
-                            >
-                                Supporting document * (PDF, DOC, DOCX)
-                            </label>
-                            <div className="mt-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3">
-                                <div className="flex items-center gap-2">
-                                    <Upload
-                                        size={20}
-                                        className="shrink-0 text-emerald-700"
-                                    />
-                                    <input
-                                        id="ngo_document_file"
-                                        name="ngo_document_file"
-                                        type="file"
-                                        required
-                                        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                                        className="min-w-0 flex-1 text-xs text-slate-600 file:mr-2 file:rounded-lg file:border-0 file:bg-emerald-100 file:px-2 file:py-2 file:font-semibold file:text-emerald-800"
-                                        aria-invalid={Boolean(
-                                            errors.ngo_document_file
-                                        )}
-                                    />
+                        <div className="relative z-10 mt-12 rounded-2xl border border-white/15 bg-white/10 p-5">
+                            <div className="flex items-start gap-3">
+                                <ShieldCheck className="mt-0.5 shrink-0 text-green-200" size={22} />
+                                <div>
+                                    <h2 className="font-semibold">Verification before access</h2>
+                                    <p className="mt-1 text-sm leading-6 text-green-50/75">
+                                        Your organization registration will be reviewed by the
+                                        ShareHope administrator before NGO dashboard access is
+                                        granted.
+                                    </p>
                                 </div>
                             </div>
-                            {errors.ngo_document_file && (
-                                <p className="mt-1.5 text-sm text-red-600">
-                                    {errors.ngo_document_file}
-                                </p>
-                            )}
                         </div>
-                    </div>
-                </section>
+                    </aside>
 
-                <div className="border-t border-slate-100 pt-5">
-                    <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-700 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
-                    >
-                        {isSubmitting ? (
-                            <>
-                                <LoaderCircle
-                                    size={18}
-                                    className="animate-spin"
-                                />
-                                Submitting registration...
-                            </>
-                        ) : (
-                            <>
-                                <CheckCircle2 size={18} />
-                                Submit for approval
-                            </>
+                    <section className="p-6 sm:p-9 lg:p-12">
+                        <div className="mb-8">
+                            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-green-800">
+                                Organization details
+                            </p>
+                            <h2 className="mt-2 text-2xl font-bold text-slate-900 sm:text-3xl">
+                                NGO registration
+                            </h2>
+                            <p className="mt-2 text-sm leading-6 text-slate-500">
+                                Enter your organization details and upload the required
+                                documents.
+                            </p>
+                        </div>
+
+                        {generalError && (
+                            <div
+                                role="alert"
+                                className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                            >
+                                {generalError}
+                            </div>
                         )}
-                    </button>
 
-                    <p className="mt-3 text-xs leading-5 text-slate-500">
-                        By submitting, you confirm that the information
-                        provided is accurate and that your organization
-                        can provide supporting evidence when requested.
-                    </p>
+                        <form onSubmit={handleSubmit} noValidate className="space-y-6">
+                            <div>
+                                <h3 className="mb-4 flex items-center gap-2 text-base font-semibold text-slate-900">
+                                    <Building2 size={18} className="text-green-800" />
+                                    Basic information
+                                </h3>
+
+                                <div className="grid gap-5 sm:grid-cols-2">
+                                    <div className="sm:col-span-2">
+                                        <label
+                                            htmlFor="name"
+                                            className="mb-2 block text-sm font-medium text-slate-700"
+                                        >
+                                            NGO name
+                                        </label>
+                                        <input
+                                            id="name"
+                                            name="name"
+                                            value={form.name}
+                                            onChange={handleChange}
+                                            aria-invalid={Boolean(errors.name)}
+                                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-green-700 focus:ring-4 focus:ring-green-700/10"
+                                            placeholder="Enter your organization's name"
+                                        />
+                                        {renderError("name")}
+                                    </div>
+
+                                    <div>
+                                        <label
+                                            htmlFor="registration_number"
+                                            className="mb-2 block text-sm font-medium text-slate-700"
+                                        >
+                                            Registration number
+                                        </label>
+                                        <input
+                                            id="registration_number"
+                                            name="registration_number"
+                                            value={form.registration_number}
+                                            onChange={handleChange}
+                                            aria-invalid={Boolean(errors.registration_number)}
+                                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-green-700 focus:ring-4 focus:ring-green-700/10"
+                                            placeholder="Registration number"
+                                        />
+                                        {renderError("registration_number")}
+                                    </div>
+
+                                    <div>
+                                        <label
+                                            htmlFor="email"
+                                            className="mb-2 block text-sm font-medium text-slate-700"
+                                        >
+                                            Organization email
+                                        </label>
+                                        <input
+                                            id="email"
+                                            name="email"
+                                            type="email"
+                                            value={form.email}
+                                            onChange={handleChange}
+                                            aria-invalid={Boolean(errors.email)}
+                                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-green-700 focus:ring-4 focus:ring-green-700/10"
+                                            placeholder="organization@example.com"
+                                        />
+                                        {renderError("email")}
+                                    </div>
+
+                                    <div>
+                                        <label
+                                            htmlFor="phone"
+                                            className="mb-2 block text-sm font-medium text-slate-700"
+                                        >
+                                            Contact number
+                                        </label>
+                                        <input
+                                            id="phone"
+                                            name="phone"
+                                            type="tel"
+                                            value={form.phone}
+                                            onChange={handleChange}
+                                            aria-invalid={Boolean(errors.phone)}
+                                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-green-700 focus:ring-4 focus:ring-green-700/10"
+                                            placeholder="Contact number"
+                                        />
+                                        {renderError("phone")}
+                                    </div>
+
+                                    <div>
+                                        <label
+                                            htmlFor="address"
+                                            className="mb-2 block text-sm font-medium text-slate-700"
+                                        >
+                                            Address
+                                        </label>
+                                        <input
+                                            id="address"
+                                            name="address"
+                                            value={form.address}
+                                            onChange={handleChange}
+                                            aria-invalid={Boolean(errors.address)}
+                                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-green-700 focus:ring-4 focus:ring-green-700/10"
+                                            placeholder="Organization address"
+                                        />
+                                        {renderError("address")}
+                                    </div>
+
+                                    <div className="sm:col-span-2">
+                                        <label
+                                            htmlFor="description"
+                                            className="mb-2 block text-sm font-medium text-slate-700"
+                                        >
+                                            Description
+                                        </label>
+                                        <textarea
+                                            id="description"
+                                            name="description"
+                                            value={form.description}
+                                            onChange={handleChange}
+                                            aria-invalid={Boolean(errors.description)}
+                                            rows={4}
+                                            className="w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-green-700 focus:ring-4 focus:ring-green-700/10"
+                                            placeholder="Describe your organization's mission and work"
+                                        />
+                                        {renderError("description")}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="border-t border-slate-100 pt-6">
+                                <h3 className="mb-4 flex items-center gap-2 text-base font-semibold text-slate-900">
+                                    <ImagePlus size={18} className="text-green-800" />
+                                    Organization logo
+                                </h3>
+
+                                <label
+                                    htmlFor="ngo_logo"
+                                    className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/70 px-5 py-7 text-center transition hover:border-green-700 hover:bg-green-50/40"
+                                >
+                                    <Upload size={24} className="mb-3 text-green-800" />
+                                    <span className="text-sm font-semibold text-slate-800">
+                                        {form.ngo_logo?.name || "Choose an NGO logo"}
+                                    </span>
+                                    <span className="mt-1 text-xs text-slate-500">
+                                        Select the logo file to upload
+                                    </span>
+                                    <input
+                                        id="ngo_logo"
+                                        name="ngo_logo"
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(event) => handleFileChange(event, "ngo_logo")}
+                                        className="sr-only"
+                                        aria-invalid={Boolean(errors.ngo_logo)}
+                                    />
+                                </label>
+                                {renderError("ngo_logo")}
+                            </div>
+
+                            <div className="border-t border-slate-100 pt-6">
+                                <h3 className="mb-4 flex items-center gap-2 text-base font-semibold text-slate-900">
+                                    <ShieldCheck size={18} className="text-green-800" />
+                                    Verification document
+                                </h3>
+
+                                <div className="space-y-5">
+                                    <div>
+                                        <label
+                                            htmlFor="ngo_document_type"
+                                            className="mb-2 block text-sm font-medium text-slate-700"
+                                        >
+                                            Document type
+                                        </label>
+                                        <select
+                                            id="ngo_document_type"
+                                            name="ngo_document_type"
+                                            value={form.ngo_document_type}
+                                            onChange={handleChange}
+                                            aria-invalid={Boolean(errors.ngo_document_type)}
+                                            className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-green-700 focus:ring-4 focus:ring-green-700/10"
+                                        >
+                                            <option value="">Select document type</option>
+                                            <option value="REGISTRATION_CERTIFICATE">
+                                                Registration certificate
+                                            </option>
+                                            <option value="TAX_CERTIFICATE">Tax certificate</option>
+                                            <option value="OTHER">Other</option>
+                                        </select>
+                                        {renderError("ngo_document_type")}
+                                    </div>
+
+                                    <div>
+                                        <label
+                                            htmlFor="ngo_document_file"
+                                            className="mb-2 block text-sm font-medium text-slate-700"
+                                        >
+                                            Upload document
+                                        </label>
+                                        <label
+                                            htmlFor="ngo_document_file"
+                                            className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-4 transition hover:border-green-700"
+                                        >
+                                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-50 text-green-800">
+                                                <Upload size={20} />
+                                            </span>
+                                            <span className="min-w-0 flex-1">
+                                                <span className="block truncate text-sm font-medium text-slate-800">
+                                                    {form.ngo_document_file?.name || "Choose a document"}
+                                                </span>
+                                                <span className="mt-1 block text-xs text-slate-500">
+                                                    Select your verification document
+                                                </span>
+                                            </span>
+                                            <input
+                                                id="ngo_document_file"
+                                                name="ngo_document_file"
+                                                type="file"
+                                                onChange={(event) =>
+                                                    handleFileChange(event, "ngo_document_file")
+                                                }
+                                                className="sr-only"
+                                                aria-invalid={Boolean(errors.ngo_document_file)}
+                                            />
+                                        </label>
+                                        {renderError("ngo_document_file")}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={submitting}
+                                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#14532D] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-green-900 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {submitting ? (
+                                    <>
+                                        <LoaderCircle size={18} className="animate-spin" />
+                                        Submitting registration...
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle2 size={18} />
+                                        Submit NGO registration
+                                    </>
+                                )}
+                            </button>
+
+                            <p className="text-center text-sm text-slate-500">
+                                Already registered?{" "}
+                                <Link
+                                    href="/login"
+                                    className="font-semibold text-green-800 hover:text-green-950"
+                                >
+                                    Sign in
+                                </Link>
+                            </p>
+                        </form>
+                    </section>
                 </div>
-            </form>
-        </div>
+            </div>
+        </main>
     );
 }
