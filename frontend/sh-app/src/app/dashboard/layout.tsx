@@ -6,12 +6,19 @@ import type { ReactNode } from "react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardSkeleton from "@/components/skeleton/DashboardSkeleton";
-import { getCurrentUser } from "@/services/authService";
-import type { AuthUser } from "@/types/auth";
+import { getProfile } from "@/services/profileService";
+import type { AuthUser, UserRole } from "@/types/auth";
 
 interface DashboardLayoutProps {
     children: ReactNode;
 }
+
+const roleRoutes: Record<UserRole, string> = {
+    ADMIN: "/dashboard/admin",
+    DONOR: "/dashboard/donor",
+    NGO_ADMIN: "/dashboard/ngo",
+    NGO_STAFF: "/dashboard/ngo",
+};
 
 export default function DashboardLayout({
     children,
@@ -21,13 +28,17 @@ export default function DashboardLayout({
 
     const [user, setUser] = useState<AuthUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     useEffect(() => {
         let isMounted = true;
 
         async function loadUser() {
+            setIsLoading(true);
+
             try {
-                const currentUser = await getCurrentUser();
+                const response = await getProfile();
+                const currentUser = response.user;
 
                 if (!isMounted) return;
 
@@ -36,15 +47,6 @@ export default function DashboardLayout({
                     return;
                 }
 
-                setUser(currentUser);
-
-                const roleRoutes: Record<string, string> = {
-                    ADMIN: "/dashboard/admin",
-                    DONOR: "/dashboard/donor",
-                    NGO_ADMIN: "/dashboard/ngo",
-                    NGO_STAFF: "/dashboard/ngo",
-                };
-
                 const allowedBaseRoute = roleRoutes[currentUser.role];
 
                 if (!allowedBaseRoute) {
@@ -52,37 +54,30 @@ export default function DashboardLayout({
                     return;
                 }
 
-                const roleBaseRoutes: Record<string, string[]> = {
-                    ADMIN: ["/dashboard/admin"],
-                    DONOR: ["/dashboard/donor"],
-                    NGO_ADMIN: ["/dashboard/ngo"],
-                    NGO_STAFF: ["/dashboard/ngo"],
-                };
-
-                const allowedRoutes = roleBaseRoutes[currentUser.role] ?? [];
-
-                const hasAccess = allowedRoutes.some(
-                    (baseRoute) =>
-                        pathname === baseRoute ||
-                        pathname.startsWith(`${baseRoute}/`)
-                );
-
                 if (
                     pathname === "/dashboard" ||
                     pathname === "/dashboard/"
                 ) {
+                    setUser(currentUser);
                     router.replace(allowedBaseRoute);
                     return;
                 }
+
+                const hasAccess =
+                    pathname === allowedBaseRoute ||
+                    pathname.startsWith(`${allowedBaseRoute}/`);
 
                 if (!hasAccess) {
+                    setUser(currentUser);
                     router.replace(allowedBaseRoute);
                     return;
                 }
 
+                setUser(currentUser);
                 setIsLoading(false);
             } catch {
                 if (isMounted) {
+                    setUser(null);
                     router.replace("/login");
                 }
             }
@@ -95,16 +90,27 @@ export default function DashboardLayout({
         };
     }, [pathname, router]);
 
+    useEffect(() => {
+        setIsSidebarOpen(false);
+    }, [pathname]);
+
     if (isLoading || !user) {
         return <DashboardSkeleton />;
     }
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-900">
-            <DashboardSidebar role={user.role} />
+            <DashboardSidebar
+                role={user.role}
+                isOpen={isSidebarOpen}
+                onClose={() => setIsSidebarOpen(false)}
+            />
 
             <div className="min-h-screen md:pl-64">
-                <DashboardHeader user={user} />
+                <DashboardHeader
+                    user={user}
+                    onMenuClick={() => setIsSidebarOpen(true)}
+                />
 
                 <main className="min-w-0 p-4 sm:p-6 lg:p-8">
                     {children}
