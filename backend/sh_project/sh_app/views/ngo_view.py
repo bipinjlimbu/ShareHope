@@ -35,43 +35,43 @@ def register_ngo_view(request):
         ngo_document_file_pattern = r'^[a-zA-Z0-9\s,.-]+\.(pdf|doc|docx)$'
         
         if not name:
-            errors['name'] = 'This field is required.'
+            errors['name'] = 'NGO name is required.'
         elif not re.match(name_pattern, name):
             errors['name'] = 'Name can only contain letters and spaces.'
             
         if not registration_number:
-            errors['registration_number'] = 'This field is required.'
+            errors['registration_number'] = 'NGO registration number is required.'
         elif not re.match(registration_number_pattern, registration_number):
             errors['registration_number'] = 'Registration number can only contain letters and numbers.'
             
         if not description:
-            errors['description'] = 'This field is required.'
+            errors['description'] = 'Description about the NGO is required.'
             
         if not email:
-            errors['email'] = 'This field is required.'
+            errors['email'] = 'NGO email is required.'
         elif not re.match(email_pattern, email):
             errors['email'] = 'Invalid email format.'
             
         if not phone:
-            errors['phone'] = 'This field is required.'
+            errors['phone'] = 'NGO Contact number is required.'
         elif not re.match(phone_pattern, phone):
             errors['phone'] = 'Invalid phone number format.'
             
         if not address:
-            errors['address'] = 'This field is required.'
+            errors['address'] = 'NGO address is required.'
         elif not re.match(address_pattern, address):
             errors['address'] = 'Address can only contain letters, numbers, spaces, commas, periods, and hyphens.'
             
         if not ngo_logo:
-            errors['ngo_logo'] = 'This field is required.'
+            errors['ngo_logo'] = 'NGO logo is required.'
         elif not re.match(ngo_logo_pattern, ngo_logo.name):
             errors['ngo_logo'] = 'NGO logo must be a valid image file (jpg, jpeg, png).'
             
         if not ngo_document_type:
-            errors['ngo_document_type'] = 'This field is required.'
+            errors['ngo_document_type'] = 'NGO document type is required.'
             
         if not ngo_document_file:
-            errors['ngo_document_file'] = 'This field is required.'
+            errors['ngo_document_file'] = 'NGO document file is required.'
         elif not re.match(ngo_document_file_pattern, ngo_document_file.name):
             errors['ngo_document_file'] = 'NGO document file must be a valid document file (pdf, doc, docx).'
             
