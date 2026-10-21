@@ -10,9 +10,9 @@ const footerLinks = {
         { label: "How it works", href: "/about" },
     ],
     Community: [
-        { label: "Register as a donor", href: "/register" },
-        { label: "Register an NGO", href: "/register/ngo" },
+        { label: "Register", href: "/register" },
         { label: "Contact us", href: "/contact" },
+        { label: "About us", href: "/about" },
     ],
     Account: [
         { label: "Log in", href: "/login" },
