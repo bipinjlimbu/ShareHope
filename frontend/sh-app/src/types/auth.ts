@@ -1,3 +1,5 @@
+export type UserRole = "ADMIN" | "DONOR" | "NGO_ADMIN" | "NGO_STAFF";
+
 export interface RegisterPayload {
     username: string;
     first_name: string;
@@ -29,7 +31,7 @@ export interface AuthUser {
     email: string;
     first_name?: string;
     last_name?: string;
-    role?: string;
+    role: UserRole;
     profile_picture?: string | null;
     [key: string]: unknown;
 }
