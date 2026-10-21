@@ -6,8 +6,17 @@ export interface NGORegistrationPayload {
     phone: string;
     address: string;
     ngo_logo: File | null;
-    ngo_document_type: string;
+    ngo_document_type: NGODocumentType | "";
     ngo_document_file: File | null;
+}
+
+export type NGODocumentType =
+    | "REGISTRATION"
+    | "TAX_EXEMPTION"
+    | "OTHER";
+
+export interface NGORegistrationResponse {
+    message: string;
 }
 
 export type NGORegistrationErrors = Record<
