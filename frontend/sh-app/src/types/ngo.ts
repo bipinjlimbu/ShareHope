@@ -5,17 +5,18 @@ export interface NGORegistrationPayload {
     email: string;
     phone: string;
     address: string;
-    ngo_logo: File;
+    ngo_logo: File | null;
     ngo_document_type: string;
-    ngo_document_file: File;
+    ngo_document_file: File | null;
 }
+
+export type NGORegistrationErrors = Record<
+    string,
+    string | string[] | undefined
+>;
 
 export interface NGORegistrationResponse {
     message: string;
-}
-
-export interface NGORegistrationErrors {
-    [field: string]: string | string[] | undefined;
 }
 
 export interface NGORegistrationFormErrors {
@@ -28,5 +29,7 @@ export interface NGORegistrationFormErrors {
     ngo_logo?: string;
     ngo_document_type?: string;
     ngo_document_file?: string;
+    non_field_errors?: string;
     general?: string;
+    [key: string]: string | undefined;
 }
