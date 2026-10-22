@@ -17,8 +17,14 @@ def register_ngo_view(request):
     if request.method == 'POST':
         errors = {}
         
-        if request.user.role != User.Role.NGO:
+        if request.user.role != User.Role.NGO_ADMIN:
             return Response({'error': 'Only users with NGO role can register an NGO.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        if NGO.objects.filter(status=NGO.Status.PENDING, created_by=request.user).exists():
+            return Response({'error': 'You already have a pending NGO registration.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if NGO.objects.filter(status=NGO.Status.APPROVED, created_by=request.user).exists():
+            return Response({'error': 'You already Registered an NGO.'}, status=status.HTTP_400_BAD_REQUEST)
         
         name = request.data.get('name')
         registration_number = request.data.get('registration_number')
