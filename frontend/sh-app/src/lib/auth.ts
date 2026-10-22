@@ -1,3 +1,5 @@
+import { getProfile } from "@/services/profileService";
+
 export const AUTH_STATUS_KEY = "sharehope_authenticated";
 export const AUTH_ROLE_KEY = "sharehope_user_role";
 
@@ -17,6 +19,22 @@ export const ROLE_DASHBOARD_ROUTES: Record<UserRole, string> = {
     NGO_STAFF: "/dashboard/ngo-staff",
 };
 
+function normalizeRole(role: unknown): UserRole | null {
+    if (typeof role !== "string") return null;
+
+    const normalizedRole = role.trim().toUpperCase();
+
+    if (
+        Object.values(USER_ROLES).includes(
+            normalizedRole as UserRole
+        )
+    ) {
+        return normalizedRole as UserRole;
+    }
+
+    return null;
+}
+
 export function getAuthStatus(): boolean {
     if (typeof window === "undefined") return false;
 
@@ -26,32 +44,24 @@ export function getAuthStatus(): boolean {
 export function getUserRole(): UserRole | null {
     if (typeof window === "undefined") return null;
 
-    const role = sessionStorage.getItem(AUTH_ROLE_KEY);
-
-    if (
-        role &&
-        Object.values(USER_ROLES).includes(role as UserRole)
-    ) {
-        return role as UserRole;
-    }
-
-    return null;
+    return normalizeRole(sessionStorage.getItem(AUTH_ROLE_KEY));
 }
 
 export function setAuthStatus(
     authenticated: boolean,
-    role?: UserRole | null
+    role?: UserRole | string | null
 ): void {
     if (typeof window === "undefined") return;
+
+    let currentRole: UserRole | null = null;
 
     if (authenticated) {
         sessionStorage.setItem(AUTH_STATUS_KEY, "true");
 
-        if (
-            role &&
-            Object.values(USER_ROLES).includes(role)
-        ) {
-            sessionStorage.setItem(AUTH_ROLE_KEY, role);
+        currentRole = normalizeRole(role);
+
+        if (currentRole) {
+            sessionStorage.setItem(AUTH_ROLE_KEY, currentRole);
         } else {
             sessionStorage.removeItem(AUTH_ROLE_KEY);
         }
@@ -64,10 +74,29 @@ export function setAuthStatus(
         new CustomEvent("auth-change", {
             detail: {
                 authenticated,
-                role: authenticated ? getUserRole() : null,
+                role: authenticated ? currentRole : null,
             },
         })
     );
+}
+
+export async function syncAuthFromProfile(): Promise<UserRole | null> {
+    try {
+        const response = await getProfile();
+        const role = normalizeRole(response.user.role);
+
+        if (!role) {
+            setAuthStatus(false);
+            return null;
+        }
+
+        setAuthStatus(true, role);
+
+        return role;
+    } catch {
+        setAuthStatus(false);
+        return null;
+    }
 }
 
 export function hasRole(
