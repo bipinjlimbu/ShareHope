@@ -16,6 +16,10 @@ import re
 def register_ngo_view(request):
     if request.method == 'POST':
         errors = {}
+        
+        if request.user.role != User.Role.NGO:
+            return Response({'error': 'Only users with NGO role can register an NGO.'}, status=status.HTTP_403_FORBIDDEN)
+        
         name = request.data.get('name')
         registration_number = request.data.get('registration_number')
         description = request.data.get('description')
