@@ -9,6 +9,7 @@ import type { LoginPayload } from "@/types/auth";
 import LoginSkeleton from "@/components/skeleton/LoginSkeleton";
 import { useToast } from "@/components/ToastProvider";
 import FooterLogo from "@/images/FooterLogo.png";
+import { getAuthStatus } from "@/lib/authStatus";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -23,8 +24,28 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
 
     useEffect(() => {
-        setIsPageLoading(false);
-    }, []);
+        const checkAuthStatus = () => {
+            if (getAuthStatus()) {
+                showToast(
+                    "You are already logged in, so you are not allowed to access this page.",
+                    "error"
+                );
+
+                router.replace("/");
+                return;
+            }
+
+            setIsPageLoading(false);
+        };
+
+        checkAuthStatus();
+
+        window.addEventListener("auth-change", checkAuthStatus);
+
+        return () => {
+            window.removeEventListener("auth-change", checkAuthStatus);
+        };
+    }, [router, showToast]);
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         setFormData({
@@ -122,7 +143,11 @@ export default function LoginPage() {
                         </p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+                    <form
+                        onSubmit={handleSubmit}
+                        className="space-y-5"
+                        noValidate
+                    >
                         <div>
                             <label
                                 htmlFor="login_credential"
