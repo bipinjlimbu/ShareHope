@@ -14,6 +14,7 @@ import RegisterSkeleton from "@/components/skeleton/RegisterSkeleton";
 import { useToast } from "@/components/ToastProvider";
 import type { RegisterPayload, RegisterErrors } from "@/types/auth";
 import FooterLogo from "@/images/FooterLogo.png";
+import { getAuthStatus } from "@/lib/authStatus";
 
 const initialForm: RegisterPayload = {
     username: "",
@@ -40,8 +41,27 @@ export default function RegisterPage() {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     useEffect(() => {
-        setPageReady(true);
-    }, []);
+        const checkAuthStatus = () => {
+            if (getAuthStatus()) {
+                showToast(
+                    "You are already logged in, so you are not allowed to access this page.",
+                    "error"
+                );
+                router.replace("/");
+                return;
+            }
+
+            setPageReady(true);
+        };
+
+        checkAuthStatus();
+
+        window.addEventListener("auth-change", checkAuthStatus);
+
+        return () => {
+            window.removeEventListener("auth-change", checkAuthStatus);
+        };
+    }, [router, showToast]);
 
     const inputClass =
         "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-green-600 focus:ring-2 focus:ring-green-100";
@@ -392,7 +412,7 @@ export default function RegisterPage() {
                                         autoComplete="new-password"
                                         value={form.password}
                                         onChange={handleChange}
-                                        className={`${inputClass} pr - 20`}
+                                        className={`${inputClass} pr-20`}
                                         placeholder="Create a password"
                                     />
                                     <button
@@ -420,7 +440,7 @@ export default function RegisterPage() {
                                         autoComplete="new-password"
                                         value={form.confirm_password}
                                         onChange={handleChange}
-                                        className={`${inputClass} pr - 20`}
+                                        className={`${inputClass} pr-20`}
                                         placeholder="Enter your password again"
                                     />
                                     <button
