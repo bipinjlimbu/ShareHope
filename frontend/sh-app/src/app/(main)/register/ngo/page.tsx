@@ -15,14 +15,9 @@ import {
 } from "lucide-react";
 import FooterLogo from "@/images/FooterLogo.png";
 import { registerNGO } from "@/services/ngoService";
+import { getProfile } from "@/services/profileService";
 import NGORegistrationSkeleton from "@/components/skeleton/NGORegistrationSkeleton";
 import { useToast } from "@/components/ToastProvider";
-import {
-    getAuthStatus,
-    getUserRole,
-    getDashboardRoute,
-    USER_ROLES,
-} from "@/lib/auth";
 import type {
     NGORegistrationErrors,
     NGORegistrationPayload,
@@ -79,7 +74,8 @@ function getBackendMessage(
         getErrorMessage(errors.non_field_errors) ||
         getErrorMessage(errors.detail) ||
         getErrorMessage(errors.message) ||
-        getErrorMessage(errors.error)
+        getErrorMessage(errors.error) ||
+        getErrorMessage(errors.general)
     );
 }
 
@@ -105,22 +101,32 @@ export default function NGORegistrationPage() {
 
         accessCheckStarted.current = true;
 
-        if (!getAuthStatus()) {
-            showToast("Please log in to access this page.", "error");
-            router.replace("/login");
-            return;
+        async function checkAccess() {
+            try {
+                const response = await getProfile();
+                const role = response.user.role;
+
+                if (role !== "NGO_ADMIN") {
+                    showToast(
+                        "Only NGO Admin can access this page.",
+                        "error"
+                    );
+                    router.replace("/");
+                    return;
+                }
+
+                setHasPageAccess(true);
+                setAccessChecked(true);
+            } catch {
+                showToast(
+                    "Please log in to access this page.",
+                    "error"
+                );
+                router.replace("/login");
+            }
         }
 
-        const role = getUserRole();
-
-        if (role !== USER_ROLES.NGO_ADMIN) {
-            showToast("Only NGO Admin can access this page.", "error");
-            router.replace(getDashboardRoute() || "/");
-            return;
-        }
-
-        setHasPageAccess(true);
-        setAccessChecked(true);
+        void checkAccess();
     }, [router, showToast]);
 
     function clearFieldError(field: string) {
@@ -209,9 +215,11 @@ export default function NGORegistrationPage() {
 
             const backendMessage = getBackendMessage(backendErrors);
 
-            if (backendMessage) {
-                showToast(backendMessage, "error");
-            }
+            showToast(
+                backendMessage ||
+                "Unable to submit NGO registration. Please try again.",
+                "error"
+            );
         } finally {
             setSubmitting(false);
         }
@@ -320,10 +328,7 @@ export default function NGORegistrationPage() {
 
                                 <div className="grid gap-5 sm:grid-cols-2">
                                     <div className="sm:col-span-2">
-                                        <label
-                                            htmlFor="name"
-                                            className="mb-2 block text-sm font-medium text-slate-800"
-                                        >
+                                        <label htmlFor="name" className="mb-2 block text-sm font-medium text-slate-800">
                                             NGO name
                                         </label>
                                         <input
@@ -339,10 +344,7 @@ export default function NGORegistrationPage() {
                                     </div>
 
                                     <div>
-                                        <label
-                                            htmlFor="registration_number"
-                                            className="mb-2 block text-sm font-medium text-slate-800"
-                                        >
+                                        <label htmlFor="registration_number" className="mb-2 block text-sm font-medium text-slate-800">
                                             Registration number
                                         </label>
                                         <input
@@ -358,10 +360,7 @@ export default function NGORegistrationPage() {
                                     </div>
 
                                     <div>
-                                        <label
-                                            htmlFor="email"
-                                            className="mb-2 block text-sm font-medium text-slate-800"
-                                        >
+                                        <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-800">
                                             Organization email
                                         </label>
                                         <input
@@ -378,10 +377,7 @@ export default function NGORegistrationPage() {
                                     </div>
 
                                     <div>
-                                        <label
-                                            htmlFor="phone"
-                                            className="mb-2 block text-sm font-medium text-slate-800"
-                                        >
+                                        <label htmlFor="phone" className="mb-2 block text-sm font-medium text-slate-800">
                                             Contact number
                                         </label>
                                         <input
@@ -398,10 +394,7 @@ export default function NGORegistrationPage() {
                                     </div>
 
                                     <div>
-                                        <label
-                                            htmlFor="address"
-                                            className="mb-2 block text-sm font-medium text-slate-800"
-                                        >
+                                        <label htmlFor="address" className="mb-2 block text-sm font-medium text-slate-800">
                                             Address
                                         </label>
                                         <input
@@ -417,10 +410,7 @@ export default function NGORegistrationPage() {
                                     </div>
 
                                     <div className="sm:col-span-2">
-                                        <label
-                                            htmlFor="description"
-                                            className="mb-2 block text-sm font-medium text-slate-800"
-                                        >
+                                        <label htmlFor="description" className="mb-2 block text-sm font-medium text-slate-800">
                                             Description
                                         </label>
                                         <textarea
@@ -476,10 +466,7 @@ export default function NGORegistrationPage() {
 
                                 <div className="space-y-5">
                                     <div>
-                                        <label
-                                            htmlFor="ngo_document_type"
-                                            className="mb-2 block text-sm font-medium text-slate-800"
-                                        >
+                                        <label htmlFor="ngo_document_type" className="mb-2 block text-sm font-medium text-slate-800">
                                             Document type
                                         </label>
                                         <select
@@ -489,9 +476,7 @@ export default function NGORegistrationPage() {
                                             onChange={(event) => {
                                                 setForm((previous) => ({
                                                     ...previous,
-                                                    ngo_document_type: event.target.value as
-                                                        | NGODocumentType
-                                                        | "",
+                                                    ngo_document_type: event.target.value as NGODocumentType | "",
                                                 }));
                                                 clearFieldError("ngo_document_type");
                                             }}
@@ -499,22 +484,15 @@ export default function NGORegistrationPage() {
                                             className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-green-700 focus:ring-4 focus:ring-green-700/10"
                                         >
                                             <option value="">Select document type</option>
-                                            <option value="REGISTRATION">
-                                                Registration Document
-                                            </option>
-                                            <option value="TAX_EXEMPTION">
-                                                Tax Exemption Certificate
-                                            </option>
+                                            <option value="REGISTRATION">Registration Document</option>
+                                            <option value="TAX_EXEMPTION">Tax Exemption Certificate</option>
                                             <option value="OTHER">Other</option>
                                         </select>
                                         {renderError("ngo_document_type")}
                                     </div>
 
                                     <div>
-                                        <label
-                                            htmlFor="ngo_document_file"
-                                            className="mb-2 block text-sm font-medium text-slate-800"
-                                        >
+                                        <label htmlFor="ngo_document_file" className="mb-2 block text-sm font-medium text-slate-800">
                                             Upload document
                                         </label>
                                         <label
@@ -536,9 +514,7 @@ export default function NGORegistrationPage() {
                                                 id="ngo_document_file"
                                                 name="ngo_document_file"
                                                 type="file"
-                                                onChange={(event) =>
-                                                    handleFileChange(event, "ngo_document_file")
-                                                }
+                                                onChange={(event) => handleFileChange(event, "ngo_document_file")}
                                                 className="sr-only"
                                                 aria-invalid={Boolean(errors.ngo_document_file)}
                                             />
@@ -568,10 +544,7 @@ export default function NGORegistrationPage() {
 
                             <p className="text-center text-sm text-slate-600">
                                 Already registered?{" "}
-                                <Link
-                                    href="/login"
-                                    className="font-semibold text-green-800 hover:text-green-950"
-                                >
+                                <Link href="/login" className="font-semibold text-green-800 hover:text-green-950">
                                     Sign in
                                 </Link>
                             </p>
