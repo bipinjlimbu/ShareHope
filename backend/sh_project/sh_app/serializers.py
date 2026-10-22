@@ -11,6 +11,8 @@ class NGOSerializer(serializers.ModelSerializer):
     members = serializers.SerializerMethodField()
     document_count = serializers.SerializerMethodField()
     membership_count = serializers.SerializerMethodField()
+    created_by = UserSerializer(read_only=True)
+    reviewed_by = UserSerializer(read_only=True)
     
     def get_documents(self, obj):
         documents = NGODocument.objects.filter(ngo=obj)
@@ -25,6 +27,12 @@ class NGOSerializer(serializers.ModelSerializer):
     
     def get_document_count(self, obj):
         return NGODocument.objects.filter(ngo=obj).count()
+    
+    def get_created_by(self, obj):
+        return UserSerializer(obj.created_by).data
+    
+    def get_reviewed_by(self, obj):
+        return UserSerializer(obj.reviewed_by).data
     
     class Meta:
         model = NGO
