@@ -35,3 +35,9 @@ export async function registerNGO(
         throw error as NGORegistrationErrors;
     }
 }
+
+export async function getNGOs() {
+    return await authFetch("/ngo/", {
+        method: "GET",
+    });
+}
