@@ -20,6 +20,7 @@ import { useToast } from "@/components/ToastProvider";
 import VerifyOtpSkeleton from "@/components/skeleton/VerifyOtpSkeleton";
 import FooterLogo from "@/images/FooterLogo.png";
 import Image from "next/image";
+import { getAuthStatus } from "@/lib/authStatus";
 
 const OTP_LENGTH = 6;
 
@@ -74,15 +75,41 @@ function VerifyOtpContent() {
     const [resending, setResending] = useState(false);
 
     const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
+    const redirectingRef = useRef(false);
 
     useEffect(() => {
-        if (!email.trim()) {
-            router.replace("/login/forgot-password");
-            return;
-        }
+        const checkAuthStatus = () => {
+            if (getAuthStatus()) {
+                if (!redirectingRef.current) {
+                    redirectingRef.current = true;
 
-        setIsPageLoading(false);
-    }, [email, router]);
+                    showToast(
+                        "You are already logged in, so you are not allowed to access this page.",
+                        "error"
+                    );
+
+                    router.replace("/");
+                }
+
+                return;
+            }
+
+            if (!email.trim()) {
+                router.replace("/login/forgot-password");
+                return;
+            }
+
+            setIsPageLoading(false);
+        };
+
+        checkAuthStatus();
+
+        window.addEventListener("auth-change", checkAuthStatus);
+
+        return () => {
+            window.removeEventListener("auth-change", checkAuthStatus);
+        };
+    }, [email, router, showToast]);
 
     const handleOtpChange = (
         index: number,
@@ -219,7 +246,7 @@ function VerifyOtpContent() {
         }
     };
 
-    if (isPageLoading || !email.trim()) {
+    if (isPageLoading || !email.trim() || redirectingRef.current) {
         return <VerifyOtpSkeleton />;
     }
 
