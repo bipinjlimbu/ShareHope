@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { resetPassword } from "@/services/authService";
 import { useToast } from "@/components/ToastProvider";
 import type { ResetPasswordPayload } from "@/types/auth";
 import ResetPasswordSkeleton from "@/components/skeleton/ResetPasswordSkeleton";
+import { getAuthStatus } from "@/lib/authStatus";
 
 function getErrorMessage(error: unknown): string {
     if (typeof error === "string" && error.trim()) {
@@ -99,12 +100,44 @@ export default function ResetPasswordPage() {
     const router = useRouter();
     const { showToast } = useToast();
 
+    const [isPageLoading, setIsPageLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
+
+    const redirectingRef = useRef(false);
+
+    useEffect(() => {
+        const checkAuthStatus = () => {
+            if (getAuthStatus()) {
+                if (!redirectingRef.current) {
+                    redirectingRef.current = true;
+
+                    showToast(
+                        "You are already logged in, so you are not allowed to access this page.",
+                        "error"
+                    );
+
+                    router.replace("/");
+                }
+
+                return;
+            }
+
+            setIsPageLoading(false);
+        };
+
+        checkAuthStatus();
+
+        window.addEventListener("auth-change", checkAuthStatus);
+
+        return () => {
+            window.removeEventListener("auth-change", checkAuthStatus);
+        };
+    }, [router, showToast]);
 
     const passwordPattern =
         /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
@@ -133,7 +166,7 @@ export default function ResetPasswordPage() {
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
-        if (isSubmitting || !validateForm()) {
+        if (isSubmitting || redirectingRef.current || !validateForm()) {
             return;
         }
 
@@ -152,7 +185,8 @@ export default function ResetPasswordPage() {
             setConfirmPassword("");
 
             showToast(
-                response?.message || "Your password has been reset successfully.",
+                response?.message ||
+                "Your password has been reset successfully.",
                 "success"
             );
 
@@ -180,6 +214,10 @@ export default function ResetPasswordPage() {
         } finally {
             setIsSubmitting(false);
         }
+    }
+
+    if (isPageLoading || redirectingRef.current) {
+        return <ResetPasswordSkeleton />;
     }
 
     if (isSubmitting) {
@@ -278,7 +316,9 @@ export default function ResetPasswordPage() {
                                 <button
                                     type="button"
                                     onClick={() =>
-                                        setShowNewPassword((previous) => !previous)
+                                        setShowNewPassword(
+                                            (previous) => !previous
+                                        )
                                     }
                                     disabled={isSubmitting}
                                     className="absolute inset-y-0 right-3 text-xs font-semibold text-emerald-700 hover:text-emerald-800"
