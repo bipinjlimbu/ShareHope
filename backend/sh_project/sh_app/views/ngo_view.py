@@ -124,6 +124,6 @@ def register_ngo_view(request):
 @permission_classes([IsAuthenticated])
 def ngo_view(request):
     if request.method == 'GET':
-        ngos = NGO.objects.exclude(status=NGO.Status.REJECTED).order_by('-created_at')
+        ngos = NGO.objects.all()
         serializer = NGOSerializer(ngos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
