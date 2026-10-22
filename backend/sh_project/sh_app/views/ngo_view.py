@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.contrib.auth.hashers import make_password, check_password
 from ..models import User, NGO, NGODocument, NGOMembership
-from ..serializers import UserSerializer
+from ..serializers import NGOSerializer
 from ..email_service import send_email
 import secrets
 import re
@@ -119,3 +119,11 @@ def register_ngo_view(request):
         ngo_membership.save()
         
         return Response({'message': 'NGO registered successfully.'}, status=status.HTTP_201_CREATED)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def ngo_view(request):
+    if request.method == 'GET':
+        ngos = NGO.objects.all()
+        serializer = NGOSerializer(ngos, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
