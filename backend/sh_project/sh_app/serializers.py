@@ -36,6 +36,11 @@ class NGODocumentSerializer(serializers.ModelSerializer):
         fields = '__all__'
         
 class NGOMembershipSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    
+    def get_member(self, obj):
+        return UserSerializer(obj.user).data
+    
     class Meta:
         model = NGOMembership
         fields = '__all__'
