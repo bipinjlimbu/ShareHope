@@ -10,3 +10,8 @@ class NGOSerializer(serializers.ModelSerializer):
     class Meta:
         model = NGO
         fields = '__all__'
+        
+class NGODocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NGODocument
+        fields = '__all__'
