@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ProfileUser } from "@/types/profile";
@@ -12,6 +12,7 @@ import {
 import ProfileSkeleton from "@/components/skeleton/ProfileSkeleton";
 import ProfileForm from "@/components/form/ProfileForm";
 import { useToast } from "@/components/ToastProvider";
+import { getAuthStatus, setAuthStatus } from "@/lib/authStatus";
 
 function formatRole(role?: string) {
     if (!role) return "Member";
@@ -180,11 +181,14 @@ export default function ProfilePage() {
 
     const [user, setUser] = useState<ProfileUser | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isAuthChecked, setIsAuthChecked] = useState(false);
     const [profileError, setProfileError] = useState(false);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isSendingOtp, setIsSendingOtp] = useState(false);
+
+    const redirectingRef = useRef(false);
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "");
 
@@ -194,6 +198,36 @@ export default function ProfilePage() {
         NGO_ADMIN: "/dashboard/ngo-admin",
         NGO_STAFF: "/dashboard/ngo-staff",
     };
+
+    useEffect(() => {
+        const checkAuthStatus = () => {
+            if (!getAuthStatus()) {
+                if (!redirectingRef.current) {
+                    redirectingRef.current = true;
+
+                    showToast(
+                        "You must be logged in to access your profile.",
+                        "error"
+                    );
+
+                    router.replace("/login");
+                }
+
+                return;
+            }
+
+            redirectingRef.current = false;
+            setIsAuthChecked(true);
+        };
+
+        checkAuthStatus();
+
+        window.addEventListener("auth-change", checkAuthStatus);
+
+        return () => {
+            window.removeEventListener("auth-change", checkAuthStatus);
+        };
+    }, [router, showToast]);
 
     const loadProfile = useCallback(async () => {
         setIsLoading(true);
@@ -211,8 +245,10 @@ export default function ProfilePage() {
     }, [showToast]);
 
     useEffect(() => {
+        if (!isAuthChecked) return;
+
         void loadProfile();
-    }, [loadProfile]);
+    }, [isAuthChecked, loadProfile]);
 
     const closeEditForm = useCallback(() => {
         setIsEditOpen(false);
@@ -252,7 +288,7 @@ export default function ProfilePage() {
             setUser(null);
             setIsDeleteOpen(false);
 
-            window.dispatchEvent(new Event("auth-change"));
+            setAuthStatus(false);
 
             showToast("Your account has been deleted successfully.", "success");
 
@@ -265,7 +301,7 @@ export default function ProfilePage() {
         }
     }
 
-    if (isLoading) {
+    if (!isAuthChecked || isLoading || redirectingRef.current) {
         return <ProfileSkeleton />;
     }
 
@@ -330,7 +366,7 @@ export default function ProfilePage() {
         typeof user.profile_picture === "string"
             ? user.profile_picture.startsWith("http")
                 ? user.profile_picture
-                : `${API_URL ?? ""}${user.profile_picture} `
+                : `${API_URL ?? ""}${user.profile_picture}`
             : null;
 
     const dashboardLink = user.role
@@ -361,7 +397,7 @@ export default function ProfilePage() {
                                 {profilePicture ? (
                                     <img
                                         src={profilePicture}
-                                        alt={`${fullName || username} 's profile`}
+                                        alt={`${fullName || username}'s profile`}
                                         className="h-24 w-24 rounded-full border-4 border-[#F0F6ED] bg-[#E4F1E4] object-cover"
                                     />
                                 ) : (
@@ -394,7 +430,7 @@ export default function ProfilePage() {
                                         ? "Verified account"
                                         : "Not verified"}
                                 </span>
-                            </div >
+                            </div>
 
                             <div className="my-6 border-t border-[#E6EDE4]" />
 
@@ -440,7 +476,7 @@ export default function ProfilePage() {
                             <p className="mt-4 text-center text-xs leading-5 text-[#879487]">
                                 Keep your account information up to date.
                             </p>
-                        </aside >
+                        </aside>
 
                         <div className="min-w-0 space-y-6">
                             <section className="min-w-0 rounded-3xl border border-[#E6EDE4] bg-white p-5 shadow-sm sm:p-7">
@@ -513,15 +549,15 @@ export default function ProfilePage() {
                                 </div>
                             </section>
                         </div>
-                    </div >
+                    </div>
 
                     <p className="mt-6 text-center text-xs text-[#879487]">
                         {user.is_verified
                             ? "Thank you for being part of ShareHope."
                             : "Please verify your email to access your ShareHope dashboard."}
                     </p>
-                </div >
-            </main >
+                </div>
+            </main>
 
             {isEditOpen && (
                 <ProfileForm
@@ -532,71 +568,69 @@ export default function ProfilePage() {
                 />
             )}
 
-            {
-                isDeleteOpen && (
-                    <div
-                        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-5 py-8"
-                        role="presentation"
-                        onMouseDown={(event) => {
-                            if (
-                                event.target === event.currentTarget &&
-                                !isDeleting
-                            ) {
-                                setIsDeleteOpen(false);
-                            }
-                        }}
+            {isDeleteOpen && (
+                <div
+                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-5 py-8"
+                    role="presentation"
+                    onMouseDown={(event) => {
+                        if (
+                            event.target === event.currentTarget &&
+                            !isDeleting
+                        ) {
+                            setIsDeleteOpen(false);
+                        }
+                    }}
+                >
+                    <section
+                        role="alertdialog"
+                        aria-modal="true"
+                        aria-labelledby="delete-profile-title"
+                        aria-describedby="delete-profile-description"
+                        className="w-full max-w-md rounded-3xl border border-[#E6EDE4] bg-[#FFFCF6] p-6 shadow-2xl sm:p-8"
                     >
-                        <section
-                            role="alertdialog"
-                            aria-modal="true"
-                            aria-labelledby="delete-profile-title"
-                            aria-describedby="delete-profile-description"
-                            className="w-full max-w-md rounded-3xl border border-[#E6EDE4] bg-[#FFFCF6] p-6 shadow-2xl sm:p-8"
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-red-600">
+                            <TrashIcon />
+                        </div>
+
+                        <h2
+                            id="delete-profile-title"
+                            className="mt-5 text-xl font-extrabold text-[#14532D]"
                         >
-                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-red-600">
-                                <TrashIcon />
-                            </div>
+                            Delete your account?
+                        </h2>
 
-                            <h2
-                                id="delete-profile-title"
-                                className="mt-5 text-xl font-extrabold text-[#14532D]"
+                        <p
+                            id="delete-profile-description"
+                            className="mt-3 text-sm leading-6 text-[#718174]"
+                        >
+                            This will permanently delete your ShareHope account.
+                            This action cannot be undone.
+                        </p>
+
+                        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                            <button
+                                type="button"
+                                onClick={() => setIsDeleteOpen(false)}
+                                disabled={isDeleting}
+                                className="rounded-xl border border-[#DDE7DC] px-5 py-3 text-sm font-semibold text-[#31523C] transition hover:bg-[#EDF5EC] disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                Delete your account?
-                            </h2>
+                                Cancel
+                            </button>
 
-                            <p
-                                id="delete-profile-description"
-                                className="mt-3 text-sm leading-6 text-[#718174]"
+                            <button
+                                type="button"
+                                onClick={handleDeleteProfile}
+                                disabled={isDeleting}
+                                className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                This will permanently delete your ShareHope account.
-                                This action cannot be undone.
-                            </p>
-
-                            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsDeleteOpen(false)}
-                                    disabled={isDeleting}
-                                    className="rounded-xl border border-[#DDE7DC] px-5 py-3 text-sm font-semibold text-[#31523C] transition hover:bg-[#EDF5EC] disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                    Cancel
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={handleDeleteProfile}
-                                    disabled={isDeleting}
-                                    className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                    {isDeleting
-                                        ? "Deleting account..."
-                                        : "Delete account"}
-                                </button>
-                            </div>
-                        </section>
-                    </div>
-                )
-            }
+                                {isDeleting
+                                    ? "Deleting account..."
+                                    : "Delete account"}
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            )}
         </>
     );
 }
