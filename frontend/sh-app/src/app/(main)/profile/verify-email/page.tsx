@@ -22,6 +22,7 @@ import {
     verifyEmail,
 } from "@/services/profileService";
 import type { VerificationStatus } from "@/types/toast";
+import { getAuthStatus } from "@/lib/authStatus";
 
 export default function VerifyEmailPage() {
     const router = useRouter();
@@ -31,6 +32,7 @@ export default function VerifyEmailPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [isResending, setIsResending] = useState(false);
     const [isCheckingProfile, setIsCheckingProfile] = useState(true);
+    const [isAuthChecked, setIsAuthChecked] = useState(false);
     const [isAlreadyVerified, setIsAlreadyVerified] = useState(false);
     const [profileCheckFailed, setProfileCheckFailed] = useState(false);
     const [status, setStatus] = useState<VerificationStatus>("pending");
@@ -38,8 +40,41 @@ export default function VerifyEmailPage() {
     const [failedMessage, setFailedMessage] = useState("");
 
     const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
+    const redirectingRef = useRef(false);
 
     useEffect(() => {
+        const checkAuthStatus = () => {
+            if (!getAuthStatus()) {
+                if (!redirectingRef.current) {
+                    redirectingRef.current = true;
+
+                    showToast(
+                        "You must be logged in to verify your email.",
+                        "error"
+                    );
+
+                    router.replace("/login");
+                }
+
+                return;
+            }
+
+            redirectingRef.current = false;
+            setIsAuthChecked(true);
+        };
+
+        checkAuthStatus();
+
+        window.addEventListener("auth-change", checkAuthStatus);
+
+        return () => {
+            window.removeEventListener("auth-change", checkAuthStatus);
+        };
+    }, [router, showToast]);
+
+    useEffect(() => {
+        if (!isAuthChecked) return;
+
         let isMounted = true;
         let redirectTimeout: ReturnType<typeof setTimeout> | undefined;
 
@@ -90,7 +125,7 @@ export default function VerifyEmailPage() {
                 clearTimeout(redirectTimeout);
             }
         };
-    }, [router, showToast]);
+    }, [isAuthChecked, router, showToast]);
 
     useEffect(() => {
         if (status !== "success") return;
@@ -353,7 +388,13 @@ export default function VerifyEmailPage() {
         }
     }
 
-    if (isCheckingProfile || isAlreadyVerified || isLoading) {
+    if (
+        !isAuthChecked ||
+        isCheckingProfile ||
+        isAlreadyVerified ||
+        isLoading ||
+        redirectingRef.current
+    ) {
         return <VerifyEmailSkeleton />;
     }
 
@@ -484,8 +525,8 @@ export default function VerifyEmailPage() {
                                 }
                                 onPaste={handlePaste}
                                 className={`h-12 min-w-0 flex-1 rounded-xl border bg-[#FFFCF6] text-center text-xl font-bold text-[#14532D] outline-none transition focus:border-[#35A45C] focus:ring-4 focus:ring-[#35A45C]/10 sm:h-14 sm:max-w-12 ${fieldError
-                                    ? "border-red-400"
-                                    : "border-[#DDE7DC]"
+                                        ? "border-red-400"
+                                        : "border-[#DDE7DC]"
                                     }`}
                             />
                         ))}
