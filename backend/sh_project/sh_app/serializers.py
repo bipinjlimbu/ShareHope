@@ -7,6 +7,25 @@ class UserSerializer(serializers.ModelSerializer):
         fields = '__all__'
         
 class NGOSerializer(serializers.ModelSerializer):
+    documents = serializers.SerializerMethodField()
+    members = serializers.SerializerMethodField()
+    document_count = serializers.SerializerMethodField()
+    membership_count = serializers.SerializerMethodField()
+    
+    def get_documents(self, obj):
+        documents = NGODocument.objects.filter(ngo=obj)
+        return NGODocumentSerializer(documents, many=True).data
+    
+    def get_members(self, obj):
+        members = NGOMembership.objects.filter(ngo=obj)
+        return NGOMembershipSerializer(members, many=True).data
+    
+    def get_membership_count(self, obj):
+        return NGOMembership.objects.filter(ngo=obj).count()
+    
+    def get_document_count(self, obj):
+        return NGODocument.objects.filter(ngo=obj).count()
+    
     class Meta:
         model = NGO
         fields = '__all__'
