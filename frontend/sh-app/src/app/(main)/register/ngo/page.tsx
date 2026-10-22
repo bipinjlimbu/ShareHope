@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -17,9 +17,16 @@ import FooterLogo from "@/images/FooterLogo.png";
 import { registerNGO } from "@/services/ngoService";
 import NGORegistrationSkeleton from "@/components/skeleton/NGORegistrationSkeleton";
 import { useToast } from "@/components/ToastProvider";
+import {
+    getAuthStatus,
+    getUserRole,
+    getDashboardRoute,
+    USER_ROLES,
+} from "@/lib/auth";
 import type {
     NGORegistrationErrors,
     NGORegistrationPayload,
+    NGORegistrationFormErrors,
     NGODocumentType,
 } from "@/types/ngo";
 
@@ -35,8 +42,22 @@ const initialForm: NGORegistrationPayload = {
     ngo_document_file: null,
 };
 
+const FIELD_NAMES = [
+    "name",
+    "registration_number",
+    "description",
+    "email",
+    "phone",
+    "address",
+    "ngo_logo",
+    "ngo_document_type",
+    "ngo_document_file",
+] as const;
+
 function getErrorMessage(value: unknown): string | undefined {
-    if (typeof value === "string") return value;
+    if (typeof value === "string") {
+        return value;
+    }
 
     if (Array.isArray(value)) {
         return value.map(String).join(" ");
@@ -45,31 +66,74 @@ function getErrorMessage(value: unknown): string | undefined {
     return undefined;
 }
 
+function hasFieldErrors(errors: NGORegistrationErrors): boolean {
+    return FIELD_NAMES.some((field) =>
+        Boolean(getErrorMessage(errors[field]))
+    );
+}
+
+function getBackendMessage(
+    errors: NGORegistrationErrors
+): string | undefined {
+    return (
+        getErrorMessage(errors.non_field_errors) ||
+        getErrorMessage(errors.detail) ||
+        getErrorMessage(errors.message) ||
+        getErrorMessage(errors.error)
+    );
+}
+
 export default function NGORegistrationPage() {
     const router = useRouter();
     const { showToast } = useToast();
 
     const [form, setForm] = useState<NGORegistrationPayload>(initialForm);
-    const [errors, setErrors] = useState<NGORegistrationErrors>({});
+    const [errors, setErrors] = useState<NGORegistrationFormErrors>({});
     const [submitting, setSubmitting] = useState(false);
+    const [accessChecked, setAccessChecked] = useState(false);
     const [pageReady, setPageReady] = useState(false);
+    const [hasPageAccess, setHasPageAccess] = useState(false);
+
+    const accessCheckStarted = useRef(false);
 
     useEffect(() => {
         setPageReady(true);
-    }, []);
 
-    if (!pageReady) {
-        return <NGORegistrationSkeleton />;
-    }
+        if (accessCheckStarted.current) {
+            return;
+        }
+
+        accessCheckStarted.current = true;
+
+        if (!getAuthStatus()) {
+            showToast("Please log in to access this page.", "error");
+            router.replace("/login");
+            return;
+        }
+
+        const role = getUserRole();
+
+        if (role !== USER_ROLES.NGO_ADMIN) {
+            showToast("Only NGO Admin can access this page.", "error");
+            router.replace(getDashboardRoute() || "/");
+            return;
+        }
+
+        setHasPageAccess(true);
+        setAccessChecked(true);
+    }, [router, showToast]);
 
     function clearFieldError(field: string) {
         setErrors((previous) => {
             const updated = { ...previous };
+
             delete updated[field];
             delete updated.non_field_errors;
             delete updated.detail;
             delete updated.message;
             delete updated.error;
+            delete updated.general;
+
             return updated;
         });
     }
@@ -105,36 +169,48 @@ export default function NGORegistrationPage() {
 
     async function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
+
+        if (submitting) {
+            return;
+        }
+
         setSubmitting(true);
         setErrors({});
 
         try {
             const response = await registerNGO(form);
 
-            showToast(
-                response.message || "NGO registration submitted successfully.",
-                "success"
-            );
+            if (response.message) {
+                showToast(response.message, "success");
+            }
 
             router.push("/dashboard/ngo/pending");
         } catch (error: unknown) {
-            const backendErrors =
+            const backendErrors: NGORegistrationErrors =
                 error && typeof error === "object"
                     ? (error as NGORegistrationErrors)
                     : {};
 
-            setErrors(backendErrors);
+            const fieldErrors: NGORegistrationFormErrors = {};
 
-            const generalError =
-                getErrorMessage(backendErrors.non_field_errors) ||
-                getErrorMessage(backendErrors.detail) ||
-                getErrorMessage(backendErrors.message) ||
-                getErrorMessage(backendErrors.error);
+            for (const field of FIELD_NAMES) {
+                const message = getErrorMessage(backendErrors[field]);
 
-            if (generalError) {
-                showToast(generalError, "error");
-            } else {
-                showToast("NGO registration failed. Please review the errors below.", "error");
+                if (message) {
+                    fieldErrors[field] = message;
+                }
+            }
+
+            setErrors(fieldErrors);
+
+            if (hasFieldErrors(backendErrors)) {
+                return;
+            }
+
+            const backendMessage = getBackendMessage(backendErrors);
+
+            if (backendMessage) {
+                showToast(backendMessage, "error");
             }
         } finally {
             setSubmitting(false);
@@ -142,9 +218,11 @@ export default function NGORegistrationPage() {
     }
 
     function renderError(field: string) {
-        const message = getErrorMessage(errors[field]);
+        const message = errors[field];
 
-        if (!message) return null;
+        if (!message) {
+            return null;
+        }
 
         return (
             <p role="alert" className="mt-1.5 text-sm text-red-600">
@@ -153,11 +231,9 @@ export default function NGORegistrationPage() {
         );
     }
 
-    const generalError =
-        getErrorMessage(errors.non_field_errors) ||
-        getErrorMessage(errors.detail) ||
-        getErrorMessage(errors.message) ||
-        getErrorMessage(errors.error);
+    if (!pageReady || !accessChecked || !hasPageAccess) {
+        return <NGORegistrationSkeleton />;
+    }
 
     return (
         <main className="min-h-screen bg-[#FFFCF6] px-4 py-8 sm:px-6 lg:py-12">
@@ -234,15 +310,6 @@ export default function NGORegistrationPage() {
                                 documents.
                             </p>
                         </div>
-
-                        {generalError && (
-                            <div
-                                role="alert"
-                                className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-                            >
-                                {generalError}
-                            </div>
-                        )}
 
                         <form onSubmit={handleSubmit} noValidate className="space-y-6">
                             <div>
