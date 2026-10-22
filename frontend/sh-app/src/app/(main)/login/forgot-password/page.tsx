@@ -9,6 +9,7 @@ import ForgotPasswordSkeleton from "@/components/skeleton/ForgotPasswordSkeleton
 import type { ForgotPasswordPayload } from "@/types/auth";
 import FooterLogo from "@/images/FooterLogo.png";
 import Image from "next/image";
+import { getAuthStatus } from "@/lib/authStatus";
 
 function getErrorMessage(error: unknown): string {
     if (typeof error === "string" && error.trim()) {
@@ -45,8 +46,27 @@ export default function ForgotPasswordPage() {
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        setIsPageLoading(false);
-    }, []);
+        const checkAuthStatus = () => {
+            if (getAuthStatus()) {
+                showToast(
+                    "You are already logged in, so you are not allowed to access this page.",
+                    "error"
+                );
+                router.replace("/");
+                return;
+            }
+
+            setIsPageLoading(false);
+        };
+
+        checkAuthStatus();
+
+        window.addEventListener("auth-change", checkAuthStatus);
+
+        return () => {
+            window.removeEventListener("auth-change", checkAuthStatus);
+        };
+    }, [router, showToast]);
 
     const handleEmailChange = (event: ChangeEvent<HTMLInputElement>) => {
         setEmail(event.target.value);
