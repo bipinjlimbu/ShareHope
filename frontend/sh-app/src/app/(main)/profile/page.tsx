@@ -1,18 +1,32 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { ProfileUser } from "@/types/profile";
+import type { ProfileUser, ProfileFieldProps } from "@/types/profile";
+import type { NGOStatus, NGOUserResponse } from "@/types/ngo";
 import {
     deleteProfile,
     getProfile,
     requestEmailVerification,
 } from "@/services/profileService";
+import { getNGOByUser } from "@/services/ngoService";
 import ProfileSkeleton from "@/components/skeleton/ProfileSkeleton";
 import ProfileForm from "@/components/form/ProfileForm";
+import NGOPending from "@/components/ngo/NGOPending";
+import NGORejected from "@/components/ngo/NGORejected";
 import { useToast } from "@/components/ToastProvider";
 import { getAuthStatus, setAuthStatus } from "@/lib/authStatus";
+
+type NGOReviewPage =
+    | {
+        status: "PENDING";
+    }
+    | {
+        status: "REJECTED";
+        rejectionReason?: string;
+    }
+    | null;
 
 function formatRole(role?: string) {
     if (!role) return "Member";
@@ -36,15 +50,54 @@ function getErrorMessage(error: unknown): string {
     return "Something went wrong. Please try again.";
 }
 
-function ProfileField({
-    label,
-    value,
-    icon,
-}: {
-    label: string;
-    value?: string | null;
-    icon: ReactNode;
-}) {
+function getErrorStatus(error: unknown): number | undefined {
+    if (typeof error !== "object" || error === null) {
+        return undefined;
+    }
+
+    const response = error as Record<string, unknown>;
+
+    if (typeof response.status === "number") {
+        return response.status;
+    }
+
+    if (typeof response.status_code === "number") {
+        return response.status_code;
+    }
+
+    if (
+        typeof response.response === "object" &&
+        response.response !== null
+    ) {
+        const nestedResponse = response.response as Record<string, unknown>;
+
+        if (typeof nestedResponse.status === "number") {
+            return nestedResponse.status;
+        }
+    }
+
+    return undefined;
+}
+
+function normalizeNGOStatus(
+    status: NGOUserResponse["status"] | NGOUserResponse["verification_status"]
+): NGOStatus | null {
+    if (typeof status !== "string") return null;
+
+    const normalized = status.trim().toUpperCase();
+
+    if (
+        normalized === "PENDING" ||
+        normalized === "APPROVED" ||
+        normalized === "REJECTED"
+    ) {
+        return normalized;
+    }
+
+    return null;
+}
+
+function ProfileField({ label, value, icon }: ProfileFieldProps) {
     return (
         <div className="flex min-w-0 items-start gap-3.5 rounded-2xl border border-[#E6EDE4] bg-white p-4 transition hover:border-[#C8DDC8] sm:p-5">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#F0F6ED] text-[#287341]">
@@ -187,6 +240,8 @@ export default function ProfilePage() {
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isSendingOtp, setIsSendingOtp] = useState(false);
+    const [isCheckingNGO, setIsCheckingNGO] = useState(false);
+    const [ngoPage, setNgoPage] = useState<NGOReviewPage>(null);
 
     const redirectingRef = useRef(false);
 
@@ -287,7 +342,6 @@ export default function ProfilePage() {
 
             setUser(null);
             setIsDeleteOpen(false);
-
             setAuthStatus(false);
 
             showToast("Your account has been deleted successfully.", "success");
@@ -298,6 +352,71 @@ export default function ProfilePage() {
             showToast(getErrorMessage(error), "error");
         } finally {
             setIsDeleting(false);
+        }
+    }
+
+    async function handleDashboardAccess() {
+        if (!user || isCheckingNGO) return;
+
+        if (user.role !== "NGO_ADMIN") {
+            const dashboardLink = user.role
+                ? dashboardRoutes[user.role]
+                : undefined;
+
+            if (dashboardLink) {
+                router.push(dashboardLink);
+            } else {
+                showToast(
+                    "Dashboard access is unavailable for this account role.",
+                    "error"
+                );
+            }
+
+            return;
+        }
+
+        setIsCheckingNGO(true);
+
+        try {
+            const ngo = await getNGOByUser();
+            const status = normalizeNGOStatus(
+                ngo.status ?? ngo.verification_status
+            );
+
+            if (status === "APPROVED") {
+                router.push("/dashboard/ngo-admin");
+                return;
+            }
+
+            if (status === "PENDING") {
+                setNgoPage({ status: "PENDING" });
+                return;
+            }
+
+            if (status === "REJECTED") {
+                setNgoPage({
+                    status: "REJECTED",
+                    rejectionReason:
+                        typeof ngo.rejection_reason === "string"
+                            ? ngo.rejection_reason
+                            : undefined,
+                });
+                return;
+            }
+
+            showToast(
+                "The NGO review status could not be recognized. Please try again later.",
+                "error"
+            );
+        } catch (error: unknown) {
+            if (getErrorStatus(error) === 404) {
+                router.push("/register/ngo");
+                return;
+            }
+
+            showToast(getErrorMessage(error), "error");
+        } finally {
+            setIsCheckingNGO(false);
         }
     }
 
@@ -326,6 +445,23 @@ export default function ProfilePage() {
                     </button>
                 </div>
             </main>
+        );
+    }
+
+    if (ngoPage?.status === "PENDING") {
+        return (
+            <NGOPending
+                onBackToProfile={() => setNgoPage(null)}
+            />
+        );
+    }
+
+    if (ngoPage?.status === "REJECTED") {
+        return (
+            <NGORejected
+                rejectionReason={ngoPage.rejectionReason}
+                onBackToProfile={() => setNgoPage(null)}
+            />
         );
     }
 
@@ -416,14 +552,14 @@ export default function ProfilePage() {
 
                                 <span
                                     className={`mt-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${user.is_verified
-                                        ? "border-[#D7E9D5] bg-[#F0F7ED] text-[#287341]"
-                                        : "border-[#E8DFC7] bg-[#FAF5E8] text-[#8A7138]"
+                                            ? "border-[#D7E9D5] bg-[#F0F7ED] text-[#287341]"
+                                            : "border-[#E8DFC7] bg-[#FAF5E8] text-[#8A7138]"
                                         }`}
                                 >
                                     <span
                                         className={`h-2 w-2 rounded-full ${user.is_verified
-                                            ? "bg-[#35A45C]"
-                                            : "bg-[#B7A16A]"
+                                                ? "bg-[#35A45C]"
+                                                : "bg-[#B7A16A]"
                                             }`}
                                     />
                                     {user.is_verified
@@ -437,12 +573,16 @@ export default function ProfilePage() {
                             <div className="space-y-3">
                                 {user.is_verified ? (
                                     dashboardLink ? (
-                                        <Link
-                                            href={dashboardLink}
-                                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#166534] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#14532D]"
+                                        <button
+                                            type="button"
+                                            onClick={handleDashboardAccess}
+                                            disabled={isCheckingNGO}
+                                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#166534] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#14532D] disabled:cursor-not-allowed disabled:opacity-60"
                                         >
-                                            Access Dashboard
-                                        </Link>
+                                            {isCheckingNGO
+                                                ? "Checking NGO status..."
+                                                : "Access Dashboard"}
+                                        </button>
                                     ) : (
                                         <p className="text-sm leading-5 text-[#718174]">
                                             Dashboard access is unavailable for this account role.
