@@ -11,6 +11,7 @@ export const dashboardNavigation: Record<
         { label: "Overview", href: "/dashboard/admin", icon: "layout-dashboard" },
         { label: "User Management", href: "/dashboard/admin/users", icon: "users" },
         { label: "NGO Management", href: "/dashboard/admin/ngos", icon: "building-2" },
+        { label: "Pending NGO Approvals", href: "/dashboard/admin/pending-ngo-approvals", icon: "shield-check" },
         { label: "Campaigns", href: "/dashboard/admin/campaigns", icon: "hand-heart" },
         { label: "Donations", href: "/dashboard/admin/donations", icon: "wallet" },
         { label: "Donation Verifications", href: "/dashboard/admin/verifications", icon: "shield-check" },
