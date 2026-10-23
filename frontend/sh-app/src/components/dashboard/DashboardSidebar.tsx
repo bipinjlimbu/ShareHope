@@ -28,7 +28,8 @@ import type {
     DashboardRole,
     DashboardSidebarProps,
 } from "@/types/dashboard";
-import FooterLogo from "@/images/FooterLogo.png";
+import DashboardSidebarSkeleton from "@/components/skeleton/DashboardSidebarSkeleton";
+import NavLogo from "@/images/NavLogo.png";
 
 const iconMap: Record<string, LucideIcon> = {
     "layout-dashboard": LayoutDashboard,
@@ -61,6 +62,11 @@ export default function DashboardSidebar({
     onClose,
 }: DashboardSidebarProps) {
     const pathname = usePathname();
+
+    if (!role) {
+        return <DashboardSidebarSkeleton />;
+    }
+
     const navItems = dashboardNavigation[role];
 
     return (
@@ -70,15 +76,15 @@ export default function DashboardSidebar({
                     type="button"
                     aria-label="Close navigation"
                     onClick={onClose}
-                    className="fixed inset-0 z-40 bg-slate-950/50 backdrop-blur-sm md:hidden"
+                    className="fixed inset-0 z-40 bg-[#183B2A]/40 backdrop-blur-sm md:hidden"
                 />
             )}
 
             <aside
-                className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-slate-200 bg-white transition-transform duration-300 md:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"
+                className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-[#E6EDE4] bg-[#FFFCF6] transition-transform duration-300 md:translate-x-0 ${isOpen ? "translate-x-0" : "-translate-x-full"
                     }`}
             >
-                <div className="flex h-20 items-center justify-between border-b border-slate-100 px-5">
+                <div className="flex h-20 items-center justify-between border-b border-[#E6EDE4] px-5">
                     <Link
                         href="/"
                         onClick={onClose}
@@ -86,7 +92,7 @@ export default function DashboardSidebar({
                         className="flex items-center"
                     >
                         <Image
-                            src={FooterLogo}
+                            src={NavLogo}
                             alt="ShareHope"
                             priority
                             className="h-auto w-36 object-contain"
@@ -97,23 +103,23 @@ export default function DashboardSidebar({
                         type="button"
                         onClick={onClose}
                         aria-label="Close sidebar"
-                        className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 md:hidden"
+                        className="rounded-lg p-2 text-[#6A796B] transition hover:bg-[#E5F2E1] hover:text-[#14532D] md:hidden"
                     >
                         <X size={20} />
                     </button>
                 </div>
 
-                <div className="border-b border-slate-100 px-5 py-5">
-                    <div className="flex items-center gap-3 rounded-xl bg-emerald-50 p-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white">
+                <div className="border-b border-[#E6EDE4] px-5 py-5">
+                    <div className="flex items-center gap-3 rounded-xl border border-[#E5F2E1] bg-[#EDF6E9] p-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#166534] text-white">
                             <HeartHandshake size={21} />
                         </div>
 
                         <div className="min-w-0">
-                            <p className="truncate text-sm font-semibold text-slate-900">
+                            <p className="truncate text-sm font-semibold text-[#183B2A]">
                                 ShareHope
                             </p>
-                            <p className="mt-0.5 truncate text-xs text-emerald-700">
+                            <p className="mt-0.5 truncate text-xs font-medium text-[#27824B]">
                                 {roleLabels[role]}
                             </p>
                         </div>
@@ -124,7 +130,7 @@ export default function DashboardSidebar({
                     aria-label="Dashboard navigation"
                     className="flex-1 space-y-1 overflow-y-auto px-3 py-5"
                 >
-                    <p className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">
+                    <p className="mb-3 px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#849084]">
                         Workspace
                     </p>
 
@@ -143,8 +149,8 @@ export default function DashboardSidebar({
                                 onClick={onClose}
                                 aria-current={isActive ? "page" : undefined}
                                 className={`group flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition ${isActive
-                                    ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/20"
-                                    : "text-slate-600 hover:bg-emerald-50 hover:text-emerald-800"
+                                    ? "bg-[#166534] text-white shadow-sm shadow-[#166534]/15"
+                                    : "text-[#526657] hover:bg-[#E5F2E1] hover:text-[#14532D]"
                                     }`}
                             >
                                 <Icon
@@ -161,11 +167,11 @@ export default function DashboardSidebar({
                     })}
                 </nav>
 
-                <div className="border-t border-slate-100 p-4">
-                    <div className="rounded-xl bg-slate-50 p-3">
+                <div className="border-t border-[#E6EDE4] p-4">
+                    <div className="rounded-xl border border-[#E6EDE4] bg-white p-3">
                         <div className="flex items-center gap-2">
-                            <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                            <p className="text-xs font-medium text-slate-600">
+                            <div className="h-2 w-2 rounded-full bg-[#35A45C]" />
+                            <p className="text-xs font-medium text-[#526657]">
                                 Making a difference together
                             </p>
                         </div>
