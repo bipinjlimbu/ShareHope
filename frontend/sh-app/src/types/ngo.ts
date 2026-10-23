@@ -24,10 +24,6 @@ export type NGORegistrationErrors = Record<
     string | string[] | undefined
 >;
 
-export interface NGORegistrationResponse {
-    message: string;
-}
-
 export interface NGORegistrationFormErrors {
     name?: string;
     registration_number?: string;
@@ -41,4 +37,18 @@ export interface NGORegistrationFormErrors {
     non_field_errors?: string;
     general?: string;
     [key: string]: string | undefined;
+}
+
+export type NGOReviewStatus =
+    | "PENDING"
+    | "APPROVED"
+    | "REJECTED";
+
+export interface NGOUserResponse {
+    id?: number;
+    name?: string;
+    status?: NGOReviewStatus | string;
+    verification_status?: NGOReviewStatus | string;
+    rejection_reason?: string | null;
+    [key: string]: unknown;
 }
