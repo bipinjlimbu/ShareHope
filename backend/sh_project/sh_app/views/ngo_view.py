@@ -1,14 +1,10 @@
-from datetime import timedelta
-from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.contrib.auth.hashers import make_password, check_password
 from ..models import User, NGO, NGODocument, NGOMembership
 from ..serializers import NGOSerializer
 from ..email_service import send_email
-import secrets
 import re
 
 @api_view(['POST'])
@@ -117,6 +113,10 @@ def register_ngo_view(request):
         ngo.save()
         ngo_document.save()
         ngo_membership.save()
+        
+        subject = 'NGO Registration Request'
+        message = f'Dear {request.user.first_name},\n\nYour NGO registration request for "{ngo.name}" has been received and is pending approval. We will notify you once the review process is complete.\n\nThank you for your contribution to our community.\n\nBest regards,\nShareHope Team'
+        send_email(subject, message, [request.user.email])
         
         return Response({'message': 'NGO registered successfully.'}, status=status.HTTP_201_CREATED)
     
