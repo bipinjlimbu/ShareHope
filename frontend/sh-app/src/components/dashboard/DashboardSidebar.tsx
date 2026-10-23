@@ -28,7 +28,6 @@ import type {
     DashboardRole,
     DashboardSidebarProps,
 } from "@/types/dashboard";
-import DashboardSidebarSkeleton from "@/components/skeleton/DashboardSidebarSkeleton";
 import NavLogo from "@/images/NavLogo.png";
 
 const iconMap: Record<string, LucideIcon> = {
@@ -62,11 +61,6 @@ export default function DashboardSidebar({
     onClose,
 }: DashboardSidebarProps) {
     const pathname = usePathname();
-
-    if (!role) {
-        return <DashboardSidebarSkeleton />;
-    }
-
     const navItems = dashboardNavigation[role];
 
     return (
