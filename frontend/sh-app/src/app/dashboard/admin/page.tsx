@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import OverviewSkeleton from "@/components/skeleton/admin-dashboard/OverviewSkeleton";
 import {
     ArrowRight,
     ArrowUpRight,
@@ -260,18 +261,31 @@ function SectionHeading({
 }
 
 export default function AdminDashboardPage() {
+    const [isLoading, setIsLoading] = useState(true);
     const [currentDate, setCurrentDate] = useState("");
 
     useEffect(() => {
-        setCurrentDate(
-            new Intl.DateTimeFormat("en-NP", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-                timeZone: "Asia/Kathmandu",
-            }).format(new Date())
-        );
+        setIsLoading(true);
+
+        const timeout = window.setTimeout(() => {
+            setCurrentDate(
+                new Intl.DateTimeFormat("en-NP", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                    timeZone: "Asia/Kathmandu",
+                }).format(new Date())
+            );
+
+            setIsLoading(false);
+        }, 650);
+
+        return () => window.clearTimeout(timeout);
     }, []);
+
+    if (isLoading) {
+        return <OverviewSkeleton />;
+    }
 
     const activeCampaigns = demoCampaigns.filter(
         (campaign) => campaign.status === "ACTIVE"
