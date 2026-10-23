@@ -122,6 +122,17 @@ def register_ngo_view(request):
     
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+def get_ngo_by_user_view(request):
+    if request.method == 'GET':
+        try:
+            ngo = NGO.objects.get(created_by=request.user)
+            serializer = NGOSerializer(ngo)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except NGO.DoesNotExist:
+            return Response({'error': 'NGO not found for the user.'}, status=status.HTTP_404_NOT_FOUND)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def ngo_view(request):
     if request.method == 'GET':
         ngos = NGO.objects.all()
