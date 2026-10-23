@@ -1,4 +1,5 @@
 import type { AuthUser } from "@/types/auth";
+import { ReactNode } from "react";
 
 export type ProfileUser = AuthUser & {
     username: string;
@@ -46,3 +47,9 @@ export type ResendOTPResponse = {
 };
 
 export type ProfileFormErrors = Record<string, string | string[]>;
+
+export interface ProfileFieldProps {
+    label: string;
+    value?: string | null;
+    icon: ReactNode;
+}
