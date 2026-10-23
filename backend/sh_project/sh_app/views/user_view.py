@@ -8,7 +8,7 @@ from ..email_service import send_email
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def users_view(request):
+def user_view(request):
     if request.method == 'GET':
         users = User.objects.all()
         serializer = UserSerializer(users, many=True)
