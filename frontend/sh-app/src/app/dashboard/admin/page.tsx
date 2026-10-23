@@ -8,7 +8,6 @@ import {
     Activity,
     Building2,
     CalendarDays,
-    CheckCircle2,
     Clock3,
     CircleDollarSign,
     HandHeart,
@@ -18,66 +17,12 @@ import {
     Users,
     Wallet,
 } from "lucide-react";
-import AdminDashboardSkeleton from "@/components/skeleton/AdminDashboardSkeleton";
-
-type NGOStatus = "PENDING" | "APPROVED" | "REJECTED";
-type CampaignStatus =
-    | "DRAFT"
-    | "PENDING"
-    | "APPROVED"
-    | "REJECTED"
-    | "ACTIVE"
-    | "COMPLETED"
-    | "CANCELLED";
-type DonationStatus =
-    | "SUBMITTED"
-    | "RECEIVED"
-    | "VERIFIED"
-    | "APPROVED"
-    | "REJECTED"
-    | "CANCELLED";
-type DonationType = "FUND" | "ITEM";
-type PaymentStatus = "PENDING" | "SUCCESS" | "FAILED" | "REFUNDED";
-
-interface DemoUser {
-    id: number;
-    username: string;
-    role: "ADMIN" | "DONOR" | "NGO_ADMIN" | "NGO_STAFF";
-    is_verified: boolean;
-    date_joined: string;
-}
-
-interface DemoNGO {
-    id: number;
-    name: string;
-    status: NGOStatus;
-    created_at: string;
-}
-
-interface DemoCampaign {
-    id: number;
-    title: string;
-    ngo_name: string;
-    status: CampaignStatus;
-    donation_type: "FUND" | "ITEM" | "BOTH";
-    goal_amount: number | null;
-    created_at: string;
-}
-
-interface DemoDonation {
-    reference_number: string;
-    donor_name: string;
-    is_anonymous: boolean;
-    campaign_title: string;
-    donation_type: DonationType;
-    status: DonationStatus;
-    created_at: string;
-    payment: {
-        amount: number;
-        currency: string;
-        status: PaymentStatus;
-    } | null;
-}
+import type {
+    DemoUser,
+    DemoNGO,
+    DemoCampaign,
+    DemoDonation,
+} from "@/types/adminDashboard";
 
 const demoUsers: DemoUser[] = [
     {
@@ -315,19 +260,18 @@ function SectionHeading({
 }
 
 export default function AdminDashboardPage() {
-    const [isLoading, setIsLoading] = useState(true);
+    const [currentDate, setCurrentDate] = useState("");
 
     useEffect(() => {
-        const timeout = window.setTimeout(() => {
-            setIsLoading(false);
-        }, 650);
-
-        return () => window.clearTimeout(timeout);
+        setCurrentDate(
+            new Intl.DateTimeFormat("en-NP", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+                timeZone: "Asia/Kathmandu",
+            }).format(new Date())
+        );
     }, []);
-
-    if (isLoading) {
-        return <AdminDashboardSkeleton />;
-    }
 
     const activeCampaigns = demoCampaigns.filter(
         (campaign) => campaign.status === "ACTIVE"
@@ -407,7 +351,6 @@ export default function AdminDashboardPage() {
             title: ngo.name,
             description: "NGO registration request",
             created_at: ngo.created_at,
-            type: "NGO",
             icon: Building2,
             iconStyle: "bg-[#F4EBD8] text-[#8A6425]",
             href: "/dashboard/admin/ngos",
@@ -417,7 +360,6 @@ export default function AdminDashboardPage() {
             title: campaign.title,
             description: "Campaign approval request",
             created_at: campaign.created_at,
-            type: "Campaign",
             icon: HandHeart,
             iconStyle: "bg-[#E5F2E1] text-[#166534]",
             href: "/dashboard/admin/campaigns",
@@ -430,7 +372,6 @@ export default function AdminDashboardPage() {
                     ? "Donation receipt verification"
                     : "Donation awaiting review",
             created_at: donation.created_at,
-            type: "Donation",
             icon: ShieldCheck,
             iconStyle: "bg-[#E6F2E6] text-[#27824B]",
             href: "/dashboard/admin/verifications",
@@ -462,12 +403,7 @@ export default function AdminDashboardPage() {
                 <div className="flex items-center gap-2 self-start rounded-xl border border-[#E1E9DC] bg-[#FFFCF6] px-4 py-3 shadow-sm sm:self-center">
                     <CalendarDays size={18} className="text-[#27824B]" />
                     <span className="text-sm font-medium text-[#31523C]">
-                        {new Intl.DateTimeFormat("en-NP", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                            timeZone: "Asia/Kathmandu",
-                        }).format(new Date())}
+                        {currentDate || "\u00A0"}
                     </span>
                 </div>
             </section>
