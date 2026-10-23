@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -6,6 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import DashboardSidebarSkeleton from "@/components/skeleton/DashboardSidebarSkeleton";
+import DashboardHeaderSkeleton from "@/components/skeleton/DashboardHeaderSkeleton";
 import { getProfile } from "@/services/profileService";
 import type { AuthUser, UserRole } from "@/types/auth";
 
@@ -82,10 +83,14 @@ export default function DashboardLayout({
                     setUser(null);
                     router.replace("/login");
                 }
+            } finally {
+                if (isMounted) {
+                    setIsLoading(false);
+                }
             }
         }
 
-        loadUser();
+        void loadUser();
 
         return () => {
             isMounted = false;
@@ -99,8 +104,15 @@ export default function DashboardLayout({
     const isDashboardReady = !isLoading && user !== null;
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-900">
-            {user && (
+        <div className="min-h-screen bg-[#FFFCF6] text-[#183B2A]">
+            {isLoading || !user ? (
+                <>
+                    <DashboardSidebarSkeleton />
+                    <div className="md:pl-64">
+                        <DashboardHeaderSkeleton />
+                    </div>
+                </>
+            ) : (
                 <>
                     <DashboardSidebar
                         role={user.role}
