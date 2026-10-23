@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -5,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import DashboardSkeleton from "@/components/skeleton/DashboardSkeleton";
 import { getProfile } from "@/services/profileService";
 import type { AuthUser, UserRole } from "@/types/auth";
 
@@ -43,6 +43,7 @@ export default function DashboardLayout({
                 if (!isMounted) return;
 
                 if (!currentUser) {
+                    setUser(null);
                     router.replace("/login");
                     return;
                 }
@@ -50,6 +51,7 @@ export default function DashboardLayout({
                 const allowedBaseRoute = roleRoutes[currentUser.role];
 
                 if (!allowedBaseRoute) {
+                    setUser(null);
                     router.replace("/login");
                     return;
                 }
@@ -94,28 +96,37 @@ export default function DashboardLayout({
         setIsSidebarOpen(false);
     }, [pathname]);
 
-    if (isLoading || !user) {
-        return <DashboardSkeleton />;
-    }
+    const isDashboardReady = !isLoading && user !== null;
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-900">
-            <DashboardSidebar
-                role={user.role}
-                isOpen={isSidebarOpen}
-                onClose={() => setIsSidebarOpen(false)}
-            />
+            {user && (
+                <>
+                    <DashboardSidebar
+                        role={user.role}
+                        isOpen={isSidebarOpen}
+                        onClose={() => setIsSidebarOpen(false)}
+                    />
 
-            <div className="min-h-screen md:pl-64">
-                <DashboardHeader
-                    user={user}
-                    onMenuClick={() => setIsSidebarOpen(true)}
-                />
+                    <div className="md:pl-64">
+                        <DashboardHeader
+                            user={user}
+                            onMenuClick={() => setIsSidebarOpen(true)}
+                        />
+                    </div>
+                </>
+            )}
 
-                <main className="min-w-0 p-4 sm:p-6 lg:p-8">
-                    {children}
-                </main>
-            </div>
+            <main
+                aria-hidden={!isDashboardReady}
+                className={`min-w-0 p-4 sm:p-6 lg:p-8 ${user ? "md:ml-64" : ""
+                    } ${isDashboardReady
+                        ? ""
+                        : "invisible pointer-events-none"
+                    }`}
+            >
+                {children}
+            </main>
         </div>
     );
 }
