@@ -1,3 +1,7 @@
+export type NGODocumentType = "REGISTRATION" | "TAX_EXEMPTION" | "OTHER";
+
+export type NGOStatus = "PENDING" | "APPROVED" | "REJECTED";
+
 export interface NGORegistrationPayload {
     name: string;
     registration_number: string;
@@ -9,11 +13,6 @@ export interface NGORegistrationPayload {
     ngo_document_type: NGODocumentType | "";
     ngo_document_file: File | null;
 }
-
-export type NGODocumentType =
-    | "REGISTRATION"
-    | "TAX_EXEMPTION"
-    | "OTHER";
 
 export interface NGORegistrationResponse {
     message: string;
@@ -39,16 +38,19 @@ export interface NGORegistrationFormErrors {
     [key: string]: string | undefined;
 }
 
-export type NGOReviewStatus =
-    | "PENDING"
-    | "APPROVED"
-    | "REJECTED";
-
 export interface NGOUserResponse {
     id?: number;
     name?: string;
-    status?: NGOReviewStatus | string;
-    verification_status?: NGOReviewStatus | string;
+    status?: NGOStatus | string;
+    verification_status?: NGOStatus | string;
     rejection_reason?: string | null;
-    [key: string]: unknown;
+}
+
+export interface NGOPendingProps {
+    onBackToProfile: () => void;
+}
+
+export interface NGORejectedProps {
+    rejectionReason?: string;
+    onBackToProfile: () => void;
 }
