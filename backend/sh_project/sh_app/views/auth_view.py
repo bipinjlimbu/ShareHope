@@ -150,8 +150,6 @@ def login_view(request):
             try:
                 matched_user = User.objects.get(email=login_credential)
                 user = authenticate(request, username=matched_user.username, password=password)
-                user.last_login = timezone.now()
-                user.save()
             except User.DoesNotExist:
                 user = None
 
@@ -159,6 +157,8 @@ def login_view(request):
             return Response({'error': 'Invalid credentials.'}, status=status.HTTP_401_UNAUTHORIZED)
 
         tokens = get_tokens_for_user(user)
+        user.last_login = timezone.now()
+        user.save()
         response = Response({'message': 'Login successful.', 'user': UserSerializer(user).data}, status=status.HTTP_200_OK)
 
         set_auth_cookies(response, access_token=tokens['access'], refresh_token=tokens['refresh'])
