@@ -4,6 +4,7 @@ import type {
     NGORegistrationResponse,
     NGORegistrationErrors,
     NGOUserResponse,
+    NGOListResponse,
 } from "@/types/ngo";
 
 export async function registerNGO(
@@ -37,10 +38,10 @@ export async function registerNGO(
     }
 }
 
-export async function getNGOs(): Promise<unknown> {
-    return await authFetch("/ngo/", {
+export async function getNGOs(): Promise<NGOListResponse> {
+    return (await authFetch("/ngo/", {
         method: "GET",
-    });
+    })) as NGOListResponse;
 }
 
 export async function getNGOByUser(): Promise<NGOUserResponse> {
