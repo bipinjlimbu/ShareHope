@@ -20,3 +20,11 @@ export interface User {
     date_joined: string;
     last_login: string | null;
 }
+
+export interface UpdateUserStatusPayload {
+    is_active: "true" | "false";
+}
+
+export interface UpdateUserStatusResponse {
+    message: string;
+}
