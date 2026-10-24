@@ -150,6 +150,8 @@ def login_view(request):
             try:
                 matched_user = User.objects.get(email=login_credential)
                 user = authenticate(request, username=matched_user.username, password=password)
+                user.last_login = timezone.now()
+                user.save()
             except User.DoesNotExist:
                 user = None
 
