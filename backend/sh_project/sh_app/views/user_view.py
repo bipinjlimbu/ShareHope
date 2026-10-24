@@ -25,3 +25,23 @@ def user_detail_view(request, pk):
     if request.method == 'GET':
         serializer = UserSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    if request.method == 'PATCH':
+        is_active = request.data.get('is_active') == 'true'
+        user.is_active = is_active
+        user.save()
+        
+        if not is_active:
+            subject = 'Account Deactivation'
+            message = 'Your account has been deactivated. If you believe this is a mistake, please contact support.'
+            send_email(user.email, subject, message)
+            
+            return Response({'message': 'User account deactivated and email sent.'}, status=status.HTTP_200_OK)
+        
+        else:
+            subject = 'Account Reactivation'
+            message = 'Your account has been reactivated. Welcome back!'
+            send_email(user.email, subject, message)
+            
+            return Response({'message': 'User account reactivated and email sent.'}, status=status.HTTP_200_OK)
+        
