@@ -12,3 +12,24 @@ export async function getUsers(): Promise<User[]> {
 
     return response as User[];
 }
+
+export async function getUserById(id: number): Promise<User> {
+    if (!Number.isInteger(id) || id <= 0) {
+        throw new Error("Invalid user ID.");
+    }
+
+    const response: unknown = await authFetch(`/users/${id}/`, {
+        method: "GET",
+    });
+
+    if (
+        typeof response !== "object" ||
+        response === null ||
+        !("id" in response) ||
+        typeof response.id !== "number"
+    ) {
+        throw new Error("Invalid user detail API response.");
+    }
+
+    return response as User;
+}
