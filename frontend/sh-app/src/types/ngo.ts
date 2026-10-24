@@ -46,6 +46,14 @@ export interface NGOUserResponse {
     rejection_reason?: string | null;
 }
 
+export interface NGOListItem {
+    id: number;
+    name: string;
+    [key: string]: unknown;
+}
+
+export type NGOListResponse = NGOListItem[];
+
 export interface NGOPendingProps {
     onBackToProfile: () => void;
 }
