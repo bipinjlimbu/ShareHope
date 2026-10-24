@@ -1,5 +1,9 @@
 import { authFetch } from "@/lib/api";
-import type { User } from "@/types/user";
+import type {
+    User,
+    UpdateUserStatusPayload,
+    UpdateUserStatusResponse,
+} from "@/types/user";
 
 export async function getUsers(): Promise<User[]> {
     const response: unknown = await authFetch("/users/", {
@@ -32,4 +36,36 @@ export async function getUserById(id: number): Promise<User> {
     }
 
     return response as User;
+}
+
+export async function updateUserStatus(
+    userId: number,
+    isActive: boolean
+): Promise<UpdateUserStatusResponse> {
+    if (!Number.isInteger(userId) || userId <= 0) {
+        throw new Error("Invalid user ID.");
+    }
+
+    const payload: UpdateUserStatusPayload = {
+        is_active: isActive ? "true" : "false",
+    };
+
+    const response: unknown = await authFetch(`/users/${userId}/`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+    });
+
+    if (
+        typeof response !== "object" ||
+        response === null ||
+        !("message" in response) ||
+        typeof response.message !== "string"
+    ) {
+        throw new Error("Invalid user status update API response.");
+    }
+
+    return response as UpdateUserStatusResponse;
 }
