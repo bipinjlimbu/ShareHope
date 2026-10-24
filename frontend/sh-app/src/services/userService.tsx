@@ -3,6 +3,7 @@ import type {
     User,
     UpdateUserStatusPayload,
     UpdateUserStatusResponse,
+    DeleteUserResponse,
 } from "@/types/user";
 
 export async function getUsers(): Promise<User[]> {
@@ -68,4 +69,20 @@ export async function updateUserStatus(
     }
 
     return response as UpdateUserStatusResponse;
+}
+
+export async function deleteUser(
+    userId: number
+): Promise<DeleteUserResponse> {
+    if (!Number.isInteger(userId) || userId <= 0) {
+        throw new Error("Invalid user ID.");
+    }
+
+    await authFetch(`/users/${userId}/`, {
+        method: "DELETE",
+    });
+
+    return {
+        message: "User deleted successfully.",
+    };
 }
