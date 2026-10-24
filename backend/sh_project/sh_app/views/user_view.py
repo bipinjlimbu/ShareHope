@@ -45,3 +45,12 @@ def user_detail_view(request, pk):
             
             return Response({'message': 'User account reactivated and email sent.'}, status=status.HTTP_200_OK)
         
+    if request.method == 'DELETE':
+        email = user.email
+        user.delete()
+        
+        subject = 'Account Deletion'
+        message = 'Your account has been deleted. We are sorry to see you go.'
+        send_email(subject, message, email)
+        
+        return Response({'message': 'User deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
