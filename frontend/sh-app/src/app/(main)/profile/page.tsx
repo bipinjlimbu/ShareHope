@@ -17,6 +17,7 @@ import NGOPending from "@/components/ngo/NGOPending";
 import NGORejected from "@/components/ngo/NGORejected";
 import { useToast } from "@/components/ToastProvider";
 import { getAuthStatus, setAuthStatus } from "@/lib/authStatus";
+import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
 
 type NGOReviewPage =
     | {
@@ -552,14 +553,14 @@ export default function ProfilePage() {
 
                                 <span
                                     className={`mt-4 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold ${user.is_verified
-                                            ? "border-[#D7E9D5] bg-[#F0F7ED] text-[#287341]"
-                                            : "border-[#E8DFC7] bg-[#FAF5E8] text-[#8A7138]"
+                                        ? "border-[#D7E9D5] bg-[#F0F7ED] text-[#287341]"
+                                        : "border-[#E8DFC7] bg-[#FAF5E8] text-[#8A7138]"
                                         }`}
                                 >
                                     <span
                                         className={`h-2 w-2 rounded-full ${user.is_verified
-                                                ? "bg-[#35A45C]"
-                                                : "bg-[#B7A16A]"
+                                            ? "bg-[#35A45C]"
+                                            : "bg-[#B7A16A]"
                                             }`}
                                     />
                                     {user.is_verified
@@ -708,69 +709,20 @@ export default function ProfilePage() {
                 />
             )}
 
-            {isDeleteOpen && (
-                <div
-                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-5 py-8"
-                    role="presentation"
-                    onMouseDown={(event) => {
-                        if (
-                            event.target === event.currentTarget &&
-                            !isDeleting
-                        ) {
-                            setIsDeleteOpen(false);
-                        }
-                    }}
-                >
-                    <section
-                        role="alertdialog"
-                        aria-modal="true"
-                        aria-labelledby="delete-profile-title"
-                        aria-describedby="delete-profile-description"
-                        className="w-full max-w-md rounded-3xl border border-[#E6EDE4] bg-[#FFFCF6] p-6 shadow-2xl sm:p-8"
-                    >
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 text-red-600">
-                            <TrashIcon />
-                        </div>
-
-                        <h2
-                            id="delete-profile-title"
-                            className="mt-5 text-xl font-extrabold text-[#14532D]"
-                        >
-                            Delete your account?
-                        </h2>
-
-                        <p
-                            id="delete-profile-description"
-                            className="mt-3 text-sm leading-6 text-[#718174]"
-                        >
-                            This will permanently delete your ShareHope account.
-                            This action cannot be undone.
-                        </p>
-
-                        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                            <button
-                                type="button"
-                                onClick={() => setIsDeleteOpen(false)}
-                                disabled={isDeleting}
-                                className="rounded-xl border border-[#DDE7DC] px-5 py-3 text-sm font-semibold text-[#31523C] transition hover:bg-[#EDF5EC] disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                                Cancel
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={handleDeleteProfile}
-                                disabled={isDeleting}
-                                className="rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                                {isDeleting
-                                    ? "Deleting account..."
-                                    : "Delete account"}
-                            </button>
-                        </div>
-                    </section>
-                </div>
-            )}
+            <DeleteConfirmationModal
+                isOpen={isDeleteOpen}
+                title="Delete your account?"
+                description="This will permanently delete your ShareHope account and remove your access. This action cannot be undone."
+                itemName={username}
+                confirmText="Delete account"
+                isDeleting={isDeleting}
+                onConfirm={() => void handleDeleteProfile()}
+                onCancel={() => {
+                    if (!isDeleting) {
+                        setIsDeleteOpen(false);
+                    }
+                }}
+            />
         </>
     );
 }
