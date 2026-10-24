@@ -16,7 +16,7 @@ import {
     Users,
     X,
 } from "lucide-react";
-import { getUsers } from "@/services/userService";
+import { getUsers, updateUserStatus } from "@/services/userService";
 import type { RoleFilter, StatusFilter, User } from "@/types/user";
 import UsersSkeleton from "@/components/skeleton/admin-dashboard/UsersSkeleton";
 import UserDetailsModal from "@/components/admin-dashboard/UserDetailsModal";
@@ -118,6 +118,9 @@ export default function AdminUsersPage() {
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
     const [showFilters, setShowFilters] = useState(false);
     const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+    const [updatingUserIds, setUpdatingUserIds] = useState<number[]>([]);
+    const [statusUpdateError, setStatusUpdateError] = useState("");
+    const [statusUpdateSuccess, setStatusUpdateSuccess] = useState("");
 
     const loadUsers = useCallback(async () => {
         setLoading(true);
@@ -151,6 +154,46 @@ export default function AdminUsersPage() {
             setLoading(false);
         }
     }, []);
+
+    const handleToggleUserStatus = useCallback(
+        async (user: User) => {
+            if (updatingUserIds.includes(user.id)) return;
+
+            const nextIsActive = !user.is_active;
+
+            setStatusUpdateError("");
+            setStatusUpdateSuccess("");
+            setUpdatingUserIds((current) => [...current, user.id]);
+
+            try {
+                const response = await updateUserStatus(
+                    user.id,
+                    nextIsActive
+                );
+
+                setUsers((currentUsers) =>
+                    currentUsers.map((currentUser) =>
+                        currentUser.id === user.id
+                            ? { ...currentUser, is_active: nextIsActive }
+                            : currentUser
+                    )
+                );
+
+                setStatusUpdateSuccess(response.message);
+            } catch (err: unknown) {
+                setStatusUpdateError(
+                    err instanceof Error
+                        ? err.message
+                        : "We couldn't update the account status. Please try again."
+                );
+            } finally {
+                setUpdatingUserIds((current) =>
+                    current.filter((id) => id !== user.id)
+                );
+            }
+        },
+        [updatingUserIds]
+    );
 
     useEffect(() => {
         void loadUsers();
@@ -276,6 +319,26 @@ export default function AdminUsersPage() {
                             >
                                 Try again
                             </button>
+                        </div>
+                    )}
+
+                    {statusUpdateError && (
+                        <div
+                            role="alert"
+                            className="mb-6 flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+                        >
+                            <AlertCircle size={19} className="shrink-0" />
+                            {statusUpdateError}
+                        </div>
+                    )}
+
+                    {statusUpdateSuccess && (
+                        <div
+                            role="status"
+                            className="mb-6 flex items-center gap-2 rounded-2xl border border-[#D8E8D4] bg-[#E5F2E1] p-4 text-sm text-[#166534]"
+                        >
+                            <CheckCircle2 size={19} className="shrink-0" />
+                            {statusUpdateSuccess}
                         </div>
                     )}
 
@@ -459,6 +522,7 @@ export default function AdminUsersPage() {
                                 const picture = getProfilePictureUrl(
                                     user.profile_picture
                                 );
+                                const isUpdating = updatingUserIds.includes(user.id);
 
                                 return (
                                     <article
@@ -588,10 +652,19 @@ export default function AdminUsersPage() {
                                         <div className="mt-5 grid grid-cols-2 gap-3">
                                             <button
                                                 type="button"
-                                                disabled
-                                                title="Activation API not connected"
-                                                onClick={(event) => event.stopPropagation()}
-                                                className="flex cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-[#DDE7D9] bg-[#F8FAF6] px-3 py-2.5 text-sm font-semibold text-[#829184] opacity-80"
+                                                disabled={isUpdating}
+                                                title={
+                                                    isUpdating
+                                                        ? "Updating account status..."
+                                                        : user.is_active
+                                                            ? "Deactivate account"
+                                                            : "Activate account"
+                                                }
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    void handleToggleUserStatus(user);
+                                                }}
+                                                className="flex items-center justify-center gap-2 rounded-xl border border-[#DDE7D9] bg-[#F8FAF6] px-3 py-2.5 text-sm font-semibold text-[#829184] transition hover:bg-[#E5F2E1] disabled:cursor-wait disabled:opacity-60"
                                             >
                                                 <span
                                                     className={`relative h-4 w-7 rounded-full ${user.is_active
@@ -607,9 +680,11 @@ export default function AdminUsersPage() {
                                                     />
                                                 </span>
 
-                                                {user.is_active
-                                                    ? "Deactivate"
-                                                    : "Activate"}
+                                                {isUpdating
+                                                    ? "Updating..."
+                                                    : user.is_active
+                                                        ? "Deactivate"
+                                                        : "Activate"}
                                             </button>
 
                                             <button
