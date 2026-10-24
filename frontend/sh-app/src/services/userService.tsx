@@ -2,13 +2,13 @@ import { authFetch } from "@/lib/api";
 import type { User } from "@/types/user";
 
 export async function getUsers(): Promise<User[]> {
-    const response = await authFetch("/users/", {
+    const response: unknown = await authFetch("/users/", {
         method: "GET",
     });
 
-    if (!response.ok) {
-        throw new Error("Failed to fetch users.");
+    if (!Array.isArray(response)) {
+        throw new Error("Invalid users API response.");
     }
 
-    return response.json() as Promise<User[]>;
+    return response as User[];
 }
