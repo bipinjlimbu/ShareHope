@@ -2,6 +2,8 @@ export type NGODocumentType = "REGISTRATION" | "TAX_EXEMPTION" | "OTHER";
 
 export type NGOStatus = "PENDING" | "APPROVED" | "REJECTED";
 
+export type NGOMembershipStatus = "ACTIVE" | "INACTIVE";
+
 export interface NGORegistrationPayload {
     name: string;
     registration_number: string;
@@ -46,10 +48,52 @@ export interface NGOUserResponse {
     rejection_reason?: string | null;
 }
 
+export interface NGOListUser {
+    id: number;
+    username: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    role: string;
+    phone: string | null;
+    profile_picture: string | null;
+    is_verified: boolean;
+    is_active: boolean;
+}
+
+export interface NGODocument {
+    id: number;
+    document_type: NGODocumentType | string;
+    document_file: string;
+    uploaded_at: string;
+    ngo: number;
+}
+
+export interface NGOMembership {
+    id: number;
+    user: NGOListUser;
+    status: NGOMembershipStatus | string;
+    joined_at: string;
+    ngo: number;
+}
+
 export interface NGOListItem {
     id: number;
     name: string;
-    [key: string]: unknown;
+    registration_number: string;
+    description: string;
+    email: string;
+    phone: string;
+    address: string;
+    status: NGOStatus | string;
+    ngo_logo: string | null;
+    created_at: string;
+    documents: NGODocument[];
+    members: NGOMembership[];
+    document_count: number;
+    membership_count: number;
+    created_by: NGOListUser;
+    reviewed_by: NGOListUser | null;
 }
 
 export type NGOListResponse = NGOListItem[];
