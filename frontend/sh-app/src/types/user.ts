@@ -1,4 +1,8 @@
-export type UserRole = "ADMIN" | "DONOR" | "NGO_ADMIN" | "NGO_STAFF" | string;
+export type UserRole = "ADMIN" | "DONOR" | "NGO_ADMIN" | "NGO_STAFF";
+
+export type RoleFilter = "ALL" | "DONOR" | "NGO_ADMIN" | "NGO_STAFF";
+
+export type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
 
 export interface User {
     id: number;
@@ -6,10 +10,12 @@ export interface User {
     email: string;
     first_name: string;
     last_name: string;
+    role: UserRole;
     phone: string | null;
     profile_picture: string | null;
-    role: UserRole;
     is_active: boolean;
+    is_staff: boolean;
+    is_superuser: boolean;
     is_verified: boolean;
     date_joined: string;
     last_login: string | null;
