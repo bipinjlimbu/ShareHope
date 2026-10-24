@@ -16,10 +16,15 @@ import {
     Users,
     X,
 } from "lucide-react";
-import { getUsers, updateUserStatus } from "@/services/userService";
+import {
+    deleteUser,
+    getUsers,
+    updateUserStatus,
+} from "@/services/userService";
 import type { RoleFilter, StatusFilter, User } from "@/types/user";
 import UsersSkeleton from "@/components/skeleton/admin-dashboard/UsersSkeleton";
 import UserDetailsModal from "@/components/admin-dashboard/UserDetailsModal";
+import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const MINIMUM_LOADING_TIME = 650;
@@ -121,6 +126,9 @@ export default function AdminUsersPage() {
     const [updatingUserIds, setUpdatingUserIds] = useState<number[]>([]);
     const [statusUpdateError, setStatusUpdateError] = useState("");
     const [statusUpdateSuccess, setStatusUpdateSuccess] = useState("");
+    const [userToDelete, setUserToDelete] = useState<User | null>(null);
+    const [isDeletingUser, setIsDeletingUser] = useState(false);
+    const [deleteError, setDeleteError] = useState("");
 
     const loadUsers = useCallback(async () => {
         setLoading(true);
@@ -194,6 +202,40 @@ export default function AdminUsersPage() {
         },
         [updatingUserIds]
     );
+
+    const handleDeleteUser = useCallback(async () => {
+        if (!userToDelete || isDeletingUser) return;
+
+        const userId = userToDelete.id;
+
+        setDeleteError("");
+        setStatusUpdateError("");
+        setStatusUpdateSuccess("");
+        setIsDeletingUser(true);
+
+        try {
+            const response = await deleteUser(userId);
+
+            setUsers((currentUsers) =>
+                currentUsers.filter((user) => user.id !== userId)
+            );
+
+            setStatusUpdateSuccess(response.message);
+            setUserToDelete(null);
+
+            if (selectedUserId === userId) {
+                setSelectedUserId(null);
+            }
+        } catch (err: unknown) {
+            setDeleteError(
+                err instanceof Error
+                    ? err.message
+                    : "We couldn't delete this account. Please try again."
+            );
+        } finally {
+            setIsDeletingUser(false);
+        }
+    }, [userToDelete, isDeletingUser, selectedUserId]);
 
     useEffect(() => {
         void loadUsers();
@@ -329,6 +371,16 @@ export default function AdminUsersPage() {
                         >
                             <AlertCircle size={19} className="shrink-0" />
                             {statusUpdateError}
+                        </div>
+                    )}
+
+                    {deleteError && (
+                        <div
+                            role="alert"
+                            className="mb-6 flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+                        >
+                            <AlertCircle size={19} className="shrink-0" />
+                            {deleteError}
                         </div>
                     )}
 
@@ -689,10 +741,13 @@ export default function AdminUsersPage() {
 
                                             <button
                                                 type="button"
-                                                disabled
-                                                title="Delete API not connected"
-                                                onClick={(event) => event.stopPropagation()}
-                                                className="flex cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50/50 px-3 py-2.5 text-sm font-semibold text-red-400 opacity-80"
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    setDeleteError("");
+                                                    setUserToDelete(user);
+                                                }}
+                                                title={`Delete ${user.username}`}
+                                                className="flex items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50/50 px-3 py-2.5 text-sm font-semibold text-red-500 transition hover:bg-red-50 hover:text-red-700"
                                             >
                                                 <Trash2 size={15} />
                                                 Delete
@@ -721,6 +776,25 @@ export default function AdminUsersPage() {
                     onClose={closeUserDetails}
                 />
             )}
+
+            <DeleteConfirmationModal
+                isOpen={userToDelete !== null}
+                title="Delete user account?"
+                description="This will permanently delete the selected user account. This action cannot be undone."
+                itemName={
+                    userToDelete
+                        ? `${getDisplayName(userToDelete)} (@${userToDelete.username})`
+                        : undefined
+                }
+                confirmText="Delete account"
+                isDeleting={isDeletingUser}
+                onConfirm={() => void handleDeleteUser()}
+                onCancel={() => {
+                    if (!isDeletingUser) {
+                        setUserToDelete(null);
+                    }
+                }}
+            />
         </>
     );
 }
