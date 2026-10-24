@@ -37,7 +37,7 @@ export async function registerNGO(
     }
 }
 
-export async function getNGOs() {
+export async function getNGOs(): Promise<unknown> {
     return await authFetch("/ngo/", {
         method: "GET",
     });
