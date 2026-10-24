@@ -28,3 +28,7 @@ export interface UpdateUserStatusPayload {
 export interface UpdateUserStatusResponse {
     message: string;
 }
+
+export interface DeleteUserResponse {
+    message: string;
+}
