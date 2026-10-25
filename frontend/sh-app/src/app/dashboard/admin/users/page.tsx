@@ -1,14 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { ReactNode, KeyboardEvent } from "react";
+import type { ReactNode } from "react";
 import {
     AlertCircle,
     CalendarDays,
     CheckCircle2,
     Clock3,
     Mail,
-    MoreHorizontal,
     Search,
     ShieldCheck,
     Trash2,
@@ -93,23 +92,25 @@ function StatCard({
     icon: ReactNode;
 }) {
     return (
-        <div className="rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm transition-shadow hover:shadow-md">
-            <div className="flex items-start justify-between gap-3">
-                <div>
+        <div className="group rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C9DFC4] hover:shadow-md sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
                     <p className="text-sm font-medium text-[#647568]">
                         {label}
                     </p>
-                    <p className="mt-3 text-3xl font-bold tracking-tight text-[#183B2A]">
+                    <p className="mt-3 text-3xl font-bold tracking-tight text-[#183B2A] sm:text-4xl">
                         {value.toLocaleString("en-NP")}
                     </p>
                 </div>
 
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#E5F2E1] text-[#166534]">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534] transition-colors group-hover:bg-[#D8EBD3]">
                     {icon}
                 </div>
             </div>
 
-            <p className="mt-4 text-xs text-[#647568]">{description}</p>
+            <p className="mt-4 text-xs leading-5 text-[#647568]">
+                {description}
+            </p>
         </div>
     );
 }
@@ -293,18 +294,6 @@ export default function AdminUsersPage() {
         setSelectedUserId(null);
     }, []);
 
-    function handleCardKeyDown(
-        event: KeyboardEvent<HTMLElement>,
-        userId: number
-    ) {
-        if (event.target !== event.currentTarget) return;
-
-        if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            setSelectedUserId(userId);
-        }
-    }
-
     function clearFilters() {
         setSearch("");
         setRoleFilter("ALL");
@@ -317,30 +306,32 @@ export default function AdminUsersPage() {
 
     return (
         <>
-            <main className="min-h-screen bg-[#FFFCF6] px-4 py-8 sm:px-6 lg:px-8">
-                <div className="mx-auto max-w-7xl">
-                    <header className="mb-8 flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
+            <main className="min-h-screen w-full bg-[#FFFCF6] px-1.5 py-3 sm:px-2.5 sm:py-4 lg:px-3 xl:px-4 2xl:px-5">
+                <div className="mx-auto w-full max-w-[1600px] space-y-0">
+                    <header className="mb-8 flex flex-col justify-between gap-5 rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:p-7 lg:p-8">
                         <div>
-                            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#35A45C]">
-                                <Users size={17} />
-                                User management
-                            </div>
-
                             <h1 className="text-3xl font-bold tracking-tight text-[#183B2A] sm:text-4xl">
-                                Users
+                                User Management
                             </h1>
 
-                            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#647568]">
+                            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#647568] sm:text-base">
                                 View and manage donor and NGO accounts across ShareHope.
                             </p>
                         </div>
 
-                        <div className="flex items-center gap-2 self-start rounded-xl border border-[#D8E8D4] bg-white px-4 py-3 text-sm text-[#183B2A] sm:self-auto">
-                            <Users size={18} className="text-[#35A45C]" />
-                            <span>
-                                <strong>{users.length}</strong>{" "}
-                                user{users.length === 1 ? "" : "s"}
-                            </span>
+                        <div className="flex items-center gap-3 self-start rounded-xl border border-[#D8E8D4] bg-[#F5F9F2] px-5 py-3.5 text-sm text-[#183B2A] sm:self-auto">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E5F2E1] text-[#166534]">
+                                <Users size={19} />
+                            </div>
+
+                            <div>
+                                <p className="text-xl font-bold leading-6">
+                                    {users.length.toLocaleString("en-NP")}
+                                </p>
+                                <p className="mt-0.5 text-xs text-[#647568]">
+                                    Total users
+                                </p>
+                            </div>
                         </div>
                     </header>
 
@@ -396,7 +387,7 @@ export default function AdminUsersPage() {
 
                     <section
                         aria-label="User statistics"
-                        className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+                        className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4"
                     >
                         <StatCard
                             label="Total users"
@@ -427,7 +418,7 @@ export default function AdminUsersPage() {
                         />
                     </section>
 
-                    <section className="mb-6 rounded-2xl border border-[#E5EDE3] bg-white p-4 shadow-sm">
+                    <section className="mb-7 rounded-2xl border border-[#E5EDE3] bg-white p-4 shadow-sm sm:p-5">
                         <div className="flex flex-col gap-3 lg:flex-row">
                             <div className="relative min-w-0 flex-1">
                                 <Search
@@ -443,7 +434,7 @@ export default function AdminUsersPage() {
                                     }
                                     placeholder="Search name, username, email or phone..."
                                     aria-label="Search users"
-                                    className="h-11 w-full rounded-xl border border-[#DDE7D9] bg-[#FFFCF6] pl-11 pr-10 text-sm text-[#183B2A] outline-none transition placeholder:text-[#91A092] focus:border-[#35A45C] focus:ring-4 focus:ring-[#35A45C]/10"
+                                    className="h-12 w-full rounded-xl border border-[#DDE7D9] bg-[#FFFCF6] pl-11 pr-10 text-sm text-[#183B2A] outline-none transition placeholder:text-[#91A092] focus:border-[#35A45C] focus:ring-4 focus:ring-[#35A45C]/10"
                                 />
 
                                 {search && (
@@ -467,7 +458,7 @@ export default function AdminUsersPage() {
                                         )
                                     }
                                     aria-label="Filter by role"
-                                    className="h-11 rounded-xl border border-[#DDE7D9] bg-white px-3 text-sm text-[#183B2A] outline-none focus:border-[#35A45C] focus:ring-4 focus:ring-[#35A45C]/10"
+                                    className="h-12 rounded-xl border border-[#DDE7D9] bg-white px-4 text-sm text-[#183B2A] outline-none transition focus:border-[#35A45C] focus:ring-4 focus:ring-[#35A45C]/10"
                                 >
                                     <option value="ALL">All roles</option>
                                     <option value="DONOR">Donors</option>
@@ -480,7 +471,7 @@ export default function AdminUsersPage() {
                                     onClick={() =>
                                         setShowFilters((value) => !value)
                                     }
-                                    className={`h-11 rounded-xl border px-4 text-sm font-semibold transition ${showFilters
+                                    className={`h-12 rounded-xl border px-5 text-sm font-semibold transition ${showFilters
                                         ? "border-[#35A45C] bg-[#E5F2E1] text-[#166534]"
                                         : "border-[#DDE7D9] bg-white text-[#183B2A] hover:bg-[#F5F9F2]"
                                         }`}
@@ -492,7 +483,7 @@ export default function AdminUsersPage() {
 
                         {showFilters && (
                             <div className="mt-4 border-t border-[#EDF2E9] pt-4">
-                                <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-[#647568]">
+                                <label className="mb-3 block text-xs font-semibold uppercase tracking-wide text-[#647568]">
                                     Account status
                                 </label>
 
@@ -521,9 +512,9 @@ export default function AdminUsersPage() {
                         )}
                     </section>
 
-                    <div className="mb-4 flex items-center justify-between gap-3">
+                    <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
                         <div>
-                            <h2 className="text-lg font-bold text-[#183B2A]">
+                            <h2 className="text-xl font-bold text-[#183B2A]">
                                 All accounts
                             </h2>
 
@@ -536,7 +527,7 @@ export default function AdminUsersPage() {
                             <button
                                 type="button"
                                 onClick={clearFilters}
-                                className="text-sm font-semibold text-[#166534] hover:underline"
+                                className="self-start rounded-lg px-3 py-2 text-sm font-semibold text-[#166534] transition hover:bg-[#E5F2E1] sm:self-auto"
                             >
                                 Clear filters
                             </button>
@@ -568,7 +559,7 @@ export default function AdminUsersPage() {
                     ) : !error ? (
                         <section
                             aria-label="User accounts"
-                            className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3"
+                            className="grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3 2xl:gap-6"
                         >
                             {filteredUsers.map((user) => {
                                 const picture = getProfilePictureUrl(
@@ -579,16 +570,9 @@ export default function AdminUsersPage() {
                                 return (
                                     <article
                                         key={user.id}
-                                        role="button"
-                                        tabIndex={0}
-                                        aria-label={`View details for ${getDisplayName(user)}`}
-                                        onClick={() => setSelectedUserId(user.id)}
-                                        onKeyDown={(event) =>
-                                            handleCardKeyDown(event, user.id)
-                                        }
-                                        className="group cursor-pointer rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C9DFC4] hover:shadow-md focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
+                                        className="group rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C9DFC4] hover:shadow-md sm:p-6"
                                     >
-                                        <div className="flex items-start gap-3">
+                                        <div className="flex items-start gap-4">
                                             {picture ? (
                                                 <img
                                                     src={picture}
@@ -623,16 +607,6 @@ export default function AdminUsersPage() {
                                                     </span>
                                                 </p>
                                             </div>
-
-                                            <button
-                                                type="button"
-                                                aria-label={`More options for ${user.username}`}
-                                                title="More options not connected"
-                                                onClick={(event) => event.stopPropagation()}
-                                                className="rounded-lg p-2 text-[#829184] transition hover:bg-[#F0F5ED] hover:text-[#183B2A]"
-                                            >
-                                                <MoreHorizontal size={20} />
-                                            </button>
                                         </div>
 
                                         <div className="mt-5 flex flex-wrap items-center gap-2">
@@ -683,7 +657,7 @@ export default function AdminUsersPage() {
                                                 <p className="mt-1 flex items-center gap-1.5 font-medium text-[#183B2A]">
                                                     <CalendarDays
                                                         size={14}
-                                                        className="text-[#35A45C]"
+                                                        className="shrink-0 text-[#35A45C]"
                                                     />
                                                     {formatDate(user.date_joined)}
                                                 </p>
@@ -701,62 +675,67 @@ export default function AdminUsersPage() {
                                             )}
                                         </div>
 
-                                        <div className="mt-5 grid grid-cols-2 gap-3">
+                                        <div className="mt-5 space-y-3">
                                             <button
                                                 type="button"
-                                                disabled={isUpdating}
-                                                title={
-                                                    isUpdating
-                                                        ? "Updating account status..."
-                                                        : user.is_active
-                                                            ? "Deactivate account"
-                                                            : "Activate account"
-                                                }
-                                                onClick={(event) => {
-                                                    event.stopPropagation();
-                                                    void handleToggleUserStatus(user);
-                                                }}
-                                                className="flex items-center justify-center gap-2 rounded-xl border border-[#DDE7D9] bg-[#F8FAF6] px-3 py-2.5 text-sm font-semibold text-[#829184] transition hover:bg-[#E5F2E1] disabled:cursor-wait disabled:opacity-60"
+                                                onClick={() => setSelectedUserId(user.id)}
+                                                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#166534] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#124D29] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
                                             >
-                                                <span
-                                                    className={`relative h-4 w-7 rounded-full ${user.is_active
-                                                        ? "bg-[#35A45C]"
-                                                        : "bg-[#C9D3C6]"
-                                                        }`}
+                                                <UserRound size={16} />
+                                                View Details
+                                            </button>
+
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <button
+                                                    type="button"
+                                                    disabled={isUpdating}
+                                                    title={
+                                                        isUpdating
+                                                            ? "Updating account status..."
+                                                            : user.is_active
+                                                                ? "Deactivate account"
+                                                                : "Activate account"
+                                                    }
+                                                    onClick={() =>
+                                                        void handleToggleUserStatus(user)
+                                                    }
+                                                    className="flex items-center justify-center gap-2 rounded-xl border border-[#DDE7D9] bg-[#F8FAF6] px-3 py-2.5 text-sm font-semibold text-[#526B56] transition hover:bg-[#E5F2E1] hover:text-[#166534] disabled:cursor-wait disabled:opacity-60"
                                                 >
                                                     <span
-                                                        className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm ${user.is_active
-                                                            ? "right-0.5"
-                                                            : "left-0.5"
+                                                        className={`relative h-4 w-7 shrink-0 rounded-full ${user.is_active
+                                                            ? "bg-[#35A45C]"
+                                                            : "bg-[#C9D3C6]"
                                                             }`}
-                                                    />
-                                                </span>
+                                                    >
+                                                        <span
+                                                            className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm ${user.is_active
+                                                                ? "right-0.5"
+                                                                : "left-0.5"
+                                                                }`}
+                                                        />
+                                                    </span>
 
-                                                {isUpdating
-                                                    ? "Updating..."
-                                                    : user.is_active
-                                                        ? "Deactivate"
-                                                        : "Activate"}
-                                            </button>
+                                                    {isUpdating
+                                                        ? "Updating..."
+                                                        : user.is_active
+                                                            ? "Deactivate"
+                                                            : "Activate"}
+                                                </button>
 
-                                            <button
-                                                type="button"
-                                                onClick={(event) => {
-                                                    event.stopPropagation();
-                                                    setDeleteError("");
-                                                    setUserToDelete(user);
-                                                }}
-                                                title={`Delete ${user.username}`}
-                                                className="flex items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50/50 px-3 py-2.5 text-sm font-semibold text-red-500 transition hover:bg-red-50 hover:text-red-700"
-                                            >
-                                                <Trash2 size={15} />
-                                                Delete
-                                            </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setDeleteError("");
+                                                        setUserToDelete(user);
+                                                    }}
+                                                    title={`Delete ${user.username}`}
+                                                    className="flex items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50/50 px-3 py-2.5 text-sm font-semibold text-red-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                                                >
+                                                    <Trash2 size={15} />
+                                                    Delete
+                                                </button>
+                                            </div>
                                         </div>
-
-                                        <p className="mt-4 text-center text-xs font-semibold text-[#35A45C] opacity-0 transition group-hover:opacity-100 group-focus:opacity-100">
-                                            Click to view full details
-                                        </p>
                                     </article>
                                 );
                             })}
