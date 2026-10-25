@@ -1,116 +1,119 @@
-function SkeletonBlock({
-    className = "",
-}: {
-    className?: string;
-}) {
-    return (
-        <div
-            className={`animate-pulse rounded-lg bg-[#E7EDE2] ${className}`}
-        />
-    );
-}
-
-function SkeletonSummaryCard() {
-    return (
-        <div className="rounded-2xl border border-[#E1E9DC] bg-[#FFFCF6] p-5">
-            <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 space-y-3">
-                    <SkeletonBlock className="h-4 w-28" />
-                    <SkeletonBlock className="h-9 w-16" />
-                    <SkeletonBlock className="h-3 w-36 max-w-full" />
-                </div>
-                <SkeletonBlock className="h-11 w-11 rounded-xl" />
-            </div>
-        </div>
-    );
-}
-
-function SkeletonNGOCard() {
-    return (
-        <article className="overflow-hidden rounded-2xl border border-[#E1E9DC] bg-[#FFFCF6]">
-            <div className="p-5 sm:p-6">
-                <div className="flex items-start gap-4">
-                    <SkeletonBlock className="h-14 w-14 shrink-0 rounded-2xl" />
-
-                    <div className="min-w-0 flex-1 space-y-3">
-                        <div className="flex flex-wrap gap-2">
-                            <SkeletonBlock className="h-6 w-36 max-w-full" />
-                            <SkeletonBlock className="h-6 w-20 rounded-full" />
-                        </div>
-                        <SkeletonBlock className="h-4 w-48 max-w-full" />
-                        <SkeletonBlock className="h-3 w-20" />
-                    </div>
-                </div>
-
-                <div className="mt-5 space-y-2">
-                    <SkeletonBlock className="h-3.5 w-full" />
-                    <SkeletonBlock className="h-3.5 w-4/5 max-w-full" />
-                </div>
-
-                <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                    <div className="flex items-center gap-2.5">
-                        <SkeletonBlock className="h-4 w-4 shrink-0" />
-                        <SkeletonBlock className="h-4 w-40 max-w-full" />
-                    </div>
-
-                    <div className="flex items-center gap-2.5">
-                        <SkeletonBlock className="h-4 w-4 shrink-0" />
-                        <SkeletonBlock className="h-4 w-28 max-w-full" />
-                    </div>
-
-                    <div className="flex items-center gap-2.5 sm:col-span-2">
-                        <SkeletonBlock className="h-4 w-4 shrink-0" />
-                        <SkeletonBlock className="h-4 w-56 max-w-full" />
-                    </div>
-                </div>
-
-                <div className="mt-5 flex flex-wrap gap-4 border-t border-[#E8EDE4] pt-4">
-                    <SkeletonBlock className="h-4 w-24" />
-                    <SkeletonBlock className="h-4 w-20" />
-                    <SkeletonBlock className="h-4 w-32" />
-                </div>
-
-                <div className="mt-5 flex flex-col gap-3 border-t border-[#E8EDE4] pt-5 sm:flex-row">
-                    <SkeletonBlock className="h-11 flex-1 rounded-xl" />
-                    <SkeletonBlock className="h-11 sm:w-[120px] rounded-xl" />
-                </div>
-            </div>
-
-            <div className="border-t border-[#E8EDE4] bg-[#F7F9F3] px-5 py-3 sm:px-6">
-                <SkeletonBlock className="h-3.5 w-48 max-w-full" />
-            </div>
-        </article>
-    );
-}
-
 export default function NGOSkeleton() {
     return (
-        <div className="space-y-7" aria-label="Loading NGO records">
-            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="animate-pulse">
+            <section
+                aria-label="Loading NGO statistics"
+                className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4"
+            >
                 {Array.from({ length: 4 }).map((_, index) => (
-                    <SkeletonSummaryCard key={index} />
+                    <div
+                        key={index}
+                        className="rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm sm:p-6"
+                    >
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0 flex-1">
+                                <div className="h-4 w-24 rounded bg-[#E5EDE3]" />
+                                <div className="mt-4 h-10 w-20 rounded-lg bg-[#E5EDE3]" />
+                            </div>
+
+                            <div className="h-12 w-12 shrink-0 rounded-2xl bg-[#E5F2E1]" />
+                        </div>
+
+                        <div className="mt-4 h-3 w-4/5 rounded bg-[#EDF2E9]" />
+                    </div>
                 ))}
             </section>
 
-            <section className="space-y-5">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="space-y-2">
-                        <SkeletonBlock className="h-6 w-56 max-w-full" />
-                        <SkeletonBlock className="h-4 w-40" />
-                    </div>
+            <section className="mb-7 rounded-2xl border border-[#E5EDE3] bg-white p-4 shadow-sm sm:p-5">
+                <div className="flex flex-col gap-3 lg:flex-row">
+                    <div className="h-12 flex-1 rounded-xl border border-[#DDE7D9] bg-[#FFFCF6]" />
 
-                    <div className="flex flex-col gap-3 sm:flex-row">
-                        <SkeletonBlock className="h-11 w-full sm:w-[280px]" />
-                        <SkeletonBlock className="h-11 w-full sm:w-[150px]" />
-                    </div>
-                </div>
-
-                <div className="grid gap-5 xl:grid-cols-2">
-                    {Array.from({ length: 4 }).map((_, index) => (
-                        <SkeletonNGOCard key={index} />
-                    ))}
+                    <div className="h-12 w-full rounded-xl border border-[#DDE7D9] bg-[#FFFCF6] sm:w-40" />
                 </div>
             </section>
+
+            <div className="mb-5">
+                <div className="h-6 w-56 rounded bg-[#E5EDE3]" />
+                <div className="mt-2 h-4 w-48 rounded bg-[#EDF2E9]" />
+            </div>
+
+            <section
+                aria-label="Loading NGO cards"
+                className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6 2xl:gap-8"
+            >
+                {Array.from({ length: 4 }).map((_, index) => (
+                    <article
+                        key={index}
+                        className="rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm sm:p-6 lg:p-7"
+                    >
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="flex min-w-0 items-start gap-4">
+                                <div className="h-14 w-14 shrink-0 rounded-2xl bg-[#E5F2E1]" />
+
+                                <div className="min-w-0 flex-1 pt-1">
+                                    <div className="h-5 w-36 max-w-full rounded bg-[#E5EDE3]" />
+                                    <div className="mt-3 h-3 w-44 max-w-full rounded bg-[#EDF2E9]" />
+                                    <div className="mt-2 h-3 w-20 rounded bg-[#EDF2E9]" />
+                                </div>
+                            </div>
+
+                            <div className="flex shrink-0 flex-col items-end gap-2">
+                                <div className="h-7 w-24 rounded-full bg-[#E5F2E1]" />
+                                <div className="h-7 w-20 rounded-full bg-[#EDF2E9]" />
+                            </div>
+                        </div>
+
+                        <div className="mt-5 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+                            <div className="flex items-start gap-2">
+                                <div className="mt-0.5 h-4 w-4 shrink-0 rounded bg-[#D8EBD3]" />
+                                <div className="h-4 w-full max-w-44 rounded bg-[#EDF2E9]" />
+                            </div>
+
+                            <div className="flex items-start gap-2">
+                                <div className="mt-0.5 h-4 w-4 shrink-0 rounded bg-[#D8EBD3]" />
+                                <div className="h-4 w-28 rounded bg-[#EDF2E9]" />
+                            </div>
+
+                            <div className="flex items-start gap-2">
+                                <div className="mt-0.5 h-4 w-4 shrink-0 rounded bg-[#D8EBD3]" />
+                                <div className="h-4 w-full max-w-40 rounded bg-[#EDF2E9]" />
+                            </div>
+
+                            <div className="flex items-start gap-2">
+                                <div className="mt-0.5 h-4 w-4 shrink-0 rounded bg-[#D8EBD3]" />
+                                <div className="h-4 w-32 rounded bg-[#EDF2E9]" />
+                            </div>
+
+                            <div className="flex items-start gap-2">
+                                <div className="mt-0.5 h-4 w-4 shrink-0 rounded bg-[#D8EBD3]" />
+                                <div className="h-4 w-24 rounded bg-[#EDF2E9]" />
+                            </div>
+
+                            <div className="flex items-start gap-2">
+                                <div className="mt-0.5 h-4 w-4 shrink-0 rounded bg-[#D8EBD3]" />
+                                <div className="h-4 w-24 rounded bg-[#EDF2E9]" />
+                            </div>
+                        </div>
+
+                        <div className="my-5 border-t border-[#EDF2E9]" />
+
+                        <div className="h-3 w-44 rounded bg-[#EDF2E9]" />
+
+                        <div className="mt-5 space-y-3">
+                            <div className="h-12 w-full rounded-xl bg-[#D8EBD3]" />
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="h-10 rounded-xl border border-[#DDE7D9] bg-[#F8FAF6]" />
+                                <div className="h-10 rounded-xl border border-red-100 bg-red-50/50" />
+                            </div>
+                        </div>
+                    </article>
+                ))}
+            </section>
+
+            <div className="mt-8 flex justify-center">
+                <div className="h-3 w-96 max-w-full rounded bg-[#EDF2E9]" />
+            </div>
         </div>
     );
 }
