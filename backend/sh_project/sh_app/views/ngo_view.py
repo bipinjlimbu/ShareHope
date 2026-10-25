@@ -138,3 +138,15 @@ def ngo_view(request):
         ngos = NGO.objects.all()
         serializer = NGOSerializer(ngos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+@api_view(['GET', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def ngo_detail_view(request, ngo_id):
+    try:
+        ngo = NGO.objects.get(id=ngo_id)
+    except NGO.DoesNotExist:
+        return Response({'error': 'NGO not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        serializer = NGOSerializer(ngo)
+        return Response(serializer.data, status=status.HTTP_200_OK)
