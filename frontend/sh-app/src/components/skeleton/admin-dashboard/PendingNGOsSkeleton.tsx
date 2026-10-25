@@ -1,5 +1,4 @@
 import {
-    Building2,
     CalendarDays,
     FileText,
     Mail,
@@ -63,60 +62,45 @@ function ApplicationCardSkeleton() {
 
                 <div className="mt-5 grid gap-4 sm:grid-cols-2">
                     <div className="flex items-center gap-2.5">
-                        <Mail
-                            size={16}
-                            className="shrink-0 text-[#B6C8B1]"
-                        />
+                        <Mail size={16} className="shrink-0 text-[#B6C8B1]" />
                         <SkeletonBlock className="h-4 w-36 max-w-full" />
                     </div>
 
                     <div className="flex items-center gap-2.5">
-                        <Phone
-                            size={16}
-                            className="shrink-0 text-[#B6C8B1]"
-                        />
+                        <Phone size={16} className="shrink-0 text-[#B6C8B1]" />
                         <SkeletonBlock className="h-4 w-28 max-w-full" />
                     </div>
 
                     <div className="flex items-center gap-2.5 sm:col-span-2">
-                        <MapPin
-                            size={16}
-                            className="shrink-0 text-[#B6C8B1]"
-                        />
+                        <MapPin size={16} className="shrink-0 text-[#B6C8B1]" />
                         <SkeletonBlock className="h-4 w-3/4 max-w-full" />
                     </div>
                 </div>
 
                 <div className="mt-5 flex flex-wrap gap-x-5 gap-y-3 border-t border-[#E8EDE4] pt-4">
                     <div className="flex items-center gap-2">
-                        <FileText
-                            size={15}
-                            className="text-[#B6C8B1]"
-                        />
+                        <FileText size={15} className="text-[#B6C8B1]" />
                         <SkeletonBlock className="h-3.5 w-20" />
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <Users
-                            size={15}
-                            className="text-[#B6C8B1]"
-                        />
+                        <Users size={15} className="text-[#B6C8B1]" />
                         <SkeletonBlock className="h-3.5 w-16" />
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <CalendarDays
-                            size={15}
-                            className="text-[#B6C8B1]"
-                        />
+                        <CalendarDays size={15} className="text-[#B6C8B1]" />
                         <SkeletonBlock className="h-3.5 w-28" />
                     </div>
                 </div>
 
-                <div className="mt-5 grid grid-cols-1 gap-3 border-t border-[#E8EDE4] pt-5 sm:grid-cols-3">
-                    <SkeletonBlock className="h-11 rounded-xl" />
-                    <SkeletonBlock className="h-11 rounded-xl" />
-                    <SkeletonBlock className="h-11 rounded-xl" />
+                <div className="mt-5 flex flex-col gap-3 border-t border-[#E8EDE4] pt-5">
+                    <SkeletonBlock className="h-11 w-full rounded-xl" />
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <SkeletonBlock className="h-11 rounded-xl" />
+                        <SkeletonBlock className="h-11 rounded-xl" />
+                    </div>
                 </div>
             </div>
 
