@@ -6,6 +6,8 @@ import type {
     NGOUserResponse,
     NGOListResponse,
     NGOListItem,
+    UpdateNGOStatusPayload,
+    UpdateNGOStatusResponse,
 } from "@/types/ngo";
 
 export async function registerNGO(
@@ -57,4 +59,14 @@ export async function getNGOByUser(): Promise<NGOUserResponse> {
     return (await authFetch("/ngo/user", {
         method: "GET",
     })) as NGOUserResponse;
+}
+
+export async function updateNGOStatus(
+    ngoId: number,
+    payload: UpdateNGOStatusPayload
+): Promise<UpdateNGOStatusResponse> {
+    return (await authFetch(`/ngo/${ngoId}/`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+    })) as UpdateNGOStatusResponse;
 }
