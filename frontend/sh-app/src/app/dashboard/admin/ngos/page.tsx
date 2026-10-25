@@ -12,6 +12,7 @@ import {
     Mail,
     MapPin,
     Phone,
+    Power,
     RefreshCw,
     Search,
     ShieldCheck,
@@ -479,25 +480,39 @@ export default function AdminNGOsPage() {
                                                 </div>
                                             </div>
 
-                                            <div className="mt-5 flex flex-col gap-3 border-t border-[#E8EDE4] pt-5 sm:flex-row">
+                                            <div className="mt-5 flex flex-col gap-3 border-t border-[#E8EDE4] pt-5">
                                                 <button
                                                     type="button"
                                                     onClick={() =>
                                                         setSelectedNGOId(ngo.id)
                                                     }
-                                                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#BBD4B5] bg-[#F0F7ED] px-4 py-3 text-sm font-semibold text-[#166534] transition hover:bg-[#E5F2E1]"
+                                                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#BBD4B5] bg-[#F0F7ED] px-4 py-3 text-sm font-semibold text-[#166534] transition hover:bg-[#E5F2E1]"
                                                 >
                                                     <Building2 size={16} />
                                                     View Full Details
                                                 </button>
 
-                                                <button
-                                                    type="button"
-                                                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50 sm:min-w-[120px]"
-                                                >
-                                                    <Trash2 size={16} />
-                                                    Delete
-                                                </button>
+                                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                                    <button
+                                                        type="button"
+                                                        title="Activation action will be connected later"
+                                                        aria-label={`Activate or deactivate ${ngo.name}`}
+                                                        className="flex items-center justify-center gap-2 rounded-xl border border-[#DDE7D9] bg-[#F8FAF6] px-3 py-2.5 text-sm font-semibold text-[#829184] transition hover:bg-[#E5F2E1]"
+                                                    >
+                                                        <span className="relative h-4 w-7 rounded-full bg-[#35A45C]">
+                                                            <span className="absolute right-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-sm" />
+                                                        </span>
+                                                        Activate / Deactivate
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                        Delete
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
 
