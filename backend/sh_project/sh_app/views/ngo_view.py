@@ -172,3 +172,16 @@ def ngo_detail_view(request, pk):
             send_email(subject, message, [ngo.created_by.email])
             
             return Response({'message': 'NGO deactivated successfully.'}, status=status.HTTP_200_OK)
+        
+    if request.method == 'DELETE':
+        if request.user.role != User.Role.ADMIN:
+            return Response({'error': 'Only admin users can delete NGO details.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        email = ngo.created_by.email 
+        ngo.delete()
+        
+        subject = 'NGO Deleted'
+        message = f'Dear {ngo.created_by.first_name},\n\nYour NGO "{ngo.name}" has been deleted by the admin. Please contact the admin for more information.\n\nBest regards,\nShareHope Team'
+        send_email(subject, message, [email])
+        
+        return Response({'message': 'NGO deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
