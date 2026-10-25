@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -182,7 +183,10 @@ export default function AdminNGOsPage() {
                 Array.isArray(response)
                     ? response.filter((ngo) => {
                         const status = ngo.status?.toUpperCase();
-                        return status === "APPROVED" || status === "REJECTED";
+                        return (
+                            status === "APPROVED" ||
+                            status === "REJECTED"
+                        );
                     })
                     : []
             );
@@ -196,7 +200,10 @@ export default function AdminNGOsPage() {
             );
         } finally {
             const elapsed = Date.now() - startedAt;
-            const remaining = Math.max(0, MINIMUM_LOADING_TIME - elapsed);
+            const remaining = Math.max(
+                0,
+                MINIMUM_LOADING_TIME - elapsed
+            );
 
             if (remaining > 0) {
                 await new Promise<void>((resolve) => {
@@ -337,6 +344,11 @@ export default function AdminNGOsPage() {
 
     const activeCount = ngos.filter((ngo) => ngo.is_active).length;
 
+    // Keep this return after every hook to preserve React's hook order.
+    if (isLoading) {
+        return <NGOSkeleton />;
+    }
+
     return (
         <>
             <main className="min-h-screen w-full bg-[#FFFCF6] px-1.5 py-3 sm:px-2.5 sm:py-4 lg:px-3 xl:px-4 2xl:px-5">
@@ -417,9 +429,7 @@ export default function AdminNGOsPage() {
                         </div>
                     )}
 
-                    {isLoading ? (
-                        <NGOSkeleton />
-                    ) : !error ? (
+                    {!error && (
                         <>
                             <section
                                 aria-label="NGO statistics"
@@ -763,7 +773,7 @@ export default function AdminNGOsPage() {
                                 </section>
                             )}
                         </>
-                    ) : null}
+                    )}
 
                     <p className="mt-8 text-center text-xs leading-5 text-[#829184]">
                         Manage reviewed NGO registrations, review organization
