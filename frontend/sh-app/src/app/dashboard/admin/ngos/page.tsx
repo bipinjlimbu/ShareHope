@@ -22,6 +22,7 @@ import {
 import { getNGOs } from "@/services/ngoService";
 import type { NGOListItem, NGOStatus } from "@/types/ngo";
 import NGOSkeleton from "@/components/skeleton/admin-dashboard/NGOSkeleton";
+import NGODetailsModal from "@/components/admin-dashboard/NGODetailsModal";
 
 type StatusFilter = "ALL" | NGOStatus;
 
@@ -127,6 +128,7 @@ export default function AdminNGOsPage() {
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+    const [selectedNGOId, setSelectedNGOId] = useState<number | null>(null);
 
     const fetchNGOs = useCallback(async () => {
         setIsLoading(true);
@@ -480,6 +482,9 @@ export default function AdminNGOsPage() {
                                             <div className="mt-5 flex flex-col gap-3 border-t border-[#E8EDE4] pt-5 sm:flex-row">
                                                 <button
                                                     type="button"
+                                                    onClick={() =>
+                                                        setSelectedNGOId(ngo.id)
+                                                    }
                                                     className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#BBD4B5] bg-[#F0F7ED] px-4 py-3 text-sm font-semibold text-[#166534] transition hover:bg-[#E5F2E1]"
                                                 >
                                                     <Building2 size={16} />
@@ -511,6 +516,12 @@ export default function AdminNGOsPage() {
                     </section>
                 </>
             ) : null}
+
+            <NGODetailsModal
+                isOpen={selectedNGOId !== null}
+                ngoId={selectedNGOId}
+                onClose={() => setSelectedNGOId(null)}
+            />
         </div>
     );
 }
