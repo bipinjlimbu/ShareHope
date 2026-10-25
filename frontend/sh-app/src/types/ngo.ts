@@ -107,6 +107,10 @@ export interface UpdateNGOStatusResponse {
     message: string;
 }
 
+export interface DeleteNGOResponse {
+    message: string;
+}
+
 export interface NGOPendingProps {
     onBackToProfile: () => void;
 }
