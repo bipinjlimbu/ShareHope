@@ -87,6 +87,7 @@ export interface NGOListItem {
     address: string;
     status: NGOStatus | string;
     ngo_logo: string | null;
+    is_active: boolean;
     created_at: string;
     documents: NGODocument[];
     members: NGOMembership[];
