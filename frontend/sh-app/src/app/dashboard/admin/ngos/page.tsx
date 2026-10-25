@@ -21,12 +21,14 @@ import {
     XCircle,
 } from "lucide-react";
 import {
+    deleteNGO,
     getNGOs,
     updateNGOStatus,
 } from "@/services/ngoService";
 import type { NGOListItem, NGOStatus } from "@/types/ngo";
 import NGOSkeleton from "@/components/skeleton/admin-dashboard/NGOSkeleton";
 import NGODetailsModal from "@/components/admin-dashboard/NGODetailsModal";
+import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const MINIMUM_LOADING_TIME = 500;
@@ -175,6 +177,10 @@ export default function AdminNGOsPage() {
     const [statusUpdateError, setStatusUpdateError] = useState("");
     const [statusUpdateSuccess, setStatusUpdateSuccess] = useState("");
 
+    const [selectedDeleteNGO, setSelectedDeleteNGO] =
+        useState<NGOListItem | null>(null);
+    const [isDeletingNGO, setIsDeletingNGO] = useState(false);
+
     const fetchNGOs = useCallback(async () => {
         const startedAt = Date.now();
 
@@ -257,6 +263,45 @@ export default function AdminNGOsPage() {
         },
         [updatingNGOIds]
     );
+
+    const handleDeleteNGO = useCallback(async () => {
+        if (!selectedDeleteNGO || isDeletingNGO) return;
+
+        const ngoToDelete = selectedDeleteNGO;
+
+        setStatusUpdateError("");
+        setStatusUpdateSuccess("");
+        setIsDeletingNGO(true);
+
+        try {
+            const response = await deleteNGO(ngoToDelete.id);
+
+            setNgos((currentNGOs) =>
+                currentNGOs.filter(
+                    (ngo) => ngo.id !== ngoToDelete.id
+                )
+            );
+
+            setSelectedDeleteNGO(null);
+
+            setStatusUpdateSuccess(
+                response?.message ||
+                `${ngoToDelete.name} deleted successfully.`
+            );
+        } catch (err: unknown) {
+            console.error("Failed to delete NGO:", err);
+
+            setSelectedDeleteNGO(null);
+
+            setStatusUpdateError(
+                err instanceof Error
+                    ? err.message
+                    : `Unable to delete ${ngoToDelete.name}. Please try again.`
+            );
+        } finally {
+            setIsDeletingNGO(false);
+        }
+    }, [selectedDeleteNGO, isDeletingNGO]);
 
     useEffect(() => {
         void fetchNGOs();
@@ -522,6 +567,17 @@ export default function AdminNGOsPage() {
                                                             <StatusBadge
                                                                 status={ngo.status}
                                                             />
+
+                                                            <span
+                                                                className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${ngo.is_active
+                                                                    ? "border-green-200 bg-green-50 text-green-800"
+                                                                    : "border-gray-200 bg-gray-100 text-gray-600"
+                                                                    }`}
+                                                            >
+                                                                {ngo.is_active
+                                                                    ? "Active"
+                                                                    : "Inactive"}
+                                                            </span>
                                                         </div>
 
                                                         <p className="mt-1 text-sm text-[#6A796B]">
@@ -672,13 +728,15 @@ export default function AdminNGOsPage() {
 
                                                         <button
                                                             type="button"
-                                                            title="Delete action will be connected later"
                                                             onClick={() => {
                                                                 setStatusUpdateError(
-                                                                    "NGO deletion has not been connected yet."
+                                                                    ""
                                                                 );
                                                                 setStatusUpdateSuccess(
                                                                     ""
+                                                                );
+                                                                setSelectedDeleteNGO(
+                                                                    ngo
                                                                 );
                                                             }}
                                                             className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50"
@@ -711,6 +769,21 @@ export default function AdminNGOsPage() {
                 isOpen={selectedNGOId !== null}
                 ngoId={selectedNGOId}
                 onClose={() => setSelectedNGOId(null)}
+            />
+
+            <DeleteConfirmationModal
+                isOpen={selectedDeleteNGO !== null}
+                title="Delete NGO?"
+                description="This action cannot be undone. The NGO and its associated records may be permanently deleted."
+                itemName={selectedDeleteNGO?.name}
+                confirmText="Delete NGO"
+                isDeleting={isDeletingNGO}
+                onConfirm={() => void handleDeleteNGO()}
+                onCancel={() => {
+                    if (!isDeletingNGO) {
+                        setSelectedDeleteNGO(null);
+                    }
+                }}
             />
         </div>
     );
