@@ -206,3 +206,24 @@ def approve_ngo_view(request, pk):
         send_email(subject, message, [ngo.created_by.email])
         
         return Response({'message': 'NGO approved successfully.'}, status=status.HTTP_200_OK)
+    
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def reject_ngo_view(request, pk):
+    if request.method == 'PATCH':
+        if request.user.role != User.Role.ADMIN:
+            return Response({'error': 'Only admin users can reject NGO registrations.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        try:
+            ngo = NGO.objects.get(id=pk)
+        except NGO.DoesNotExist:
+            return Response({'error': 'NGO not found.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        ngo.status = NGO.Status.REJECTED
+        ngo.save()
+        
+        subject = 'NGO Rejected'
+        message = f'Dear {ngo.created_by.first_name},\n\nWe regret to inform you that your NGO "{ngo.name}" registration has been rejected. Please contact the admin for more information.\n\nBest regards,\nShareHope Team'
+        send_email(subject, message, [ngo.created_by.email])
+        
+        return Response({'message': 'NGO rejected successfully.'}, status=status.HTTP_200_OK)
