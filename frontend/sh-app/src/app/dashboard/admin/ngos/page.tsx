@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
+    AlertCircle,
     ArrowLeft,
     Building2,
     CalendarDays,
@@ -19,12 +20,16 @@ import {
     Users,
     XCircle,
 } from "lucide-react";
-import { getNGOs } from "@/services/ngoService";
+import {
+    getNGOs,
+    updateNGOStatus,
+} from "@/services/ngoService";
 import type { NGOListItem, NGOStatus } from "@/types/ngo";
 import NGOSkeleton from "@/components/skeleton/admin-dashboard/NGOSkeleton";
 import NGODetailsModal from "@/components/admin-dashboard/NGODetailsModal";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+const MINIMUM_LOADING_TIME = 500;
 
 type StatusFilter = "ALL" | NGOStatus;
 
@@ -166,7 +171,13 @@ export default function AdminNGOsPage() {
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
     const [selectedNGOId, setSelectedNGOId] = useState<number | null>(null);
 
+    const [updatingNGOIds, setUpdatingNGOIds] = useState<number[]>([]);
+    const [statusUpdateError, setStatusUpdateError] = useState("");
+    const [statusUpdateSuccess, setStatusUpdateSuccess] = useState("");
+
     const fetchNGOs = useCallback(async () => {
+        const startedAt = Date.now();
+
         setIsLoading(true);
         setError(null);
 
@@ -182,9 +193,70 @@ export default function AdminNGOsPage() {
                     : "Unable to load NGO records. Please try again."
             );
         } finally {
+            const elapsed = Date.now() - startedAt;
+            const remaining = Math.max(
+                0,
+                MINIMUM_LOADING_TIME - elapsed
+            );
+
+            if (remaining > 0) {
+                await new Promise<void>((resolve) => {
+                    window.setTimeout(resolve, remaining);
+                });
+            }
+
             setIsLoading(false);
         }
     }, []);
+
+    const handleToggleNGOStatus = useCallback(
+        async (ngo: NGOListItem) => {
+            if (updatingNGOIds.includes(ngo.id)) return;
+
+            const nextIsActive = !ngo.is_active;
+
+            setStatusUpdateError("");
+            setStatusUpdateSuccess("");
+            setUpdatingNGOIds((current) => [...current, ngo.id]);
+
+            try {
+                const response = await updateNGOStatus(ngo.id, {
+                    is_active: nextIsActive,
+                });
+
+                setNgos((currentNGOs) =>
+                    currentNGOs.map((currentNGO) =>
+                        currentNGO.id === ngo.id
+                            ? {
+                                ...currentNGO,
+                                is_active: nextIsActive,
+                            }
+                            : currentNGO
+                    )
+                );
+
+                setStatusUpdateSuccess(
+                    response.message ||
+                    (nextIsActive
+                        ? `${ngo.name} activated successfully.`
+                        : `${ngo.name} deactivated successfully.`)
+                );
+            } catch (err: unknown) {
+                console.error("Failed to update NGO status:", err);
+
+                setStatusUpdateError(
+                    err instanceof Error
+                        ? err.message
+                        : "Unable to update the NGO status. Please try again."
+                );
+            } finally {
+                setUpdatingNGOIds((current) =>
+                    current.filter((id) => id !== ngo.id)
+                );
+            }
+        },
+        [updatingNGOIds]
+    );
 
     useEffect(() => {
         void fetchNGOs();
@@ -225,6 +297,8 @@ export default function AdminNGOsPage() {
     const rejectedCount = ngos.filter(
         (ngo) => ngo.status?.toUpperCase() === "REJECTED"
     ).length;
+
+    const activeCount = ngos.filter((ngo) => ngo.is_active).length;
 
     return (
         <div className="mx-auto max-w-[1600px] space-y-7 pb-8">
@@ -299,6 +373,26 @@ export default function AdminNGOsPage() {
                 </section>
             )}
 
+            {statusUpdateError && (
+                <div
+                    role="alert"
+                    className="flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+                >
+                    <AlertCircle size={19} className="mt-0.5 shrink-0" />
+                    <span>{statusUpdateError}</span>
+                </div>
+            )}
+
+            {statusUpdateSuccess && (
+                <div
+                    role="status"
+                    className="flex items-start gap-2 rounded-2xl border border-[#D8E8D4] bg-[#E5F2E1] p-4 text-sm text-[#166534]"
+                >
+                    <CheckCircle2 size={19} className="mt-0.5 shrink-0" />
+                    <span>{statusUpdateSuccess}</span>
+                </div>
+            )}
+
             {isLoading ? (
                 <NGOSkeleton />
             ) : !error ? (
@@ -329,11 +423,11 @@ export default function AdminNGOsPage() {
                         />
 
                         <SummaryCard
-                            title="Rejected NGOs"
-                            value={rejectedCount}
-                            description="Organizations not approved"
-                            icon={XCircle}
-                            iconClassName="bg-red-50 text-red-700"
+                            title="Active NGOs"
+                            value={activeCount}
+                            description={`${rejectedCount} rejected · ${approvedCount} approved`}
+                            icon={ShieldCheck}
+                            iconClassName="bg-green-50 text-green-700"
                         />
                     </section>
 
@@ -406,160 +500,207 @@ export default function AdminNGOsPage() {
                             </div>
                         ) : (
                             <div className="grid gap-5 xl:grid-cols-2">
-                                {filteredNGOs.map((ngo) => (
-                                    <article
-                                        key={ngo.id}
-                                        className="overflow-hidden rounded-2xl border border-[#E1E9DC] bg-[#FFFCF6] transition hover:border-[#C7D9C1] hover:shadow-sm"
-                                    >
-                                        <div className="p-5 sm:p-6">
-                                            <div className="flex items-start gap-4">
-                                                <NGOLogo ngo={ngo} />
+                                {filteredNGOs.map((ngo) => {
+                                    const isUpdating = updatingNGOIds.includes(
+                                        ngo.id
+                                    );
 
-                                                <div className="min-w-0 flex-1">
-                                                    <div className="flex flex-wrap items-center gap-2">
-                                                        <h3 className="break-words text-lg font-bold text-[#183B2A]">
-                                                            {ngo.name}
-                                                        </h3>
-                                                        <StatusBadge
-                                                            status={ngo.status}
+                                    return (
+                                        <article
+                                            key={ngo.id}
+                                            className="overflow-hidden rounded-2xl border border-[#E1E9DC] bg-[#FFFCF6] transition hover:border-[#C7D9C1] hover:shadow-sm"
+                                        >
+                                            <div className="p-5 sm:p-6">
+                                                <div className="flex items-start gap-4">
+                                                    <NGOLogo ngo={ngo} />
+
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="flex flex-wrap items-center gap-2">
+                                                            <h3 className="break-words text-lg font-bold text-[#183B2A]">
+                                                                {ngo.name}
+                                                            </h3>
+                                                            <StatusBadge
+                                                                status={ngo.status}
+                                                            />
+                                                        </div>
+
+                                                        <p className="mt-1 text-sm text-[#6A796B]">
+                                                            Registration No.{" "}
+                                                            <span className="font-semibold text-[#35543B]">
+                                                                {ngo.registration_number ||
+                                                                    "Not provided"}
+                                                            </span>
+                                                        </p>
+
+                                                        <p className="mt-2 text-xs text-[#7B887B]">
+                                                            NGO ID: #{ngo.id}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                {ngo.description && (
+                                                    <p className="mt-5 line-clamp-2 text-sm leading-6 text-[#617263]">
+                                                        {ngo.description}
+                                                    </p>
+                                                )}
+
+                                                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                                                    <div className="flex min-w-0 items-start gap-2.5">
+                                                        <Mail
+                                                            size={16}
+                                                            className="mt-0.5 shrink-0 text-[#4C8154]"
                                                         />
+                                                        <span className="break-all text-sm text-[#536653]">
+                                                            {ngo.email ||
+                                                                "No email provided"}
+                                                        </span>
                                                     </div>
 
-                                                    <p className="mt-1 text-sm text-[#6A796B]">
-                                                        Registration No.{" "}
-                                                        <span className="font-semibold text-[#35543B]">
-                                                            {ngo.registration_number ||
-                                                                "Not provided"}
+                                                    <div className="flex min-w-0 items-start gap-2.5">
+                                                        <Phone
+                                                            size={16}
+                                                            className="mt-0.5 shrink-0 text-[#4C8154]"
+                                                        />
+                                                        <span className="break-words text-sm text-[#536653]">
+                                                            {ngo.phone ||
+                                                                "No phone provided"}
                                                         </span>
-                                                    </p>
+                                                    </div>
 
-                                                    <p className="mt-2 text-xs text-[#7B887B]">
-                                                        NGO ID: #{ngo.id}
-                                                    </p>
+                                                    <div className="flex min-w-0 items-start gap-2.5 sm:col-span-2">
+                                                        <MapPin
+                                                            size={16}
+                                                            className="mt-0.5 shrink-0 text-[#4C8154]"
+                                                        />
+                                                        <span className="break-words text-sm text-[#536653]">
+                                                            {ngo.address ||
+                                                                "No address provided"}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 border-t border-[#E8EDE4] pt-4">
+                                                    <div className="inline-flex items-center gap-2 text-xs text-[#6A796B]">
+                                                        <FileText
+                                                            size={15}
+                                                            className="text-[#4C8154]"
+                                                        />
+                                                        {ngo.document_count ??
+                                                            ngo.documents?.length ??
+                                                            0}{" "}
+                                                        documents
+                                                    </div>
+
+                                                    <div className="inline-flex items-center gap-2 text-xs text-[#6A796B]">
+                                                        <Users
+                                                            size={15}
+                                                            className="text-[#4C8154]"
+                                                        />
+                                                        {ngo.membership_count ??
+                                                            ngo.members?.length ??
+                                                            0}{" "}
+                                                        members
+                                                    </div>
+
+                                                    <div className="inline-flex items-center gap-2 text-xs text-[#6A796B]">
+                                                        <CalendarDays
+                                                            size={15}
+                                                            className="text-[#4C8154]"
+                                                        />
+                                                        Submitted{" "}
+                                                        {formatDate(
+                                                            ngo.created_at
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-5 flex flex-col gap-3 border-t border-[#E8EDE4] pt-5">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setSelectedNGOId(
+                                                                ngo.id
+                                                            )
+                                                        }
+                                                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#BBD4B5] bg-[#F0F7ED] px-4 py-3 text-sm font-semibold text-[#166534] transition hover:bg-[#E5F2E1]"
+                                                    >
+                                                        <Building2 size={16} />
+                                                        View Full Details
+                                                    </button>
+
+                                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                                        <button
+                                                            type="button"
+                                                            disabled={isUpdating}
+                                                            aria-label={
+                                                                ngo.is_active
+                                                                    ? `Deactivate ${ngo.name}`
+                                                                    : `Activate ${ngo.name}`
+                                                            }
+                                                            title={
+                                                                ngo.is_active
+                                                                    ? "Deactivate NGO"
+                                                                    : "Activate NGO"
+                                                            }
+                                                            onClick={() =>
+                                                                void handleToggleNGOStatus(
+                                                                    ngo
+                                                                )
+                                                            }
+                                                            className="flex items-center justify-center gap-2 rounded-xl border border-[#DDE7D9] bg-[#F8FAF6] px-3 py-2.5 text-sm font-semibold text-[#35543B] transition hover:bg-[#E5F2E1] disabled:cursor-wait disabled:opacity-60"
+                                                        >
+                                                            <span
+                                                                className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${ngo.is_active
+                                                                    ? "bg-[#35A45C]"
+                                                                    : "bg-[#C9D3C6]"
+                                                                    }`}
+                                                            >
+                                                                <span
+                                                                    className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-all ${ngo.is_active
+                                                                        ? "right-0.5"
+                                                                        : "left-0.5"
+                                                                        }`}
+                                                                />
+                                                            </span>
+
+                                                            {isUpdating
+                                                                ? "Updating..."
+                                                                : ngo.is_active
+                                                                    ? "Deactivate"
+                                                                    : "Activate"}
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            title="Delete action will be connected later"
+                                                            onClick={() => {
+                                                                setStatusUpdateError(
+                                                                    "NGO deletion has not been connected yet."
+                                                                );
+                                                                setStatusUpdateSuccess(
+                                                                    ""
+                                                                );
+                                                            }}
+                                                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                            Delete
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            {ngo.description && (
-                                                <p className="mt-5 line-clamp-2 text-sm leading-6 text-[#617263]">
-                                                    {ngo.description}
+                                            <div className="border-t border-[#E8EDE4] bg-[#F7F9F3] px-5 py-3 sm:px-6">
+                                                <p className="text-xs text-[#718071]">
+                                                    Registered by{" "}
+                                                    <span className="font-semibold text-[#4D634F]">
+                                                        {getDisplayName(ngo)}
+                                                    </span>
                                                 </p>
-                                            )}
-
-                                            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                                                <div className="flex min-w-0 items-start gap-2.5">
-                                                    <Mail
-                                                        size={16}
-                                                        className="mt-0.5 shrink-0 text-[#4C8154]"
-                                                    />
-                                                    <span className="break-all text-sm text-[#536653]">
-                                                        {ngo.email ||
-                                                            "No email provided"}
-                                                    </span>
-                                                </div>
-
-                                                <div className="flex min-w-0 items-start gap-2.5">
-                                                    <Phone
-                                                        size={16}
-                                                        className="mt-0.5 shrink-0 text-[#4C8154]"
-                                                    />
-                                                    <span className="break-words text-sm text-[#536653]">
-                                                        {ngo.phone ||
-                                                            "No phone provided"}
-                                                    </span>
-                                                </div>
-
-                                                <div className="flex min-w-0 items-start gap-2.5 sm:col-span-2">
-                                                    <MapPin
-                                                        size={16}
-                                                        className="mt-0.5 shrink-0 text-[#4C8154]"
-                                                    />
-                                                    <span className="break-words text-sm text-[#536653]">
-                                                        {ngo.address ||
-                                                            "No address provided"}
-                                                    </span>
-                                                </div>
                                             </div>
-
-                                            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 border-t border-[#E8EDE4] pt-4">
-                                                <div className="inline-flex items-center gap-2 text-xs text-[#6A796B]">
-                                                    <FileText
-                                                        size={15}
-                                                        className="text-[#4C8154]"
-                                                    />
-                                                    {ngo.document_count ??
-                                                        ngo.documents?.length ??
-                                                        0}{" "}
-                                                    documents
-                                                </div>
-
-                                                <div className="inline-flex items-center gap-2 text-xs text-[#6A796B]">
-                                                    <Users
-                                                        size={15}
-                                                        className="text-[#4C8154]"
-                                                    />
-                                                    {ngo.membership_count ??
-                                                        ngo.members?.length ??
-                                                        0}{" "}
-                                                    members
-                                                </div>
-
-                                                <div className="inline-flex items-center gap-2 text-xs text-[#6A796B]">
-                                                    <CalendarDays
-                                                        size={15}
-                                                        className="text-[#4C8154]"
-                                                    />
-                                                    Submitted{" "}
-                                                    {formatDate(ngo.created_at)}
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-5 flex flex-col gap-3 border-t border-[#E8EDE4] pt-5">
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setSelectedNGOId(ngo.id)
-                                                    }
-                                                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#BBD4B5] bg-[#F0F7ED] px-4 py-3 text-sm font-semibold text-[#166534] transition hover:bg-[#E5F2E1]"
-                                                >
-                                                    <Building2 size={16} />
-                                                    View Full Details
-                                                </button>
-
-                                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                                    <button
-                                                        type="button"
-                                                        title="Activation action will be connected later"
-                                                        aria-label={`Activate or deactivate ${ngo.name}`}
-                                                        className="flex items-center justify-center gap-2 rounded-xl border border-[#DDE7D9] bg-[#F8FAF6] px-3 py-2.5 text-sm font-semibold text-[#829184] transition hover:bg-[#E5F2E1]"
-                                                    >
-                                                        <span className="relative h-4 w-7 rounded-full bg-[#35A45C]">
-                                                            <span className="absolute right-0.5 top-0.5 h-3 w-3 rounded-full bg-white shadow-sm" />
-                                                        </span>
-                                                        Activate / Deactivate
-                                                    </button>
-
-                                                    <button
-                                                        type="button"
-                                                        title="Delete action will be connected later"
-                                                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                        Delete
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="border-t border-[#E8EDE4] bg-[#F7F9F3] px-5 py-3 sm:px-6">
-                                            <p className="text-xs text-[#718071]">
-                                                Registered by{" "}
-                                                <span className="font-semibold text-[#4D634F]">
-                                                    {getDisplayName(ngo)}
-                                                </span>
-                                            </p>
-                                        </div>
-                                    </article>
-                                ))}
+                                        </article>
+                                    );
+                                })}
                             </div>
                         )}
                     </section>
