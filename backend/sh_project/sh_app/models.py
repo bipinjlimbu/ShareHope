@@ -57,6 +57,7 @@ class NGO(models.Model):
     address = models.CharField(max_length=255)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     ngo_logo = models.ImageField(upload_to="ngo_logos/", blank=True, null=True)
+    is_active = models.BooleanField(default=True)
     created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name="ngos_created")
     reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="ngos_reviewed")
     created_at = models.DateTimeField(auto_now_add=True)
