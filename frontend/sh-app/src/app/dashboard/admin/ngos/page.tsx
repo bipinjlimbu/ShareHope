@@ -26,7 +26,7 @@ import {
     updateNGOStatus,
 } from "@/services/ngoService";
 import type { NGOListItem, NGOStatus } from "@/types/ngo";
-import NGOSkeleton from "@/components/skeleton/admin-dashboard/NGOSkeleton";
+import NGOSkeleton from "@/components/skeleton/admin-dashboard/NGOsSkeleton";
 import NGODetailsModal from "@/components/admin-dashboard/NGODetailsModal";
 import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
 
