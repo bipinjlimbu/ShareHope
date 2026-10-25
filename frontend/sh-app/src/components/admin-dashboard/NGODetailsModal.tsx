@@ -58,7 +58,7 @@ function getPersonName(
     return fullName || person.username || "Unknown user";
 }
 
-function getMediaUrl(path: string): string {
+function getMediaUrl(path: string | null | undefined): string {
     if (!path) return "";
 
     if (/^https?:\/\//i.test(path)) {
@@ -77,6 +77,60 @@ function getMediaUrl(path: string): string {
     } catch {
         return path;
     }
+}
+
+function NGOLogo({ ngo }: { ngo: NGOListItem }) {
+    const [imageFailed, setImageFailed] = useState(false);
+    const logoUrl = getMediaUrl(ngo.ngo_logo);
+
+    useEffect(() => {
+        setImageFailed(false);
+    }, [ngo.ngo_logo]);
+
+    return (
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#DDE8D7] bg-[#E5F2E1] text-[#166534]">
+            {logoUrl && !imageFailed ? (
+                <img
+                    src={logoUrl}
+                    alt={`${ngo.name} logo`}
+                    className="h-full w-full object-cover"
+                    onError={() => setImageFailed(true)}
+                />
+            ) : (
+                <Building2 size={24} />
+            )}
+        </div>
+    );
+}
+
+function MemberProfilePicture({
+    profilePicture,
+    name,
+}: {
+    profilePicture: string | null;
+    name: string;
+}) {
+    const [imageFailed, setImageFailed] = useState(false);
+    const imageUrl = getMediaUrl(profilePicture);
+
+    useEffect(() => {
+        setImageFailed(false);
+    }, [profilePicture]);
+
+    return (
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#DDE8D7] bg-[#E5F2E1] text-[#166534]">
+            {imageUrl && !imageFailed ? (
+                <img
+                    src={imageUrl}
+                    alt={`${name} profile`}
+                    className="h-full w-full object-cover"
+                    onError={() => setImageFailed(true)}
+                />
+            ) : (
+                <UserRound size={19} />
+            )}
+        </div>
+    );
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -170,6 +224,7 @@ export default function NGODetailsModal({
             return;
         }
 
+        const id = ngoId;
         let isCurrentRequest = true;
 
         async function fetchDetails() {
@@ -178,7 +233,7 @@ export default function NGODetailsModal({
             setNgo(null);
 
             try {
-                const response = await getNGOById(ngoId!);
+                const response = await getNGOById(id);
 
                 if (isCurrentRequest) {
                     setNgo(response);
@@ -245,9 +300,13 @@ export default function NGODetailsModal({
             >
                 <header className="flex items-start justify-between gap-4 border-b border-[#E1E9DC] px-5 py-5 sm:px-7">
                     <div className="flex min-w-0 items-start gap-3">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
-                            <Building2 size={24} />
-                        </div>
+                        {ngo ? (
+                            <NGOLogo ngo={ngo} />
+                        ) : (
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
+                                <Building2 size={24} />
+                            </div>
+                        )}
 
                         <div className="min-w-0">
                             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#27824B]">
@@ -262,7 +321,9 @@ export default function NGODetailsModal({
                                     : ngo?.name || "NGO Details"}
                             </h2>
                             <p className="mt-1 text-sm text-[#718071]">
-                                {ngo ? `NGO ID: #${ngo.id}` : "Full registration details"}
+                                {ngo
+                                    ? `NGO ID: #${ngo.id}`
+                                    : "Full registration details"}
                             </p>
                         </div>
                     </div>
@@ -330,6 +391,7 @@ export default function NGODetailsModal({
                                     if (ngoId !== null) {
                                         setError(null);
                                         setIsLoading(true);
+
                                         void getNGOById(ngoId)
                                             .then(setNgo)
                                             .catch((err: unknown) => {
@@ -504,39 +566,47 @@ export default function NGODetailsModal({
                                     </div>
                                 ) : (
                                     <div className="space-y-3">
-                                        {members.map((membership) => (
-                                            <div
-                                                key={membership.id}
-                                                className="flex flex-col gap-3 rounded-xl border border-[#E1E9DC] bg-white/70 p-4 sm:flex-row sm:items-center"
-                                            >
-                                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E5F2E1] text-[#166534]">
-                                                    <UserRound size={19} />
-                                                </div>
+                                        {members.map((membership) => {
+                                            const memberName = getPersonName(
+                                                membership.user
+                                            );
 
-                                                <div className="min-w-0 flex-1">
-                                                    <p className="break-words text-sm font-semibold text-[#183B2A]">
-                                                        {getPersonName(
+                                            return (
+                                                <div
+                                                    key={membership.id}
+                                                    className="flex flex-col gap-3 rounded-xl border border-[#E1E9DC] bg-white/70 p-4 sm:flex-row sm:items-center"
+                                                >
+                                                    <MemberProfilePicture
+                                                        profilePicture={
                                                             membership.user
-                                                        )}
-                                                    </p>
-                                                    <p className="mt-1 break-all text-xs text-[#718071]">
-                                                        {membership.user.email}
-                                                    </p>
-                                                    <p className="mt-1 text-xs text-[#718071]">
-                                                        @{membership.user.username}
-                                                        {" · "}
-                                                        Joined{" "}
-                                                        {formatDate(
-                                                            membership.joined_at
-                                                        )}
-                                                    </p>
-                                                </div>
+                                                                .profile_picture
+                                                        }
+                                                        name={memberName}
+                                                    />
 
-                                                <span className="self-start rounded-full border border-[#DDE8D7] bg-[#F0F7ED] px-3 py-1.5 text-xs font-semibold text-[#35543B] sm:self-center">
-                                                    {membership.status}
-                                                </span>
-                                            </div>
-                                        ))}
+                                                    <div className="min-w-0 flex-1">
+                                                        <p className="break-words text-sm font-semibold text-[#183B2A]">
+                                                            {memberName}
+                                                        </p>
+                                                        <p className="mt-1 break-all text-xs text-[#718071]">
+                                                            {membership.user.email}
+                                                        </p>
+                                                        <p className="mt-1 text-xs text-[#718071]">
+                                                            @{membership.user.username}
+                                                            {" · "}
+                                                            Joined{" "}
+                                                            {formatDate(
+                                                                membership.joined_at
+                                                            )}
+                                                        </p>
+                                                    </div>
+
+                                                    <span className="self-start rounded-full border border-[#DDE8D7] bg-[#F0F7ED] px-3 py-1.5 text-xs font-semibold text-[#35543B] sm:self-center">
+                                                        {membership.status}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </section>
@@ -572,7 +642,8 @@ export default function NGODetailsModal({
                                             {getPersonName(ngo.reviewed_by)}
                                         </p>
                                         <p className="mt-1 break-all text-xs text-[#718071]">
-                                            {ngo.reviewed_by?.email || "No reviewer recorded"}
+                                            {ngo.reviewed_by?.email ||
+                                                "No reviewer recorded"}
                                         </p>
                                         <p className="mt-1 text-xs text-[#718071]">
                                             Role: {ngo.reviewed_by?.role || "Not available"}
