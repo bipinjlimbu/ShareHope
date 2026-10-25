@@ -139,7 +139,7 @@ def ngo_view(request):
         serializer = NGOSerializer(ngos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-@api_view(['GET', 'DELETE'])
+@api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def ngo_detail_view(request, pk):
     try:
@@ -150,3 +150,25 @@ def ngo_detail_view(request, pk):
     if request.method == 'GET':
         serializer = NGOSerializer(ngo)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    if request.method == 'PATCH':
+        if request.user.role != User.Role.ADMIN:
+            return Response({'error': 'Only admin users can update NGO details.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        is_active = request.data.get('is_active') == True
+        ngo.is_active = is_active
+        ngo.save()
+        
+        if is_active:
+            subject = 'NGO Approved'
+            message = f'Dear {ngo.created_by.first_name},\n\nYour NGO "{ngo.name}" has been approved and is now active. You can now manage your NGO and its activities.\n\nThank you for your contribution to our community.\n\nBest regards,\nShareHope Team'
+            send_email(subject, message, [ngo.created_by.email])
+            
+            return Response({'message': 'NGO activated successfully.'}, status=status.HTTP_200_OK)
+                   
+        else:
+            subject = 'NGO Deactivated'
+            message = f'Dear {ngo.created_by.first_name},\n\nYour NGO "{ngo.name}" has been deactivated. Please contact the admin for more information.\n\nBest regards,\nShareHope Team'
+            send_email(subject, message, [ngo.created_by.email])
+            
+            return Response({'message': 'NGO deactivated successfully.'}, status=status.HTTP_200_OK)
