@@ -185,3 +185,24 @@ def ngo_detail_view(request, pk):
         send_email(subject, message, [email])
         
         return Response({'message': 'NGO deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
+    
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def approve_ngo_view(request, pk):
+    if request.method == 'PATCH':
+        if request.user.role != User.Role.ADMIN:
+            return Response({'error': 'Only admin users can approve NGO registrations.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        try:
+            ngo = NGO.objects.get(id=pk)
+        except NGO.DoesNotExist:
+            return Response({'error': 'NGO not found.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        ngo.status = NGO.Status.APPROVED
+        ngo.save()
+        
+        subject = 'NGO Approved'
+        message = f'Dear {ngo.created_by.first_name},\n\nYour NGO "{ngo.name}" has been approved and is now active. You can now manage your NGO and its activities.\n\nThank you for your contribution to our community.\n\nBest regards,\nShareHope Team'
+        send_email(subject, message, [ngo.created_by.email])
+        
+        return Response({'message': 'NGO approved successfully.'}, status=status.HTTP_200_OK)
