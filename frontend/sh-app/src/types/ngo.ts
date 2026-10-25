@@ -99,6 +99,14 @@ export interface NGOListItem {
 
 export type NGOListResponse = NGOListItem[];
 
+export interface UpdateNGOStatusPayload {
+    is_active: boolean;
+}
+
+export interface UpdateNGOStatusResponse {
+    message: string;
+}
+
 export interface NGOPendingProps {
     onBackToProfile: () => void;
 }
