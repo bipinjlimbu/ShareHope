@@ -12,7 +12,6 @@ import {
     Mail,
     MapPin,
     Phone,
-    Power,
     RefreshCw,
     Search,
     ShieldCheck,
@@ -25,6 +24,8 @@ import type { NGOListItem, NGOStatus } from "@/types/ngo";
 import NGOSkeleton from "@/components/skeleton/admin-dashboard/NGOSkeleton";
 import NGODetailsModal from "@/components/admin-dashboard/NGODetailsModal";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+
 type StatusFilter = "ALL" | NGOStatus;
 
 const statusStyles: Record<string, string> = {
@@ -32,6 +33,16 @@ const statusStyles: Record<string, string> = {
     APPROVED: "border-green-200 bg-green-50 text-green-800",
     REJECTED: "border-red-200 bg-red-50 text-red-800",
 };
+
+function getNGOLogoUrl(path: string | null): string | null {
+    if (!path) return null;
+
+    if (/^https?:\/\//i.test(path)) return path;
+
+    const baseUrl = API_URL.replace(/\/+$/, "").replace(/\/api$/i, "");
+
+    return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
+}
 
 function formatDate(value: string): string {
     const date = new Date(value);
@@ -119,6 +130,30 @@ function SummaryCard({
                     <Icon size={21} />
                 </div>
             </div>
+        </div>
+    );
+}
+
+function NGOLogo({ ngo }: { ngo: NGOListItem }) {
+    const [imageFailed, setImageFailed] = useState(false);
+    const logoUrl = getNGOLogoUrl(ngo.ngo_logo);
+
+    useEffect(() => {
+        setImageFailed(false);
+    }, [ngo.ngo_logo]);
+
+    return (
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#DDE8D7] bg-[#E5F2E1] text-[#166534]">
+            {logoUrl && !imageFailed ? (
+                <img
+                    src={logoUrl}
+                    alt={`${ngo.name} logo`}
+                    className="h-full w-full object-cover"
+                    onError={() => setImageFailed(true)}
+                />
+            ) : (
+                <Building2 size={26} />
+            )}
         </div>
     );
 }
@@ -378,9 +413,7 @@ export default function AdminNGOsPage() {
                                     >
                                         <div className="p-5 sm:p-6">
                                             <div className="flex items-start gap-4">
-                                                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#DDE8D7] bg-[#E5F2E1] text-[#166534]">
-                                                    <Building2 size={26} />
-                                                </div>
+                                                <NGOLogo ngo={ngo} />
 
                                                 <div className="min-w-0 flex-1">
                                                     <div className="flex flex-wrap items-center gap-2">
@@ -507,6 +540,7 @@ export default function AdminNGOsPage() {
 
                                                     <button
                                                         type="button"
+                                                        title="Delete action will be connected later"
                                                         className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50"
                                                     >
                                                         <Trash2 size={16} />
