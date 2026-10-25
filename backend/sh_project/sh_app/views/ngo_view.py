@@ -141,9 +141,9 @@ def ngo_view(request):
     
 @api_view(['GET', 'DELETE'])
 @permission_classes([IsAuthenticated])
-def ngo_detail_view(request, ngo_id):
+def ngo_detail_view(request, pk):
     try:
-        ngo = NGO.objects.get(id=ngo_id)
+        ngo = NGO.objects.get(id=pk)
     except NGO.DoesNotExist:
         return Response({'error': 'NGO not found.'}, status=status.HTTP_404_NOT_FOUND)
 
