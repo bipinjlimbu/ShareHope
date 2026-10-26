@@ -122,7 +122,7 @@ def register_ngo_view(request):
     
 @api_view(['GET', 'DELETE'])
 @permission_classes([IsAuthenticated])
-def get_ngo_by_user_view(request):
+def ngo_by_user_view(request):
     try:
         ngo = NGO.objects.get(created_by=request.user)
     except NGO.DoesNotExist:

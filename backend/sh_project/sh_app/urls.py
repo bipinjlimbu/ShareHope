@@ -2,7 +2,7 @@ from django.urls import path
 from .views.auth_view import register_view, login_view, refresh_token_view, logout_view, csrf_token_view, verify_otp_view, resend_reset_otp_view
 from .views.profile_view import profile_view, verify_email_view, resend_otp_view
 from .views.user_view import user_view, user_detail_view
-from .views.ngo_view import register_ngo_view, get_ngo_by_user_view, ngo_view, ngo_detail_view, approve_ngo_view
+from .views.ngo_view import register_ngo_view, ngo_by_user_view, ngo_view, ngo_detail_view, approve_ngo_view
 
 urlpatterns = [
     path('register/', register_view, name='register'),
@@ -19,7 +19,7 @@ urlpatterns = [
     path('users/', user_view, name='users_list'),
     path('users/<int:pk>/', user_detail_view, name='user_detail'),
     path('ngo/', ngo_view, name='ngo_list'),
-    path('ngo/user/', get_ngo_by_user_view, name='get_ngo_by_user'),
+    path('ngo/user/', ngo_by_user_view, name='ngo_by_user'),
     path('ngo/<int:pk>/', ngo_detail_view, name='ngo_detail'),
     path('ngo/<int:pk>/approve/', approve_ngo_view, name='approve_ngo'),
 ]
