@@ -57,13 +57,13 @@ export async function getNGOById(
 }
 
 export async function getNGOByUser(): Promise<NGOUserResponse> {
-    return (await authFetch("/ngo/user", {
+    return (await authFetch("/ngo/user/", {
         method: "GET",
     })) as NGOUserResponse;
 }
 
 export async function deleteNGOByUser(): Promise<DeleteNGOResponse> {
-    return (await authFetch("/ngo/user", {
+    return (await authFetch("/ngo/user/", {
         method: "DELETE",
     })) as DeleteNGOResponse;
 }
