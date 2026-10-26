@@ -190,7 +190,7 @@ export default function NGORegistrationPage() {
                 showToast(response.message, "success");
             }
 
-            router.push("/dashboard/ngo/pending");
+            router.push("/profile");
         } catch (error: unknown) {
             const backendErrors: NGORegistrationErrors =
                 error && typeof error === "object"
