@@ -62,6 +62,12 @@ export async function getNGOByUser(): Promise<NGOUserResponse> {
     })) as NGOUserResponse;
 }
 
+export async function deleteNGOByUser(): Promise<DeleteNGOResponse> {
+    return (await authFetch("/ngo/user", {
+        method: "DELETE",
+    })) as DeleteNGOResponse;
+}
+
 export async function updateNGOStatus(
     ngoId: number,
     payload: UpdateNGOStatusPayload
