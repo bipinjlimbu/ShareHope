@@ -600,14 +600,14 @@ export default function AdminNGOsPage() {
 
                                                         <span
                                                             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${ngo.is_active
-                                                                    ? "bg-emerald-50 text-emerald-700"
-                                                                    : "bg-amber-50 text-amber-700"
+                                                                ? "bg-emerald-50 text-emerald-700"
+                                                                : "bg-amber-50 text-amber-700"
                                                                 }`}
                                                         >
                                                             <span
                                                                 className={`h-1.5 w-1.5 rounded-full ${ngo.is_active
-                                                                        ? "bg-emerald-500"
-                                                                        : "bg-amber-500"
+                                                                    ? "bg-emerald-500"
+                                                                    : "bg-amber-500"
                                                                     }`}
                                                             />
                                                             {ngo.is_active
@@ -733,14 +733,14 @@ export default function AdminNGOsPage() {
                                                         >
                                                             <span
                                                                 className={`relative h-4 w-7 shrink-0 rounded-full ${ngo.is_active
-                                                                        ? "bg-[#35A45C]"
-                                                                        : "bg-[#C9D3C6]"
+                                                                    ? "bg-[#35A45C]"
+                                                                    : "bg-[#C9D3C6]"
                                                                     }`}
                                                             >
                                                                 <span
                                                                     className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm ${ngo.is_active
-                                                                            ? "right-0.5"
-                                                                            : "left-0.5"
+                                                                        ? "right-0.5"
+                                                                        : "left-0.5"
                                                                         }`}
                                                                 />
                                                             </span>
