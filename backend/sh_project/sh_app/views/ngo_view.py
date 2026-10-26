@@ -120,16 +120,27 @@ def register_ngo_view(request):
         
         return Response({'message': 'NGO registered successfully.'}, status=status.HTTP_201_CREATED)
     
-@api_view(['GET'])
+@api_view(['GET', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def get_ngo_by_user_view(request):
+    try:
+        ngo = NGO.objects.get(created_by=request.user)
+    except NGO.DoesNotExist:
+        return Response({'error': 'NGO not found for the user.'}, status=status.HTTP_404_NOT_FOUND)
+    
     if request.method == 'GET':
-        try:
-            ngo = NGO.objects.get(created_by=request.user)
-            serializer = NGOSerializer(ngo)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except NGO.DoesNotExist:
-            return Response({'error': 'NGO not found for the user.'}, status=status.HTTP_404_NOT_FOUND)
+        serializer = NGOSerializer(ngo)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    if request.method == 'DELETE':
+        email = ngo.created_by.email
+        ngo.delete()
+        
+        subject = 'NGO Deleted'
+        message = f'Dear {ngo.created_by.first_name},\n\nYour Rejected NGO "{ngo.name}" Application has been deleted. Please contact the admin for more information.\n\nBest regards,\nShareHope Team'
+        send_email(subject, message, [email])
+        
+        return Response({'message': 'NGO deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
     
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
