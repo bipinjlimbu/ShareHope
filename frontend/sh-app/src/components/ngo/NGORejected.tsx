@@ -1,12 +1,37 @@
 "use client";
 
-import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { NGORejectedProps } from "@/types/ngo";
+import { deleteNGOByUser } from "@/services/ngoService";
 
 export default function NGORejected({
     rejectionReason,
     onBackToProfile,
 }: NGORejectedProps) {
+    const router = useRouter();
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [error, setError] = useState("");
+
+    const handleRegisterAgain = async () => {
+        if (isDeleting) return;
+
+        setIsDeleting(true);
+        setError("");
+
+        try {
+            await deleteNGOByUser();
+            router.push("/register/ngo");
+        } catch (err: unknown) {
+            setError(
+                err instanceof Error
+                    ? err.message
+                    : "Unable to delete the rejected NGO registration. Please try again."
+            );
+            setIsDeleting(false);
+        }
+    };
+
     return (
         <main className="flex min-h-[70vh] items-center justify-center bg-[#FFFCF6] px-5 py-12 sm:px-8">
             <section className="w-full max-w-xl rounded-3xl border border-[#E6EDE4] bg-white p-6 text-center shadow-sm sm:p-10">
@@ -59,18 +84,32 @@ export default function NGORejected({
                     </div>
                 )}
 
-                <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-                    <Link
-                        href="/register/ngo"
-                        className="inline-flex items-center justify-center rounded-xl bg-[#166534] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#14532D]"
+                {error && (
+                    <p
+                        role="alert"
+                        className="mt-5 rounded-xl border border-red-200 bg-red-50 p-3 text-left text-sm text-red-700"
                     >
-                        Try Registering NGO Again
-                    </Link>
+                        {error}
+                    </p>
+                )}
+
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+                    <button
+                        type="button"
+                        onClick={handleRegisterAgain}
+                        disabled={isDeleting}
+                        className="inline-flex items-center justify-center rounded-xl bg-[#166534] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#14532D] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        {isDeleting
+                            ? "Deleting registration..."
+                            : "Try Registering NGO Again"}
+                    </button>
 
                     <button
                         type="button"
                         onClick={onBackToProfile}
-                        className="inline-flex items-center justify-center rounded-xl border border-[#DDE7DC] px-5 py-3.5 text-sm font-semibold text-[#31523C] transition hover:bg-[#EDF5EC]"
+                        disabled={isDeleting}
+                        className="inline-flex items-center justify-center rounded-xl border border-[#DDE7DC] px-5 py-3.5 text-sm font-semibold text-[#31523C] transition hover:bg-[#EDF5EC] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         Back to Profile
                     </button>
