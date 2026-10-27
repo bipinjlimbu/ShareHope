@@ -23,7 +23,7 @@ import {
 import type { RoleFilter, StatusFilter, User } from "@/types/user";
 import UsersSkeleton from "@/components/skeleton/admin-dashboard/UsersSkeleton";
 import UserDetailsModal from "@/components/admin-dashboard/UserDetailsModal";
-import DeleteConfirmationModal from "@/components/common/ConfirmationModal";
+import ConfirmationModal from "@/components/common/ConfirmationModal";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const MINIMUM_LOADING_TIME = 650;
@@ -756,7 +756,7 @@ export default function AdminUsersPage() {
                 />
             )}
 
-            <DeleteConfirmationModal
+            <ConfirmationModal
                 isOpen={userToDelete !== null}
                 title="Delete user account?"
                 description="This will permanently delete the selected user account. This action cannot be undone."
@@ -767,6 +767,10 @@ export default function AdminUsersPage() {
                 }
                 confirmText="Delete account"
                 isDeleting={isDeletingUser}
+                buttonColor="bg-[#166534]"
+                buttonHoverColor="hover:bg-[#14532D]"
+                iconBackgroundColor="bg-[#E5F2E1]"
+                iconColor="text-[#166534]"
                 onConfirm={() => void handleDeleteUser()}
                 onCancel={() => {
                     if (!isDeletingUser) {
