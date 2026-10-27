@@ -9,6 +9,7 @@ import type {
     UpdateNGOStatusPayload,
     UpdateNGOStatusResponse,
     DeleteNGOResponse,
+    RejectNGOResponse,
 } from "@/types/ngo";
 
 export async function registerNGO(
@@ -76,6 +77,14 @@ export async function updateNGOStatus(
         method: "PATCH",
         body: JSON.stringify(payload),
     })) as UpdateNGOStatusResponse;
+}
+
+export async function rejectNGO(
+    ngoId: number
+): Promise<RejectNGOResponse> {
+    return (await authFetch(`/ngo/${ngoId}/reject/`, {
+        method: "PATCH",
+    })) as RejectNGOResponse;
 }
 
 export async function deleteNGO(
