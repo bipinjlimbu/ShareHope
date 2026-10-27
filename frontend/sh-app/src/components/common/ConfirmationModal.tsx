@@ -1,29 +1,42 @@
 "use client";
 
 import { useEffect } from "react";
-import { AlertTriangle, LoaderCircle, Trash2, X } from "lucide-react";
+import {
+    AlertTriangle,
+    LoaderCircle,
+    Trash2,
+    X,
+} from "lucide-react";
 
-interface DeleteConfirmationModalProps {
+interface ConfirmationModalProps {
     isOpen: boolean;
     title?: string;
     description?: string;
     itemName?: string;
     confirmText?: string;
     isDeleting?: boolean;
+    buttonColor?: string;
+    buttonHoverColor?: string;
+    iconBackgroundColor?: string;
+    iconColor?: string;
     onConfirm: () => void;
     onCancel: () => void;
 }
 
-export default function DeleteConfirmationModal({
+export default function ConfirmationModal({
     isOpen,
-    title = "Delete this item?",
-    description = "This action cannot be undone. The selected item will be permanently deleted.",
+    title = "Are you sure?",
+    description = "Please confirm that you want to continue.",
     itemName,
-    confirmText = "Delete",
+    confirmText = "Confirm",
     isDeleting = false,
+    buttonColor = "bg-red-600",
+    buttonHoverColor = "hover:bg-red-700",
+    iconBackgroundColor = "bg-red-50",
+    iconColor = "text-red-600",
     onConfirm,
     onCancel,
-}: DeleteConfirmationModalProps) {
+}: ConfirmationModalProps) {
     useEffect(() => {
         if (!isOpen) return;
 
@@ -57,12 +70,14 @@ export default function DeleteConfirmationModal({
             <section
                 role="alertdialog"
                 aria-modal="true"
-                aria-labelledby="delete-confirmation-title"
-                aria-describedby="delete-confirmation-description"
+                aria-labelledby="confirmation-modal-title"
+                aria-describedby="confirmation-modal-description"
                 className="w-full max-w-md rounded-2xl border border-[#E5EDE3] bg-white p-6 shadow-2xl"
             >
                 <div className="flex items-start justify-between gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
+                    <div
+                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${iconBackgroundColor} ${iconColor}`}
+                    >
                         <AlertTriangle size={24} />
                     </div>
 
@@ -78,14 +93,14 @@ export default function DeleteConfirmationModal({
                 </div>
 
                 <h2
-                    id="delete-confirmation-title"
+                    id="confirmation-modal-title"
                     className="mt-5 text-xl font-bold text-[#183B2A]"
                 >
                     {title}
                 </h2>
 
                 <p
-                    id="delete-confirmation-description"
+                    id="confirmation-modal-description"
                     className="mt-2 text-sm leading-6 text-[#647568]"
                 >
                     {description}
@@ -113,7 +128,7 @@ export default function DeleteConfirmationModal({
                         type="button"
                         onClick={onConfirm}
                         disabled={isDeleting}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        className={`inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${buttonColor} ${buttonHoverColor}`}
                     >
                         {isDeleting ? (
                             <>
@@ -121,7 +136,7 @@ export default function DeleteConfirmationModal({
                                     size={16}
                                     className="animate-spin"
                                 />
-                                Deleting...
+                                Processing...
                             </>
                         ) : (
                             <>

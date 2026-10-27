@@ -17,7 +17,7 @@ import NGOPending from "@/components/ngo/NGOPending";
 import NGORejected from "@/components/ngo/NGORejected";
 import { useToast } from "@/components/toast/ToastProvider";
 import { getAuthStatus, setAuthStatus } from "@/lib/authStatus";
-import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
+import DeleteConfirmationModal from "@/components/common/ConfirmationModal";
 
 type NGOReviewPage =
     | {

@@ -23,7 +23,7 @@ import {
 import type { RoleFilter, StatusFilter, User } from "@/types/user";
 import UsersSkeleton from "@/components/skeleton/admin-dashboard/UsersSkeleton";
 import UserDetailsModal from "@/components/admin-dashboard/UserDetailsModal";
-import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
+import DeleteConfirmationModal from "@/components/common/ConfirmationModal";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const MINIMUM_LOADING_TIME = 650;

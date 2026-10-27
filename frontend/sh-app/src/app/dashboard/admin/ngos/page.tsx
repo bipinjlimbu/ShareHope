@@ -26,7 +26,7 @@ import {
 import type { NGOListItem, NGOStatus } from "@/types/ngo";
 import NGOSkeleton from "@/components/skeleton/admin-dashboard/NGOsSkeleton";
 import NGODetailsModal from "@/components/admin-dashboard/NGODetailsModal";
-import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
+import DeleteConfirmationModal from "@/components/common/ConfirmationModal";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const MINIMUM_LOADING_TIME = 500;
