@@ -11,22 +11,19 @@ import {
     Mail,
     MapPin,
     Phone,
-    RefreshCw,
     Search,
     ShieldCheck,
     Users,
     X,
 } from "lucide-react";
-import { authFetch } from "@/lib/api";
 import { getNGOs, rejectNGO } from "@/services/ngoService";
 import type { NGOListItem } from "@/types/ngo";
 import PendingNGOsSkeleton from "@/components/skeleton/admin-dashboard/PendingNGOsSkeleton";
 import NGODetailsModal from "@/components/admin-dashboard/NGODetailsModal";
+import ConfirmationModal from "@/components/common/ConfirmationModal";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const MINIMUM_LOADING_TIME = 500;
-
-type ReviewStatus = "APPROVED" | "REJECTED";
 
 function getNGOLogoUrl(path: string | null): string | null {
     if (!path) return null;
@@ -93,126 +90,6 @@ function NGOLogo({ ngo }: { ngo: NGOListItem }) {
     );
 }
 
-function ReviewConfirmationModal({
-    ngo,
-    decision,
-    isSubmitting,
-    error,
-    onConfirm,
-    onCancel,
-}: {
-    ngo: NGOListItem | null;
-    decision: ReviewStatus | null;
-    isSubmitting: boolean;
-    error: string;
-    onConfirm: () => void;
-    onCancel: () => void;
-}) {
-    if (!ngo || !decision) return null;
-
-    const isApproval = decision === "APPROVED";
-
-    return (
-        <div
-            className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-[#10271A]/50 p-4 backdrop-blur-sm"
-            role="presentation"
-            onMouseDown={(event) => {
-                if (event.target === event.currentTarget && !isSubmitting) {
-                    onCancel();
-                }
-            }}
-        >
-            <section
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="review-confirmation-title"
-                className="w-full max-w-md rounded-3xl border border-[#E1E9DC] bg-[#FFFCF6] p-6 shadow-2xl sm:p-7"
-            >
-                <div
-                    className={`flex h-12 w-12 items-center justify-center rounded-2xl ${isApproval
-                        ? "bg-green-50 text-green-700"
-                        : "bg-red-50 text-red-700"
-                        }`}
-                >
-                    {isApproval ? (
-                        <CheckCircle2 size={25} />
-                    ) : (
-                        <AlertCircle size={25} />
-                    )}
-                </div>
-
-                <h2
-                    id="review-confirmation-title"
-                    className="mt-5 text-xl font-bold text-[#183B2A]"
-                >
-                    {isApproval
-                        ? "Approve NGO application?"
-                        : "Reject NGO application?"}
-                </h2>
-
-                <p className="mt-3 text-sm leading-6 text-[#6A796B]">
-                    {isApproval
-                        ? "This will mark the application as approved. Confirm that the organization's submitted details have been reviewed."
-                        : "This will mark the application as rejected. Make sure the submitted application has been reviewed before continuing."}
-                </p>
-
-                <div className="mt-4 rounded-xl border border-[#E1E9DC] bg-white p-4">
-                    <p className="break-words font-semibold text-[#183B2A]">
-                        {ngo.name}
-                    </p>
-                    <p className="mt-1 text-sm text-[#6A796B]">
-                        Registration No.{" "}
-                        {ngo.registration_number || "Not provided"}
-                    </p>
-                    <p className="mt-1 text-xs text-[#7B887B]">
-                        NGO ID: #{ngo.id}
-                    </p>
-                </div>
-
-                {error && (
-                    <div
-                        role="alert"
-                        className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800"
-                    >
-                        <AlertCircle size={17} className="mt-0.5 shrink-0" />
-                        <span className="break-words">{error}</span>
-                    </div>
-                )}
-
-                <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <button
-                        type="button"
-                        onClick={onCancel}
-                        disabled={isSubmitting}
-                        className="inline-flex items-center justify-center rounded-xl border border-[#DDE7D9] bg-white px-4 py-3 text-sm font-semibold text-[#35543B] transition hover:bg-[#F0F7ED] disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                        Cancel
-                    </button>
-
-                    <button
-                        type="button"
-                        onClick={onConfirm}
-                        disabled={isSubmitting}
-                        className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white transition disabled:cursor-wait disabled:opacity-60 ${isApproval
-                            ? "bg-[#166534] hover:bg-[#14532D]"
-                            : "bg-red-700 hover:bg-red-800"
-                            }`}
-                    >
-                        {isSubmitting && (
-                            <RefreshCw size={15} className="animate-spin" />
-                        )}
-                        {isSubmitting
-                            ? "Submitting..."
-                            : isApproval
-                                ? "Confirm Approval"
-                                : "Confirm Rejection"}
-                    </button>
-                </div>
-            </section>
-        </div>
-    );
-}
-
 function SummaryCard({
     title,
     value,
@@ -258,11 +135,7 @@ export default function PendingNGOsPage() {
 
     const [selectedReviewNGO, setSelectedReviewNGO] =
         useState<NGOListItem | null>(null);
-    const [reviewDecision, setReviewDecision] = useState<ReviewStatus | null>(
-        null
-    );
     const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-    const [reviewError, setReviewError] = useState("");
     const [actionError, setActionError] = useState("");
     const [actionSuccess, setActionSuccess] = useState("");
 
@@ -333,13 +206,8 @@ export default function PendingNGOsPage() {
         });
     }, [ngos, searchQuery]);
 
-    const openReviewConfirmation = (
-        ngo: NGOListItem,
-        decision: ReviewStatus
-    ) => {
+    const openRejectConfirmation = (ngo: NGOListItem) => {
         setSelectedReviewNGO(ngo);
-        setReviewDecision(decision);
-        setReviewError("");
         setActionError("");
         setActionSuccess("");
     };
@@ -348,58 +216,33 @@ export default function PendingNGOsPage() {
         if (isSubmittingReview) return;
 
         setSelectedReviewNGO(null);
-        setReviewDecision(null);
-        setReviewError("");
     };
 
-    const handleReviewDecision = async () => {
-        if (!selectedReviewNGO || !reviewDecision || isSubmittingReview) {
-            return;
-        }
+    const handleRejectNGO = async () => {
+        if (!selectedReviewNGO || isSubmittingReview) return;
 
-        const ngoToReview = selectedReviewNGO;
-        const decision = reviewDecision;
+        const ngoToReject = selectedReviewNGO;
 
         setIsSubmittingReview(true);
-        setReviewError("");
         setActionError("");
         setActionSuccess("");
 
         try {
-            if (decision === "APPROVED") {
-                await authFetch(`/ngo/${ngoToReview.id}/`, {
-                    method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        status: decision,
-                    }),
-                });
-            } else {
-                await rejectNGO(ngoToReview.id);
-            }
+            await rejectNGO(ngoToReject.id);
 
             setNgos((currentNGOs) =>
-                currentNGOs.filter((ngo) => ngo.id !== ngoToReview.id)
+                currentNGOs.filter((ngo) => ngo.id !== ngoToReject.id)
             );
 
             setSelectedReviewNGO(null);
-            setReviewDecision(null);
-
-            setActionSuccess(
-                decision === "APPROVED"
-                    ? `${ngoToReview.name} has been approved successfully.`
-                    : `${ngoToReview.name} has been rejected.`
-            );
+            setActionSuccess(`${ngoToReject.name} has been rejected.`);
         } catch (error: unknown) {
-            console.error("Failed to review NGO application:", error);
+            console.error("Failed to reject NGO application:", error);
 
-            setReviewError(
+            setActionError(
                 getErrorMessage(
                     error,
-                    `Unable to ${decision === "APPROVED" ? "approve" : "reject"
-                    } this NGO application. Please try again.`
+                    "Unable to reject this NGO application. Please try again."
                 )
             );
         } finally {
@@ -770,13 +613,9 @@ export default function PendingNGOsPage() {
                                                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                                     <button
                                                         type="button"
-                                                        onClick={() =>
-                                                            openReviewConfirmation(
-                                                                ngo,
-                                                                "APPROVED"
-                                                            )
-                                                        }
-                                                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D8E8D4] bg-[#F5F9F2] px-4 py-3 text-sm font-semibold text-[#166534] transition hover:bg-[#E5F2E1]"
+                                                        disabled
+                                                        title="Approval service has not been provided yet."
+                                                        className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-[#D8E8D4] bg-[#F5F9F2] px-4 py-3 text-sm font-semibold text-[#166534] opacity-50"
                                                     >
                                                         <CheckCircle2 size={16} />
                                                         Approve
@@ -785,9 +624,8 @@ export default function PendingNGOsPage() {
                                                     <button
                                                         type="button"
                                                         onClick={() =>
-                                                            openReviewConfirmation(
-                                                                ngo,
-                                                                "REJECTED"
+                                                            openRejectConfirmation(
+                                                                ngo
                                                             )
                                                         }
                                                         className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50/50 px-4 py-3 text-sm font-semibold text-red-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
@@ -817,12 +655,24 @@ export default function PendingNGOsPage() {
                 onClose={() => setSelectedNGOId(null)}
             />
 
-            <ReviewConfirmationModal
-                ngo={selectedReviewNGO}
-                decision={reviewDecision}
-                isSubmitting={isSubmittingReview}
-                error={reviewError}
-                onConfirm={() => void handleReviewDecision()}
+            <ConfirmationModal
+                isOpen={selectedReviewNGO !== null}
+                title="Reject NGO application?"
+                description="This will mark the application as rejected. Make sure the submitted application has been reviewed before continuing."
+                itemName={
+                    selectedReviewNGO
+                        ? `${selectedReviewNGO.name} · Registration No. ${selectedReviewNGO.registration_number ||
+                        "Not provided"
+                        } · NGO ID: #${selectedReviewNGO.id}`
+                        : undefined
+                }
+                confirmText="Confirm Rejection"
+                isDeleting={isSubmittingReview}
+                buttonColor="bg-red-700"
+                buttonHoverColor="hover:bg-red-800"
+                iconBackgroundColor="bg-red-50"
+                iconColor="text-red-700"
+                onConfirm={() => void handleRejectNGO()}
                 onCancel={closeReviewConfirmation}
             />
         </>
