@@ -1,11 +1,8 @@
-
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import {
     AlertCircle,
-    ArrowLeft,
     Building2,
     CalendarDays,
     CheckCircle2,
@@ -21,7 +18,7 @@ import {
     X,
 } from "lucide-react";
 import { authFetch } from "@/lib/api";
-import { getNGOs } from "@/services/ngoService";
+import { getNGOs, rejectNGO } from "@/services/ngoService";
 import type { NGOListItem } from "@/types/ngo";
 import PendingNGOsSkeleton from "@/components/skeleton/admin-dashboard/PendingNGOsSkeleton";
 import NGODetailsModal from "@/components/admin-dashboard/NGODetailsModal";
@@ -369,15 +366,19 @@ export default function PendingNGOsPage() {
         setActionSuccess("");
 
         try {
-            await authFetch(`/ngo/${ngoToReview.id}/`, {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    status: decision,
-                }),
-            });
+            if (decision === "APPROVED") {
+                await authFetch(`/ngo/${ngoToReview.id}/`, {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        status: decision,
+                    }),
+                });
+            } else {
+                await rejectNGO(ngoToReview.id);
+            }
 
             setNgos((currentNGOs) =>
                 currentNGOs.filter((ngo) => ngo.id !== ngoToReview.id)
@@ -416,7 +417,6 @@ export default function PendingNGOsPage() {
         <>
             <main className="min-h-screen w-full bg-[#FFFCF6] px-1.5 py-3 sm:px-2.5 sm:py-4 lg:px-3 xl:px-4 2xl:px-5">
                 <div className="mx-auto w-full max-w-[1600px]">
-
                     <header className="mb-8 flex flex-col justify-between gap-5 rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:p-7 lg:p-8">
                         <div>
                             <h1 className="text-3xl font-bold tracking-tight text-[#183B2A] sm:text-4xl">
@@ -424,8 +424,9 @@ export default function PendingNGOsPage() {
                             </h1>
 
                             <p className="mt-2 max-w-2xl text-sm leading-6 text-[#647568] sm:text-base">
-                                Review submitted organization applications and decide whether
-                                each NGO should be approved or rejected.
+                                Review submitted organization applications and
+                                decide whether each NGO should be approved or
+                                rejected.
                             </p>
                         </div>
 
@@ -444,7 +445,6 @@ export default function PendingNGOsPage() {
                             </div>
                         </div>
                     </header>
-
 
                     {loadError && (
                         <section
@@ -483,7 +483,10 @@ export default function PendingNGOsPage() {
                             role="alert"
                             className="mb-6 flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
                         >
-                            <AlertCircle size={19} className="mt-0.5 shrink-0" />
+                            <AlertCircle
+                                size={19}
+                                className="mt-0.5 shrink-0"
+                            />
                             <span className="break-words">{actionError}</span>
                             <button
                                 type="button"
@@ -501,7 +504,10 @@ export default function PendingNGOsPage() {
                             role="status"
                             className="mb-6 flex items-start gap-2 rounded-2xl border border-[#D8E8D4] bg-[#E5F2E1] p-4 text-sm text-[#166534]"
                         >
-                            <CheckCircle2 size={19} className="mt-0.5 shrink-0" />
+                            <CheckCircle2
+                                size={19}
+                                className="mt-0.5 shrink-0"
+                            />
                             <span className="break-words">{actionSuccess}</span>
                             <button
                                 type="button"
@@ -733,7 +739,9 @@ export default function PendingNGOsPage() {
                                                     />
                                                     <span>
                                                         Submitted{" "}
-                                                        {formatDate(ngo.created_at)}
+                                                        {formatDate(
+                                                            ngo.created_at
+                                                        )}
                                                     </span>
                                                 </p>
                                             </div>
