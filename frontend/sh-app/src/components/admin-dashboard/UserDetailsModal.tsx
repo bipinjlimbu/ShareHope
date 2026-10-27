@@ -7,13 +7,13 @@ import {
     CheckCircle2,
     Clock3,
     Mail,
-    Phone,
     ShieldCheck,
     UserRound,
     X,
 } from "lucide-react";
 import { getUserById } from "@/services/userService";
 import type { User } from "@/types/user";
+import UserDetailsModalSkeleton from "@/components/skeleton/admin-dashboard/UserDetailsModalSkeleton";
 
 interface UserDetailsModalProps {
     userId: number;
@@ -106,11 +106,7 @@ function StatusBadge({
                 : "bg-amber-50 text-amber-700"
                 }`}
         >
-            {active ? (
-                <CheckCircle2 size={14} />
-            ) : (
-                <Clock3 size={14} />
-            )}
+            {active ? <CheckCircle2 size={14} /> : <Clock3 size={14} />}
             {active ? activeLabel : inactiveLabel}
         </span>
     );
@@ -148,11 +144,13 @@ export default function UserDetailsModal({
         }
 
         document.addEventListener("keydown", handleKeyDown);
+
+        const previousOverflow = document.body.style.overflow;
         document.body.style.overflow = "hidden";
 
         return () => {
             document.removeEventListener("keydown", handleKeyDown);
-            document.body.style.overflow = "";
+            document.body.style.overflow = previousOverflow;
         };
     }, [onClose]);
 
@@ -176,6 +174,7 @@ export default function UserDetailsModal({
                         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#35A45C]">
                             User management
                         </p>
+
                         <h2
                             id="user-details-title"
                             className="mt-1 text-xl font-bold text-[#183B2A]"
@@ -196,32 +195,7 @@ export default function UserDetailsModal({
 
                 <div className="overflow-y-auto p-5 sm:p-7">
                     {loading ? (
-                        <div
-                            role="status"
-                            className="space-y-5"
-                        >
-                            <div className="flex items-center gap-4">
-                                <div className="h-20 w-20 animate-pulse rounded-2xl bg-[#E5EDE3]" />
-                                <div className="flex-1 space-y-3">
-                                    <div className="h-5 w-2/3 animate-pulse rounded-lg bg-[#E5EDE3]" />
-                                    <div className="h-4 w-1/2 animate-pulse rounded-lg bg-[#E5EDE3]" />
-                                    <div className="h-4 w-1/3 animate-pulse rounded-lg bg-[#E5EDE3]" />
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                {Array.from({ length: 8 }, (_, index) => (
-                                    <div
-                                        key={index}
-                                        className="h-[76px] animate-pulse rounded-xl bg-[#E5EDE3]"
-                                    />
-                                ))}
-                            </div>
-
-                            <p className="text-center text-sm text-[#647568]">
-                                Loading user information...
-                            </p>
-                        </div>
+                        <UserDetailsModalSkeleton />
                     ) : error ? (
                         <div
                             role="alert"
@@ -307,7 +281,10 @@ export default function UserDetailsModal({
 
                             <div>
                                 <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-[#183B2A]">
-                                    <UserRound size={17} className="text-[#35A45C]" />
+                                    <UserRound
+                                        size={17}
+                                        className="text-[#35A45C]"
+                                    />
                                     Personal information
                                 </h3>
 
@@ -346,7 +323,10 @@ export default function UserDetailsModal({
 
                             <div>
                                 <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-[#183B2A]">
-                                    <ShieldCheck size={17} className="text-[#35A45C]" />
+                                    <ShieldCheck
+                                        size={17}
+                                        className="text-[#35A45C]"
+                                    />
                                     Account information
                                 </h3>
 
@@ -358,22 +338,36 @@ export default function UserDetailsModal({
 
                                     <DetailRow
                                         label="Email verification"
-                                        value={user.is_verified ? "Verified" : "Not verified"}
+                                        value={
+                                            user.is_verified
+                                                ? "Verified"
+                                                : "Not verified"
+                                        }
                                     />
 
                                     <DetailRow
                                         label="Account status"
-                                        value={user.is_active ? "Active" : "Inactive"}
+                                        value={
+                                            user.is_active ? "Active" : "Inactive"
+                                        }
                                     />
 
                                     <DetailRow
                                         label="Staff permissions"
-                                        value={user.is_staff ? "Staff account" : "Standard account"}
+                                        value={
+                                            user.is_staff
+                                                ? "Staff account"
+                                                : "Standard account"
+                                        }
                                     />
 
                                     <DetailRow
                                         label="Superuser access"
-                                        value={user.is_superuser ? "Enabled" : "Disabled"}
+                                        value={
+                                            user.is_superuser
+                                                ? "Enabled"
+                                                : "Disabled"
+                                        }
                                     />
 
                                     <DetailRow
@@ -385,7 +379,10 @@ export default function UserDetailsModal({
 
                             <div>
                                 <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-[#183B2A]">
-                                    <CalendarDays size={17} className="text-[#35A45C]" />
+                                    <CalendarDays
+                                        size={17}
+                                        className="text-[#35A45C]"
+                                    />
                                     Account activity
                                 </h3>
 
@@ -397,7 +394,11 @@ export default function UserDetailsModal({
 
                                     <DetailRow
                                         label="Profile picture"
-                                        value={user.profile_picture ? "Uploaded" : "Not uploaded"}
+                                        value={
+                                            user.profile_picture
+                                                ? "Uploaded"
+                                                : "Not uploaded"
+                                        }
                                     />
                                 </div>
                             </div>
@@ -407,12 +408,17 @@ export default function UserDetailsModal({
                                     size={18}
                                     className="mt-0.5 shrink-0 text-[#166534]"
                                 />
+
                                 <div>
                                     <p className="text-sm font-semibold text-[#183B2A]">
                                         User account information
                                     </p>
+
                                     <p className="mt-1 text-xs leading-5 text-[#647568]">
-                                        These details are retrieved from the user detail API. Passwords, tokens, OTPs, and password-reset secrets are intentionally not displayed.
+                                        These details are retrieved from the user
+                                        detail API. Passwords, tokens, OTPs, and
+                                        password-reset secrets are intentionally
+                                        not displayed.
                                     </p>
                                 </div>
                             </div>
