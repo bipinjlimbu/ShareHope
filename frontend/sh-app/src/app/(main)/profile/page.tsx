@@ -17,7 +17,7 @@ import NGOPending from "@/components/ngo/NGOPending";
 import NGORejected from "@/components/ngo/NGORejected";
 import { useToast } from "@/components/toast/ToastProvider";
 import { getAuthStatus, setAuthStatus } from "@/lib/authStatus";
-import DeleteConfirmationModal from "@/components/common/ConfirmationModal";
+import ConfirmationModal from "@/components/common/ConfirmationModal";
 
 type NGOReviewPage =
     | {
@@ -709,13 +709,17 @@ export default function ProfilePage() {
                 />
             )}
 
-            <DeleteConfirmationModal
+            <ConfirmationModal
                 isOpen={isDeleteOpen}
                 title="Delete your account?"
                 description="This will permanently delete your ShareHope account and remove your access. This action cannot be undone."
                 itemName={username}
                 confirmText="Delete account"
                 isDeleting={isDeleting}
+                buttonColor="bg-[#166534]"
+                buttonHoverColor="hover:bg-[#14532D]"
+                iconBackgroundColor="bg-[#E5F2E1]"
+                iconColor="text-[#166534]"
                 onConfirm={() => void handleDeleteProfile()}
                 onCancel={() => {
                     if (!isDeleting) {
