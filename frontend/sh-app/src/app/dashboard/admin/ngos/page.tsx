@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -26,7 +25,7 @@ import {
 import type { NGOListItem, NGOStatus } from "@/types/ngo";
 import NGOSkeleton from "@/components/skeleton/admin-dashboard/NGOsSkeleton";
 import NGODetailsModal from "@/components/admin-dashboard/NGODetailsModal";
-import DeleteConfirmationModal from "@/components/common/ConfirmationModal";
+import ConfirmationModal from "@/components/common/ConfirmationModal";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const MINIMUM_LOADING_TIME = 500;
@@ -183,10 +182,7 @@ export default function AdminNGOsPage() {
                 Array.isArray(response)
                     ? response.filter((ngo) => {
                         const status = ngo.status?.toUpperCase();
-                        return (
-                            status === "APPROVED" ||
-                            status === "REJECTED"
-                        );
+                        return status === "APPROVED" || status === "REJECTED";
                     })
                     : []
             );
@@ -200,10 +196,7 @@ export default function AdminNGOsPage() {
             );
         } finally {
             const elapsed = Date.now() - startedAt;
-            const remaining = Math.max(
-                0,
-                MINIMUM_LOADING_TIME - elapsed
-            );
+            const remaining = Math.max(0, MINIMUM_LOADING_TIME - elapsed);
 
             if (remaining > 0) {
                 await new Promise<void>((resolve) => {
@@ -344,7 +337,6 @@ export default function AdminNGOsPage() {
 
     const activeCount = ngos.filter((ngo) => ngo.is_active).length;
 
-    // Keep this return after every hook to preserve React's hook order.
     if (isLoading) {
         return <NGOSkeleton />;
     }
@@ -521,7 +513,8 @@ export default function AdminNGOsPage() {
                                     </h2>
 
                                     <p className="mt-1 text-sm text-[#647568]">
-                                        Showing {filteredNGOs.length} of {ngos.length} organizations
+                                        Showing {filteredNGOs.length} of{" "}
+                                        {ngos.length} organizations
                                     </p>
                                 </div>
                             </div>
@@ -788,13 +781,17 @@ export default function AdminNGOsPage() {
                 onClose={() => setSelectedNGOId(null)}
             />
 
-            <DeleteConfirmationModal
+            <ConfirmationModal
                 isOpen={selectedDeleteNGO !== null}
                 title="Delete NGO?"
                 description="This action cannot be undone. The NGO and its associated records may be permanently deleted."
                 itemName={selectedDeleteNGO?.name}
                 confirmText="Delete NGO"
                 isDeleting={isDeletingNGO}
+                buttonColor="bg-[#166534]"
+                buttonHoverColor="hover:bg-[#14532D]"
+                iconBackgroundColor="bg-[#E5F2E1]"
+                iconColor="text-[#166534]"
                 onConfirm={() => void handleDeleteNGO()}
                 onCancel={() => {
                     if (!isDeletingNGO) {
