@@ -26,19 +26,16 @@ export const dashboardNavigation: Record<
         { label: "My Donations", href: "/dashboard/donor/donations", icon: "heart" },
         { label: "Donation History", href: "/dashboard/donor/history", icon: "history" },
         { label: "Receipts", href: "/dashboard/donor/receipts", icon: "receipt" },
-        { label: "Notifications", href: "/dashboard/donor/notifications", icon: "bell" },
     ],
 
     NGO_ADMIN: [
         { label: "Overview", href: "/dashboard/ngo", icon: "layout-dashboard" },
         { label: "My Campaigns", href: "/dashboard/ngo/campaigns", icon: "hand-heart" },
-        { label: "Create Campaign", href: "/dashboard/ngo/campaigns/create", icon: "plus-circle" },
         { label: "Received Donations", href: "/dashboard/ngo/donations", icon: "wallet" },
         { label: "Donation Verifications", href: "/dashboard/ngo/verifications", icon: "shield-check" },
         { label: "Staff Management", href: "/dashboard/ngo/staff", icon: "users" },
         { label: "Donation History", href: "/dashboard/ngo/history", icon: "history" },
         { label: "Reports & Analytics", href: "/dashboard/ngo/reports", icon: "chart-no-axes-combined" },
-        { label: "Notifications", href: "/dashboard/ngo/notifications", icon: "bell" },
     ],
 
     NGO_STAFF: [
@@ -46,6 +43,5 @@ export const dashboardNavigation: Record<
         { label: "Assigned Tasks", href: "/dashboard/ngo/tasks", icon: "clipboard-list" },
         { label: "Donation Verifications", href: "/dashboard/ngo/verifications", icon: "shield-check" },
         { label: "Donation History", href: "/dashboard/ngo/history", icon: "history" },
-        { label: "Notifications", href: "/dashboard/ngo/notifications", icon: "bell" },
     ],
 };
