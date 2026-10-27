@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { getNGOById } from "@/services/ngoService";
 import type { NGOListItem } from "@/types/ngo";
+import NGODetailsModalSkeleton from "@/components/skeleton/admin-dashboard/NGODetailsModalSkeleton";
 
 interface NGODetailsModalProps {
     isOpen: boolean;
@@ -169,9 +170,12 @@ function DetailField({
     return (
         <div className="min-w-0 rounded-xl border border-[#E8EDE4] bg-white/70 p-4">
             <p className="flex items-center gap-2 text-xs font-medium text-[#718071]">
-                {Icon && <Icon size={14} className="shrink-0 text-[#4C8154]" />}
+                {Icon && (
+                    <Icon size={14} className="shrink-0 text-[#4C8154]" />
+                )}
                 {label}
             </p>
+
             <p className="mt-2 break-words text-sm font-semibold leading-6 text-[#183B2A]">
                 {value === null || value === undefined || value === ""
                     ? "Not provided"
@@ -195,8 +199,10 @@ function SectionHeading({
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E5F2E1] text-[#166534]">
                 <Icon size={19} />
             </div>
+
             <div>
                 <h3 className="font-bold text-[#183B2A]">{title}</h3>
+
                 {description && (
                     <p className="mt-1 text-sm leading-5 text-[#718071]">
                         {description}
@@ -215,6 +221,7 @@ export default function NGODetailsModal({
     const [ngo, setNgo] = useState<NGOListItem | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [retryKey, setRetryKey] = useState(0);
 
     useEffect(() => {
         if (!isOpen || ngoId === null) {
@@ -260,7 +267,7 @@ export default function NGODetailsModal({
         return () => {
             isCurrentRequest = false;
         };
-    }, [isOpen, ngoId]);
+    }, [isOpen, ngoId, retryKey]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -312,6 +319,7 @@ export default function NGODetailsModal({
                             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#27824B]">
                                 Organization record
                             </p>
+
                             <h2
                                 id="ngo-details-title"
                                 className="mt-1 break-words text-xl font-bold text-[#183B2A] sm:text-2xl"
@@ -320,6 +328,7 @@ export default function NGODetailsModal({
                                     ? "Loading NGO details..."
                                     : ngo?.name || "NGO Details"}
                             </h2>
+
                             <p className="mt-1 text-sm text-[#718071]">
                                 {ngo
                                     ? `NGO ID: #${ngo.id}`
@@ -340,31 +349,7 @@ export default function NGODetailsModal({
 
                 <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-7">
                     {isLoading ? (
-                        <div className="space-y-5" aria-label="Loading details">
-                            <div className="flex items-center gap-3 rounded-xl bg-[#F0F7ED] p-4">
-                                <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#C5D9BD] border-t-[#166534]" />
-                                <p className="text-sm font-medium text-[#35543B]">
-                                    Fetching the full NGO record...
-                                </p>
-                            </div>
-
-                            {[1, 2, 3].map((section) => (
-                                <div
-                                    key={section}
-                                    className="rounded-2xl border border-[#E1E9DC] p-4"
-                                >
-                                    <div className="mb-5 h-5 w-40 animate-pulse rounded bg-[#E7EDE2]" />
-                                    <div className="grid gap-3 sm:grid-cols-2">
-                                        {[1, 2, 3, 4].map((item) => (
-                                            <div
-                                                key={item}
-                                                className="h-20 animate-pulse rounded-xl bg-[#EEF2E9]"
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                        <NGODetailsModalSkeleton />
                     ) : error ? (
                         <div
                             role="alert"
@@ -375,10 +360,12 @@ export default function NGODetailsModal({
                                     size={22}
                                     className="mt-0.5 shrink-0 text-red-600"
                                 />
+
                                 <div>
                                     <h3 className="font-bold text-red-800">
                                         Unable to load NGO details
                                     </h3>
+
                                     <p className="mt-2 break-words text-sm leading-6 text-red-700">
                                         {error}
                                     </p>
@@ -388,21 +375,7 @@ export default function NGODetailsModal({
                             <button
                                 type="button"
                                 onClick={() => {
-                                    if (ngoId !== null) {
-                                        setError(null);
-                                        setIsLoading(true);
-
-                                        void getNGOById(ngoId)
-                                            .then(setNgo)
-                                            .catch((err: unknown) => {
-                                                setError(
-                                                    err instanceof Error
-                                                        ? err.message
-                                                        : "Unable to load this NGO's details."
-                                                );
-                                            })
-                                            .finally(() => setIsLoading(false));
-                                    }
+                                    setRetryKey((current) => current + 1);
                                 }}
                                 className="mt-4 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-800 transition hover:bg-red-100"
                             >
@@ -417,6 +390,7 @@ export default function NGODetailsModal({
                                         <p className="text-xs font-semibold uppercase tracking-wider text-[#718071]">
                                             Current status
                                         </p>
+
                                         <div className="mt-2">
                                             <StatusBadge status={ngo.status} />
                                         </div>
@@ -444,21 +418,25 @@ export default function NGODetailsModal({
                                         value={ngo.name}
                                         icon={Building2}
                                     />
+
                                     <DetailField
                                         label="Registration number"
                                         value={ngo.registration_number}
                                         icon={ShieldCheck}
                                     />
+
                                     <DetailField
                                         label="Email address"
                                         value={ngo.email}
                                         icon={Mail}
                                     />
+
                                     <DetailField
                                         label="Phone number"
                                         value={ngo.phone}
                                         icon={Phone}
                                     />
+
                                     <div className="sm:col-span-2">
                                         <DetailField
                                             label="Registered address"
@@ -466,6 +444,7 @@ export default function NGODetailsModal({
                                             icon={MapPin}
                                         />
                                     </div>
+
                                     <div className="sm:col-span-2">
                                         <DetailField
                                             label="Description"
@@ -488,6 +467,7 @@ export default function NGODetailsModal({
                                             size={24}
                                             className="mx-auto text-[#7B887B]"
                                         />
+
                                         <p className="mt-2 text-sm text-[#718071]">
                                             No documents have been uploaded.
                                         </p>
@@ -516,12 +496,14 @@ export default function NGODetailsModal({
                                                                     " "
                                                                 )}
                                                             </p>
+
                                                             <p className="mt-1 break-all text-xs text-[#718071]">
                                                                 {document.document_file
                                                                     .split("/")
                                                                     .pop() ||
                                                                     "Uploaded document"}
                                                             </p>
+
                                                             <p className="mt-1 text-xs text-[#718071]">
                                                                 Uploaded{" "}
                                                                 {formatDate(
@@ -560,6 +542,7 @@ export default function NGODetailsModal({
                                             size={24}
                                             className="mx-auto text-[#7B887B]"
                                         />
+
                                         <p className="mt-2 text-sm text-[#718071]">
                                             No members are associated with this NGO.
                                         </p>
@@ -588,9 +571,11 @@ export default function NGODetailsModal({
                                                         <p className="break-words text-sm font-semibold text-[#183B2A]">
                                                             {memberName}
                                                         </p>
+
                                                         <p className="mt-1 break-all text-xs text-[#718071]">
                                                             {membership.user.email}
                                                         </p>
+
                                                         <p className="mt-1 text-xs text-[#718071]">
                                                             @{membership.user.username}
                                                             {" · "}
@@ -623,12 +608,15 @@ export default function NGODetailsModal({
                                         <p className="text-xs font-medium text-[#718071]">
                                             Registered by
                                         </p>
+
                                         <p className="mt-2 break-words text-sm font-semibold text-[#183B2A]">
                                             {getPersonName(ngo.created_by)}
                                         </p>
+
                                         <p className="mt-1 break-all text-xs text-[#718071]">
                                             {ngo.created_by?.email || "No email"}
                                         </p>
+
                                         <p className="mt-1 text-xs text-[#718071]">
                                             Role: {ngo.created_by?.role || "Unknown"}
                                         </p>
@@ -638,13 +626,16 @@ export default function NGODetailsModal({
                                         <p className="text-xs font-medium text-[#718071]">
                                             Reviewed by
                                         </p>
+
                                         <p className="mt-2 break-words text-sm font-semibold text-[#183B2A]">
                                             {getPersonName(ngo.reviewed_by)}
                                         </p>
+
                                         <p className="mt-1 break-all text-xs text-[#718071]">
                                             {ngo.reviewed_by?.email ||
                                                 "No reviewer recorded"}
                                         </p>
+
                                         <p className="mt-1 text-xs text-[#718071]">
                                             Role: {ngo.reviewed_by?.role || "Not available"}
                                         </p>
@@ -658,6 +649,7 @@ export default function NGODetailsModal({
                                     value={formatDate(ngo.created_at)}
                                     icon={CalendarDays}
                                 />
+
                                 <DetailField
                                     label="NGO record ID"
                                     value={`#${ngo.id}`}
