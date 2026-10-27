@@ -4,9 +4,9 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { resetPassword } from "@/services/authService";
-import { useToast } from "@/components/ToastProvider";
+import { useToast } from "@/components/toast/ToastProvider";
 import type { ResetPasswordPayload } from "@/types/auth";
-import ResetPasswordSkeleton from "@/components/skeleton/ResetPasswordSkeleton";
+import ResetPasswordSkeleton from "@/components/skeleton/auth/ResetPasswordSkeleton";
 import { getAuthStatus } from "@/lib/authStatus";
 
 function getErrorMessage(error: unknown): string {

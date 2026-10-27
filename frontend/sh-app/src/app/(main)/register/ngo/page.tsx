@@ -16,8 +16,8 @@ import {
 import FooterLogo from "@/images/FooterLogo.png";
 import { registerNGO } from "@/services/ngoService";
 import { getProfile } from "@/services/profileService";
-import NGORegistrationSkeleton from "@/components/skeleton/NGORegistrationSkeleton";
-import { useToast } from "@/components/ToastProvider";
+import NGORegistrationSkeleton from "@/components/skeleton/auth/NGORegistrationSkeleton";
+import { useToast } from "@/components/toast/ToastProvider";
 import type {
     NGORegistrationErrors,
     NGORegistrationPayload,

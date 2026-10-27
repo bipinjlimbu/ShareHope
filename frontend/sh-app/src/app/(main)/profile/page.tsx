@@ -11,11 +11,11 @@ import {
     requestEmailVerification,
 } from "@/services/profileService";
 import { getNGOByUser } from "@/services/ngoService";
-import ProfileSkeleton from "@/components/skeleton/ProfileSkeleton";
+import ProfileSkeleton from "@/components/skeleton/main/ProfileSkeleton";
 import ProfileForm from "@/components/form/ProfileForm";
 import NGOPending from "@/components/ngo/NGOPending";
 import NGORejected from "@/components/ngo/NGORejected";
-import { useToast } from "@/components/ToastProvider";
+import { useToast } from "@/components/toast/ToastProvider";
 import { getAuthStatus, setAuthStatus } from "@/lib/authStatus";
 import DeleteConfirmationModal from "@/components/common/DeleteConfirmationModal";
 

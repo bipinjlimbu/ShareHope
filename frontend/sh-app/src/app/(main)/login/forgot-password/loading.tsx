@@ -1,4 +1,4 @@
-import ForgotPasswordSkeleton from "@/components/skeleton/ForgotPasswordSkeleton";
+import ForgotPasswordSkeleton from "@/components/skeleton/auth/ForgotPasswordSkeleton";
 
 export default function ForgotPasswordLoading() {
     return <ForgotPasswordSkeleton />;

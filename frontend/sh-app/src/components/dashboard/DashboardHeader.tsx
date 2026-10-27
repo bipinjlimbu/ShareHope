@@ -9,7 +9,7 @@ import {
     UserRound,
 } from "lucide-react";
 import { logoutUser } from "@/services/authService";
-import { useToast } from "@/components/ToastProvider";
+import { useToast } from "@/components/toast/ToastProvider";
 import type {
     DashboardHeaderProps,
     DashboardRole,

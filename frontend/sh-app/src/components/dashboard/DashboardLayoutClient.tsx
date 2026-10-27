@@ -5,8 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import DashboardSidebarSkeleton from "@/components/skeleton/DashboardSidebarSkeleton";
-import DashboardHeaderSkeleton from "@/components/skeleton/DashboardHeaderSkeleton";
+import DashboardSidebarSkeleton from "@/components/skeleton/dashboard/DashboardSidebarSkeleton";
+import DashboardHeaderSkeleton from "@/components/skeleton/dashboard/DashboardHeaderSkeleton";
 import { getProfile } from "@/services/profileService";
 import type { AuthUser, UserRole } from "@/types/auth";
 

@@ -1,4 +1,4 @@
-import VerifyOtpSkeleton from "@/components/skeleton/VerifyOtpSkeleton";
+import VerifyOtpSkeleton from "@/components/skeleton/auth/VerifyOtpSkeleton";
 
 export default function VerifyOtpLoading() {
     return <VerifyOtpSkeleton />;

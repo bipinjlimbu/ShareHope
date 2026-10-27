@@ -9,7 +9,7 @@ import {
     useState,
     type ReactNode,
 } from "react";
-import Toast from "@/components/Toast";
+import Toast from "@/components/toast/Toast";
 import type { ToastContextValue, ToastItem, ToastType } from "@/types/toast";
 
 const ToastContext = createContext<ToastContextValue | undefined>(

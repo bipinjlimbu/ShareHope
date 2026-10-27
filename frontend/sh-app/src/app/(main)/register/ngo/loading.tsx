@@ -1,4 +1,4 @@
-import NGORegistrationSkeleton from "@/components/skeleton/NGORegistrationSkeleton";
+import NGORegistrationSkeleton from "@/components/skeleton/auth/NGORegistrationSkeleton";
 
 export default function RegisterNGOLoading() {
     return <NGORegistrationSkeleton />;

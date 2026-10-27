@@ -5,8 +5,8 @@ import Image from "next/image";
 import type { AuthUser } from "@/types/auth";
 import { getProfile } from "@/services/profileService";
 import { getAuthStatus } from "@/lib/authStatus";
-import LogoutButton from "@/components/LogoutButton";
-import NavbarSkeleton from "@/components/skeleton/NavbarSkeleton";
+import LogoutButton from "@/components/main/LogoutButton";
+import NavbarSkeleton from "@/components/skeleton/main/NavbarSkeleton";
 import NavLogo from "@/images/NavLogo.png";
 
 const links = [

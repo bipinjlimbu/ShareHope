@@ -1,9 +1,9 @@
 "use client";
 
 import type { ReactNode } from "react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import { ToastProvider } from "@/components/ToastProvider";
+import Navbar from "@/components/main/Navbar";
+import Footer from "@/components/main/Footer";
+import { ToastProvider } from "@/components/toast/ToastProvider";
 
 export default function MainLayout({
     children,

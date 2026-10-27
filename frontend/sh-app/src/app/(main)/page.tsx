@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { ProfileUser } from "@/types/profile";
 import { getProfile } from "@/services/profileService";
-import { useToast } from "@/components/ToastProvider";
+import { useToast } from "@/components/toast/ToastProvider";
 import { getAuthStatus } from "@/lib/authStatus";
 
 const campaigns = [

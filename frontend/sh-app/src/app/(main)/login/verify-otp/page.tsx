@@ -16,8 +16,8 @@ import {
     verifyPasswordResetOtp,
     resendPasswordResetOtp,
 } from "@/services/authService";
-import { useToast } from "@/components/ToastProvider";
-import VerifyOtpSkeleton from "@/components/skeleton/VerifyOtpSkeleton";
+import { useToast } from "@/components/toast/ToastProvider";
+import VerifyOtpSkeleton from "@/components/skeleton/auth/VerifyOtpSkeleton";
 import FooterLogo from "@/images/FooterLogo.png";
 import Image from "next/image";
 import { getAuthStatus } from "@/lib/authStatus";

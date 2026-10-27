@@ -11,10 +11,10 @@ import {
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import VerifyEmailSkeleton from "@/components/skeleton/VerifyEmailSkeleton";
-import EmailVerificationSuccess from "@/components/EmailVerificationSuccess";
-import EmailVerificationFailed from "@/components/EmailVerificationFailed";
-import { useToast } from "@/components/ToastProvider";
+import VerifyEmailSkeleton from "@/components/skeleton/auth/VerifyEmailSkeleton";
+import EmailVerificationSuccess from "@/components/auth/EmailVerificationSuccess";
+import EmailVerificationFailed from "@/components/auth/EmailVerificationFailed";
+import { useToast } from "@/components/toast/ToastProvider";
 import {
     getProfile,
     resendOTP,
@@ -525,8 +525,8 @@ export default function VerifyEmailPage() {
                                 }
                                 onPaste={handlePaste}
                                 className={`h-12 min-w-0 flex-1 rounded-xl border bg-[#FFFCF6] text-center text-xl font-bold text-[#14532D] outline-none transition focus:border-[#35A45C] focus:ring-4 focus:ring-[#35A45C]/10 sm:h-14 sm:max-w-12 ${fieldError
-                                        ? "border-red-400"
-                                        : "border-[#DDE7DC]"
+                                    ? "border-red-400"
+                                    : "border-[#DDE7DC]"
                                     }`}
                             />
                         ))}

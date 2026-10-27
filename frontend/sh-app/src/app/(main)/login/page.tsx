@@ -6,8 +6,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { loginUser } from "@/services/authService";
 import type { LoginPayload } from "@/types/auth";
-import LoginSkeleton from "@/components/skeleton/LoginSkeleton";
-import { useToast } from "@/components/ToastProvider";
+import LoginSkeleton from "@/components/skeleton/auth/LoginSkeleton";
+import { useToast } from "@/components/toast/ToastProvider";
 import FooterLogo from "@/images/FooterLogo.png";
 import { getAuthStatus } from "@/lib/authStatus";
 
