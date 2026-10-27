@@ -107,6 +107,10 @@ export interface UpdateNGOStatusResponse {
     message: string;
 }
 
+export interface ApproveNGOResponse {
+    message: string;
+}
+
 export interface RejectNGOResponse {
     message: string;
 }
