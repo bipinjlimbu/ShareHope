@@ -767,10 +767,10 @@ export default function AdminUsersPage() {
                 }
                 confirmText="Delete account"
                 isDeleting={isDeletingUser}
-                buttonColor="bg-[#166534]"
-                buttonHoverColor="hover:bg-[#14532D]"
-                iconBackgroundColor="bg-[#E5F2E1]"
-                iconColor="text-[#166534]"
+                buttonColor="bg-red-600"
+                buttonHoverColor="hover:bg-red-700"
+                iconBackgroundColor="bg-red-100"
+                iconColor="text-red-600"
                 onConfirm={() => void handleDeleteUser()}
                 onCancel={() => {
                     if (!isDeletingUser) {
