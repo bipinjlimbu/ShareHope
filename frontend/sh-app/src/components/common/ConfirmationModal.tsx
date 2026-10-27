@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import {
     AlertTriangle,
     LoaderCircle,
@@ -37,6 +38,12 @@ export default function ConfirmationModal({
     onConfirm,
     onCancel,
 }: ConfirmationModalProps) {
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     useEffect(() => {
         if (!isOpen) return;
 
@@ -53,11 +60,13 @@ export default function ConfirmationModal({
         };
     }, [isOpen, isDeleting, onCancel]);
 
-    if (!isOpen) return null;
+    if (!mounted || !isOpen) {
+        return null;
+    }
 
-    return (
+    return createPortal(
         <div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
             onMouseDown={(event) => {
                 if (
                     event.target === event.currentTarget &&
@@ -147,6 +156,7 @@ export default function ConfirmationModal({
                     </button>
                 </div>
             </section>
-        </div>
+        </div>,
+        document.body
     );
 }
