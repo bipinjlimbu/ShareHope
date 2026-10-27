@@ -238,11 +238,12 @@ function SectionHeading({
 }) {
     return (
         <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-                <h3 className="text-base font-bold text-[#183B2A]">
+            <div className="min-w-0">
+                <h3 className="text-base font-bold tracking-tight text-[#183B2A] sm:text-lg">
                     {title}
                 </h3>
-                <p className="mt-1 text-sm text-[#6A796B]">
+
+                <p className="mt-1 text-sm leading-5 text-[#647568]">
                     {description}
                 </p>
             </div>
@@ -250,7 +251,7 @@ function SectionHeading({
             {href && (
                 <Link
                     href={href}
-                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#166534] transition hover:text-[#14532D]"
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-semibold text-[#166534] transition hover:bg-[#EDF6E9] hover:text-[#14532D]"
                 >
                     {linkLabel}
                     <ArrowRight size={16} />
@@ -397,419 +398,456 @@ export default function AdminDashboardPage() {
     );
 
     return (
-        <div className="mx-auto max-w-[1600px] space-y-7">
-            <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                <div>
-                    <div className="flex items-center gap-2 text-sm font-medium text-[#166534]">
-                        <HeartHandshake size={18} />
-                        Administration
+        <main className="min-h-screen w-full bg-[#FFFCF6] px-1.5 py-3 sm:px-2.5 sm:py-4 lg:px-3 xl:px-4 2xl:px-5">
+            <div className="mx-auto w-full max-w-[1600px] space-y-7">
+                <header className="mb-8 flex flex-col justify-between gap-5 rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:p-7 lg:p-8">
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight text-[#183B2A] sm:text-4xl">
+                            Dashboard Overview
+                        </h1>
+
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#647568] sm:text-base">
+                            Monitor users, organizations, campaigns, and donations across ShareHope.
+                        </p>
                     </div>
 
-                    <h2 className="mt-2 text-2xl font-bold tracking-tight text-[#183B2A] sm:text-3xl">
-                        Dashboard Overview
-                    </h2>
+                    <div className="flex items-center gap-3 self-start rounded-xl border border-[#D8E8D4] bg-[#F5F9F2] px-5 py-3.5 text-sm text-[#183B2A] sm:self-auto">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E5F2E1] text-[#166534]">
+                            <CalendarDays size={19} />
+                        </div>
 
-                    <p className="mt-2 text-sm text-[#6A796B] sm:text-base">
-                        Monitor users, organizations, campaigns, and donations across ShareHope.
-                    </p>
-                </div>
-
-                <div className="flex items-center gap-2 self-start rounded-xl border border-[#E1E9DC] bg-[#FFFCF6] px-4 py-3 shadow-sm sm:self-center">
-                    <CalendarDays size={18} className="text-[#27824B]" />
-                    <span className="text-sm font-medium text-[#31523C]">
-                        {currentDate || "\u00A0"}
-                    </span>
-                </div>
-            </section>
-
-            <section
-                aria-label="Platform statistics"
-                className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4"
-            >
-                {stats.map((stat) => {
-                    const Icon = stat.icon;
-
-                    return (
-                        <Link
-                            key={stat.title}
-                            href={stat.href}
-                            className="group rounded-2xl border border-[#E1E9DC] bg-[#FFFCF6] p-5 transition duration-200 hover:-translate-y-0.5 hover:border-[#BBD8B5] hover:shadow-lg hover:shadow-[#183B2A]/5 sm:p-6"
-                        >
-                            <div className="flex items-start justify-between gap-3">
-                                <div>
-                                    <p className="text-sm font-medium text-[#6A796B]">
-                                        {stat.title}
-                                    </p>
-                                    <p className="mt-3 text-3xl font-bold tracking-tight text-[#183B2A]">
-                                        {stat.value}
-                                    </p>
-                                </div>
-
-                                <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${stat.iconStyle}`}>
-                                    <Icon size={23} strokeWidth={1.8} />
-                                </div>
-                            </div>
-
-                            <div className="mt-5 flex items-center gap-2">
-                                <span className="text-xs text-[#6A796B]">
-                                    {stat.description}
-                                </span>
-                            </div>
-                        </Link>
-                    );
-                })}
-            </section>
-
-            <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-                <div className="rounded-2xl border border-[#E1E9DC] bg-[#FFFCF6] p-5 sm:p-6 xl:col-span-2">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                        <SectionHeading
-                            title="Donation Overview"
-                            description="Illustrative monthly payment totals"
-                        />
-
-                        <div className="rounded-xl bg-[#E5F2E1] px-4 py-3">
-                            <p className="text-xs font-medium text-[#166534]">
-                                Successful payments
+                        <div>
+                            <p className="text-sm font-semibold leading-6">
+                                {currentDate || "\u00A0"}
                             </p>
-                            <p className="mt-1 text-xl font-bold text-[#14532D]">
-                                {formatAmount(totalFunds)}
+                            <p className="mt-0.5 text-xs text-[#647568]">
+                                Today
                             </p>
                         </div>
                     </div>
+                </header>
 
-                    <div className="mt-8 flex h-56 items-end gap-3 sm:gap-5">
-                        {donationMonths.map((item, index) => (
-                            <div
-                                key={item.month}
-                                className="group flex h-full min-w-0 flex-1 flex-col items-center justify-end"
+                <section
+                    aria-label="Platform statistics"
+                    className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4"
+                >
+                    {stats.map((stat) => {
+                        const Icon = stat.icon;
+
+                        return (
+                            <Link
+                                key={stat.title}
+                                href={stat.href}
+                                className="group rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C9DFC4] hover:shadow-md sm:p-6"
                             >
-                                <span className="mb-2 text-[10px] font-medium text-[#6A796B] opacity-0 transition group-hover:opacity-100 sm:text-xs">
-                                    {formatAmount(item.amount)}
-                                </span>
+                                <div className="flex items-start justify-between gap-4">
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-medium text-[#647568]">
+                                            {stat.title}
+                                        </p>
 
-                                <div className="flex w-full flex-1 items-end justify-center">
+                                        <p className="mt-3 text-3xl font-bold tracking-tight text-[#183B2A] sm:text-4xl">
+                                            {stat.value}
+                                        </p>
+                                    </div>
+
                                     <div
-                                        title={`${item.month}: ${formatAmount(item.amount)}`}
-                                        className={`w-full max-w-14 rounded-t-lg transition-all duration-300 ${index === donationMonths.length - 1
-                                            ? "bg-[#27824B]"
-                                            : "bg-[#D6E7D1] group-hover:bg-[#A8CFA1]"
-                                            }`}
-                                        style={{
-                                            height: `${(item.amount / maxAmount) * 100}%`,
-                                        }}
+                                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${stat.iconStyle} transition-transform duration-200 group-hover:scale-105`}
+                                    >
+                                        <Icon size={22} strokeWidth={1.8} />
+                                    </div>
+                                </div>
+
+                                <p className="mt-4 text-xs leading-5 text-[#647568]">
+                                    {stat.description}
+                                </p>
+
+                                <div className="mt-4 flex items-center justify-between border-t border-[#EDF2E9] pt-3">
+                                    <span className="text-xs font-medium text-[#647568]">
+                                        View details
+                                    </span>
+                                    <ArrowUpRight
+                                        size={16}
+                                        className="text-[#829184] transition group-hover:text-[#166534]"
                                     />
                                 </div>
+                            </Link>
+                        );
+                    })}
+                </section>
 
-                                <span className="mt-3 text-xs font-medium text-[#6A796B]">
-                                    {item.month}
-                                </span>
-                            </div>
-                        ))}
-                    </div>
+                <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+                    <div className="rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm sm:p-6 xl:col-span-2">
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                            <SectionHeading
+                                title="Donation Overview"
+                                description="Illustrative monthly payment totals"
+                            />
 
-                    <div className="mt-6 flex items-center gap-2 border-t border-[#E6EDE4] pt-4 text-xs text-[#6A796B]">
-                        <span className="h-2.5 w-2.5 rounded-sm bg-[#27824B]" />
-                        Monthly payment totals
-                        <span className="ml-auto inline-flex items-center gap-1 font-medium text-[#166534]">
-                            <TrendingUp size={14} />
-                            Demo trend
-                        </span>
-                    </div>
-                </div>
-
-                <div className="rounded-2xl border border-[#E1E9DC] bg-[#FFFCF6] p-5 sm:p-6">
-                    <SectionHeading
-                        title="Pending Approvals"
-                        description="Records requiring attention"
-                        href="/dashboard/admin/ngos"
-                        linkLabel="Review"
-                    />
-
-                    <div className="mt-5 flex items-center justify-between rounded-xl bg-[#F4EBD8] p-4">
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FFFCF6] text-[#8A6425]">
-                                <Clock3 size={21} />
-                            </div>
-                            <div>
-                                <p className="text-sm font-semibold text-[#6F501D]">
-                                    Awaiting review
+                            <div className="rounded-xl border border-[#D8E8D4] bg-[#F5F9F2] px-4 py-3">
+                                <p className="text-xs font-medium text-[#166534]">
+                                    Successful payments
                                 </p>
-                                <p className="mt-1 text-xs text-[#8A6425]">
-                                    NGOs, campaigns, and donations
+                                <p className="mt-1 text-xl font-bold tracking-tight text-[#14532D]">
+                                    {formatAmount(totalFunds)}
                                 </p>
                             </div>
                         </div>
-                        <span className="text-2xl font-bold text-[#6F501D]">
-                            {totalPending}
-                        </span>
-                    </div>
 
-                    <div className="mt-4 space-y-1">
-                        {pendingApprovals.slice(0, 5).map((item) => {
-                            const Icon = item.icon;
-
-                            return (
-                                <Link
-                                    key={item.id}
-                                    href={item.href}
-                                    className="flex items-center gap-3 rounded-xl p-3 transition hover:bg-[#EDF6E9]"
+                        <div className="mt-8 flex h-56 items-end gap-3 sm:gap-5">
+                            {donationMonths.map((item, index) => (
+                                <div
+                                    key={item.month}
+                                    className="group flex h-full min-w-0 flex-1 flex-col items-center justify-end"
                                 >
-                                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${item.iconStyle}`}>
-                                        <Icon size={19} />
+                                    <span className="mb-2 text-[10px] font-medium text-[#6A796B] opacity-0 transition group-hover:opacity-100 sm:text-xs">
+                                        {formatAmount(item.amount)}
+                                    </span>
+
+                                    <div className="flex w-full flex-1 items-end justify-center">
+                                        <div
+                                            title={`${item.month}: ${formatAmount(item.amount)}`}
+                                            className={`w-full max-w-14 rounded-t-lg transition-all duration-300 ${index === donationMonths.length - 1
+                                                ? "bg-[#27824B]"
+                                                : "bg-[#D6E7D1] group-hover:bg-[#A8CFA1]"
+                                                }`}
+                                            style={{
+                                                height: `${(item.amount / maxAmount) * 100}%`,
+                                            }}
+                                        />
                                     </div>
 
-                                    <div className="min-w-0 flex-1">
-                                        <p className="truncate text-sm font-semibold text-[#183B2A]">
-                                            {item.title}
-                                        </p>
-                                        <p className="mt-1 truncate text-xs text-[#6A796B]">
-                                            {item.description}
-                                        </p>
-                                        <p className="mt-1 text-[11px] text-[#778477]">
-                                            {formatDate(item.created_at)}
-                                        </p>
-                                    </div>
+                                    <span className="mt-3 text-xs font-medium text-[#647568]">
+                                        {item.month}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
 
-                                    <ArrowRight size={15} className="shrink-0 text-[#778477]" />
-                                </Link>
-                            );
-                        })}
+                        <div className="mt-6 flex items-center gap-2 border-t border-[#EDF2E9] pt-4 text-xs text-[#647568]">
+                            <span className="h-2.5 w-2.5 rounded-sm bg-[#27824B]" />
+                            Monthly payment totals
 
-                        {pendingApprovals.length === 0 && (
-                            <p className="py-8 text-center text-sm text-[#6A796B]">
-                                No pending approvals.
-                            </p>
-                        )}
+                            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-[#E5F2E1] px-2.5 py-1 font-semibold text-[#166534]">
+                                <TrendingUp size={14} />
+                                Demo trend
+                            </span>
+                        </div>
                     </div>
-                </div>
-            </section>
 
-            <section className="grid grid-cols-1 gap-6 2xl:grid-cols-3">
-                <div className="overflow-hidden rounded-2xl border border-[#E1E9DC] bg-[#FFFCF6] 2xl:col-span-2">
-                    <div className="border-b border-[#E6EDE4] px-5 py-5 sm:px-6">
+                    <div className="rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm sm:p-6">
                         <SectionHeading
-                            title="Recent Donations"
-                            description="Latest donation records and their statuses"
-                            href="/dashboard/admin/donations"
+                            title="Pending Approvals"
+                            description="Records requiring attention"
+                            href="/dashboard/admin/ngos"
+                            linkLabel="Review"
                         />
+
+                        <div className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-[#E9DCC0] bg-[#FBF6EA] p-4">
+                            <div className="flex min-w-0 items-center gap-3">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#8A6425]">
+                                    <Clock3 size={21} />
+                                </div>
+
+                                <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-[#6F501D]">
+                                        Awaiting review
+                                    </p>
+                                    <p className="mt-1 text-xs leading-5 text-[#8A6425]">
+                                        NGOs, campaigns, and donations
+                                    </p>
+                                </div>
+                            </div>
+
+                            <span className="text-2xl font-bold tabular-nums text-[#6F501D]">
+                                {totalPending}
+                            </span>
+                        </div>
+
+                        <div className="mt-4 space-y-1">
+                            {pendingApprovals.slice(0, 5).map((item) => {
+                                const Icon = item.icon;
+
+                                return (
+                                    <Link
+                                        key={item.id}
+                                        href={item.href}
+                                        className="group flex items-center gap-3 rounded-xl border border-transparent p-3 transition hover:border-[#E5EDE3] hover:bg-[#F5F9F2]"
+                                    >
+                                        <div
+                                            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${item.iconStyle}`}
+                                        >
+                                            <Icon size={19} />
+                                        </div>
+
+                                        <div className="min-w-0 flex-1">
+                                            <p className="truncate text-sm font-semibold text-[#183B2A]">
+                                                {item.title}
+                                            </p>
+                                            <p className="mt-1 truncate text-xs text-[#647568]">
+                                                {item.description}
+                                            </p>
+                                            <p className="mt-1 text-[11px] text-[#829184]">
+                                                {formatDate(item.created_at)}
+                                            </p>
+                                        </div>
+
+                                        <ArrowRight
+                                            size={15}
+                                            className="shrink-0 text-[#829184] transition group-hover:translate-x-0.5 group-hover:text-[#166534]"
+                                        />
+                                    </Link>
+                                );
+                            })}
+
+                            {pendingApprovals.length === 0 && (
+                                <p className="py-8 text-center text-sm text-[#647568]">
+                                    No pending approvals.
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                </section>
+
+                <section className="grid grid-cols-1 gap-6 2xl:grid-cols-3">
+                    <div className="overflow-hidden rounded-2xl border border-[#E5EDE3] bg-white shadow-sm 2xl:col-span-2">
+                        <div className="border-b border-[#E5EDE3] px-5 py-5 sm:px-6">
+                            <SectionHeading
+                                title="Recent Donations"
+                                description="Latest donation records and their statuses"
+                                href="/dashboard/admin/donations"
+                            />
+                        </div>
+
+                        <div className="overflow-x-auto">
+                            <table className="w-full min-w-[760px] text-left">
+                                <thead className="bg-[#F1F6ED]">
+                                    <tr>
+                                        {[
+                                            "Donor",
+                                            "Campaign",
+                                            "Type",
+                                            "Amount",
+                                            "Status",
+                                            "Date",
+                                        ].map((heading) => (
+                                            <th
+                                                key={heading}
+                                                className="px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-[#647568]"
+                                            >
+                                                {heading}
+                                            </th>
+                                        ))}
+                                    </tr>
+                                </thead>
+
+                                <tbody className="divide-y divide-[#EDF2E9]">
+                                    {demoDonations.map((donation) => {
+                                        const donorName = donation.is_anonymous
+                                            ? "Anonymous Donor"
+                                            : donation.donor_name || "Guest Donor";
+
+                                        const statusStyle =
+                                            donation.status === "APPROVED"
+                                                ? "bg-[#E5F2E1] text-[#166534]"
+                                                : donation.status === "REJECTED" ||
+                                                    donation.status === "CANCELLED"
+                                                    ? "bg-red-50 text-red-700"
+                                                    : "bg-[#F4EBD8] text-[#8A6425]";
+
+                                        return (
+                                            <tr
+                                                key={donation.reference_number}
+                                                className="transition-colors hover:bg-[#F8FAF6]"
+                                            >
+                                                <td className="px-5 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E5F2E1] text-xs font-bold text-[#166534]">
+                                                            {donorName.charAt(0).toUpperCase()}
+                                                        </div>
+
+                                                        <div>
+                                                            <p className="whitespace-nowrap text-sm font-semibold text-[#183B2A]">
+                                                                {donorName}
+                                                            </p>
+                                                            <p className="mt-1 text-xs text-[#829184]">
+                                                                {shortReference(donation.reference_number)}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+
+                                                <td className="px-5 py-4">
+                                                    <p className="max-w-48 truncate text-sm text-[#536458]">
+                                                        {donation.campaign_title}
+                                                    </p>
+                                                </td>
+
+                                                <td className="px-5 py-4 text-sm text-[#536458]">
+                                                    {donation.donation_type === "FUND"
+                                                        ? "Money"
+                                                        : "Item"}
+                                                </td>
+
+                                                <td className="whitespace-nowrap px-5 py-4 text-sm font-semibold text-[#183B2A]">
+                                                    {donation.payment
+                                                        ? formatAmount(
+                                                            donation.payment.amount,
+                                                            donation.payment.currency
+                                                        )
+                                                        : "—"}
+                                                </td>
+
+                                                <td className="px-5 py-4">
+                                                    <span
+                                                        className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyle}`}
+                                                    >
+                                                        {statusLabel(donation.status)}
+                                                    </span>
+                                                </td>
+
+                                                <td className="whitespace-nowrap px-5 py-4 text-sm text-[#647568]">
+                                                    {formatDate(donation.created_at)}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="border-t border-[#E5EDE3] bg-[#FCFDFB] px-5 py-4 sm:px-6">
+                            <Link
+                                href="/dashboard/admin/donations"
+                                className="inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-semibold text-[#166534] transition hover:bg-[#E5F2E1] hover:text-[#14532D]"
+                            >
+                                Explore all donations
+                                <ArrowRight size={16} />
+                            </Link>
+                        </div>
                     </div>
 
-                    <div className="overflow-x-auto">
-                        <table className="w-full min-w-[760px] text-left">
-                            <thead className="bg-[#F1F6ED]">
-                                <tr>
-                                    {[
-                                        "Donor",
-                                        "Campaign",
-                                        "Type",
-                                        "Amount",
-                                        "Status",
-                                        "Date",
-                                    ].map((heading) => (
-                                        <th
-                                            key={heading}
-                                            className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-[#6A796B]"
-                                        >
-                                            {heading}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
+                    <div className="rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm sm:p-6">
+                        <SectionHeading
+                            title="Quick Actions"
+                            description="Navigate to key admin sections"
+                        />
 
-                            <tbody className="divide-y divide-[#E6EDE4]">
-                                {demoDonations.map((donation) => {
-                                    const donorName = donation.is_anonymous
-                                        ? "Anonymous Donor"
-                                        : donation.donor_name || "Guest Donor";
+                        <div className="mt-5 space-y-2">
+                            {[
+                                {
+                                    title: "Manage users",
+                                    description: "View platform accounts",
+                                    href: "/dashboard/admin/users",
+                                    icon: Users,
+                                },
+                                {
+                                    title: "Review NGOs",
+                                    description: "Review organization registrations",
+                                    href: "/dashboard/admin/ngos",
+                                    icon: Building2,
+                                },
+                                {
+                                    title: "Review campaigns",
+                                    description: "Review campaign submissions",
+                                    href: "/dashboard/admin/campaigns",
+                                    icon: HandHeart,
+                                },
+                                {
+                                    title: "View audit logs",
+                                    description: "Review recorded platform activity",
+                                    href: "/dashboard/admin/audit-logs",
+                                    icon: Activity,
+                                },
+                            ].map((action) => {
+                                const Icon = action.icon;
 
-                                    const statusStyle =
-                                        donation.status === "APPROVED"
-                                            ? "bg-[#E5F2E1] text-[#166534]"
-                                            : donation.status === "REJECTED" ||
-                                                donation.status === "CANCELLED"
-                                                ? "bg-red-50 text-red-700"
-                                                : "bg-[#F4EBD8] text-[#8A6425]";
+                                return (
+                                    <Link
+                                        key={action.href}
+                                        href={action.href}
+                                        className="group flex items-center gap-3 rounded-xl border border-transparent p-3 transition hover:border-[#E5EDE3] hover:bg-[#F5F9F2]"
+                                    >
+                                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#F1F6ED] text-[#536458] transition group-hover:bg-[#E5F2E1] group-hover:text-[#166534]">
+                                            <Icon size={20} />
+                                        </div>
 
-                                    return (
-                                        <tr
-                                            key={donation.reference_number}
-                                            className="transition hover:bg-[#F8FAF5]"
-                                        >
-                                            <td className="px-5 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E5F2E1] text-xs font-bold text-[#166534]">
-                                                        {donorName.charAt(0).toUpperCase()}
-                                                    </div>
-                                                    <div>
-                                                        <p className="whitespace-nowrap text-sm font-semibold text-[#183B2A]">
-                                                            {donorName}
-                                                        </p>
-                                                        <p className="mt-1 text-xs text-[#778477]">
-                                                            {shortReference(donation.reference_number)}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </td>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-semibold text-[#183B2A]">
+                                                {action.title}
+                                            </p>
+                                            <p className="mt-1 text-xs leading-5 text-[#647568]">
+                                                {action.description}
+                                            </p>
+                                        </div>
 
-                                            <td className="px-5 py-4">
-                                                <p className="max-w-48 truncate text-sm text-[#536458]">
-                                                    {donation.campaign_title}
-                                                </p>
-                                            </td>
+                                        <ArrowUpRight
+                                            size={17}
+                                            className="shrink-0 text-[#829184] transition group-hover:text-[#166534]"
+                                        />
+                                    </Link>
+                                );
+                            })}
+                        </div>
 
-                                            <td className="px-5 py-4 text-sm text-[#536458]">
-                                                {donation.donation_type === "FUND" ? "Money" : "Item"}
-                                            </td>
+                        <div className="mt-5 rounded-xl border border-[#D8E8D4] bg-[#F5F9F2] p-4">
+                            <div className="flex items-start gap-3">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E5F2E1] text-[#166534]">
+                                    <ShieldCheck size={21} />
+                                </div>
 
-                                            <td className="whitespace-nowrap px-5 py-4 text-sm font-semibold text-[#183B2A]">
-                                                {donation.payment
-                                                    ? formatAmount(
-                                                        donation.payment.amount,
-                                                        donation.payment.currency
-                                                    )
-                                                    : "—"}
-                                            </td>
-
-                                            <td className="px-5 py-4">
-                                                <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${statusStyle}`}>
-                                                    {statusLabel(donation.status)}
-                                                </span>
-                                            </td>
-
-                                            <td className="whitespace-nowrap px-5 py-4 text-sm text-[#6A796B]">
-                                                {formatDate(donation.created_at)}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                                <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-[#14532D]">
+                                        Trust and transparency
+                                    </p>
+                                    <p className="mt-1 text-xs leading-5 text-[#31523C]">
+                                        Review donation verifications and audit
+                                        records to support accountable giving.
+                                    </p>
+                                    <Link
+                                        href="/dashboard/admin/audit-logs"
+                                        className="mt-3 inline-flex items-center gap-1 rounded-md py-1 text-xs font-bold text-[#166534] transition hover:text-[#14532D]"
+                                    >
+                                        Review activity
+                                        <ArrowRight size={14} />
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
                     </div>
+                </section>
 
-                    <div className="border-t border-[#E6EDE4] px-5 py-4 sm:px-6">
+                <section className="rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm sm:p-6">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E5F2E1] text-[#166534]">
+                                <CircleDollarSign size={22} />
+                            </div>
+
+                            <div>
+                                <h3 className="text-sm font-bold text-[#183B2A]">
+                                    ShareHope platform summary
+                                </h3>
+                                <p className="mt-1 text-sm leading-5 text-[#647568]">
+                                    Every contribution helps support a meaningful cause.
+                                </p>
+                            </div>
+                        </div>
+
                         <Link
-                            href="/dashboard/admin/donations"
-                            className="inline-flex items-center gap-2 text-sm font-semibold text-[#166534] transition hover:text-[#14532D]"
+                            href="/dashboard/admin/reports"
+                            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#166534] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#14532D] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
                         >
-                            Explore all donations
+                            View reports
                             <ArrowRight size={16} />
                         </Link>
                     </div>
-                </div>
+                </section>
 
-                <div className="rounded-2xl border border-[#E1E9DC] bg-[#FFFCF6] p-5 sm:p-6">
-                    <SectionHeading
-                        title="Quick Actions"
-                        description="Navigate to key admin sections"
-                    />
-
-                    <div className="mt-5 space-y-2">
-                        {[
-                            {
-                                title: "Manage users",
-                                description: "View platform accounts",
-                                href: "/dashboard/admin/users",
-                                icon: Users,
-                            },
-                            {
-                                title: "Review NGOs",
-                                description: "Review organization registrations",
-                                href: "/dashboard/admin/ngos",
-                                icon: Building2,
-                            },
-                            {
-                                title: "Review campaigns",
-                                description: "Review campaign submissions",
-                                href: "/dashboard/admin/campaigns",
-                                icon: HandHeart,
-                            },
-                            {
-                                title: "View audit logs",
-                                description: "Review recorded platform activity",
-                                href: "/dashboard/admin/audit-logs",
-                                icon: Activity,
-                            },
-                        ].map((action) => {
-                            const Icon = action.icon;
-
-                            return (
-                                <Link
-                                    key={action.href}
-                                    href={action.href}
-                                    className="group flex items-center gap-3 rounded-xl border border-transparent p-3 transition hover:border-[#E5F2E1] hover:bg-[#EDF6E9]"
-                                >
-                                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#F1F6ED] text-[#536458] transition group-hover:bg-[#E5F2E1] group-hover:text-[#166534]">
-                                        <Icon size={20} />
-                                    </div>
-
-                                    <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-semibold text-[#183B2A]">
-                                            {action.title}
-                                        </p>
-                                        <p className="mt-1 text-xs leading-5 text-[#6A796B]">
-                                            {action.description}
-                                        </p>
-                                    </div>
-
-                                    <ArrowUpRight size={17} className="shrink-0 text-[#778477] transition group-hover:text-[#166534]" />
-                                </Link>
-                            );
-                        })}
-                    </div>
-
-                    <div className="mt-5 rounded-xl border border-[#D7E9D2] bg-[#EDF6E9] p-4">
-                        <div className="flex items-start gap-3">
-                            <ShieldCheck size={21} className="mt-0.5 shrink-0 text-[#166534]" />
-                            <div>
-                                <p className="text-sm font-semibold text-[#14532D]">
-                                    Trust and transparency
-                                </p>
-                                <p className="mt-1 text-xs leading-5 text-[#31523C]">
-                                    Review donation verifications and audit records to support accountable giving.
-                                </p>
-                                <Link
-                                    href="/dashboard/admin/audit-logs"
-                                    className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-[#166534] hover:text-[#14532D]"
-                                >
-                                    Review activity
-                                    <ArrowRight size={14} />
-                                </Link>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section className="rounded-2xl border border-[#E1E9DC] bg-[#FFFCF6] p-5 sm:p-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#E5F2E1] text-[#166534]">
-                            <CircleDollarSign size={22} />
-                        </div>
-                        <div>
-                            <h3 className="text-sm font-bold text-[#183B2A]">
-                                ShareHope platform summary
-                            </h3>
-                            <p className="mt-1 text-sm text-[#6A796B]">
-                                Every contribution helps support a meaningful cause.
-                            </p>
-                        </div>
-                    </div>
-
-                    <Link
-                        href="/dashboard/admin/reports"
-                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#166534] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14532D]"
-                    >
-                        View reports
-                        <ArrowRight size={16} />
-                    </Link>
-                </div>
-            </section>
-
-            <p className="text-center text-xs text-[#778477]">
-                ShareHope Administration · Demonstration data only
-            </p>
-        </div>
+                <p className="pb-2 text-center text-xs leading-5 text-[#829184]">
+                    ShareHope Administration · Demonstration data only
+                </p>
+            </div>
+        </main>
     );
 }
