@@ -80,7 +80,7 @@ export default function NGOsPage() {
     });
 
     if (loading) {
-        return <NGOSkeleton />;
+        return <NGOsSkeleton />;
     }
 
     return (
