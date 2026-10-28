@@ -29,19 +29,19 @@ export const dashboardNavigation: Record<
     ],
 
     NGO_ADMIN: [
-        { label: "Overview", href: "/dashboard/ngo", icon: "layout-dashboard" },
-        { label: "My Campaigns", href: "/dashboard/ngo/campaigns", icon: "hand-heart" },
-        { label: "Received Donations", href: "/dashboard/ngo/donations", icon: "wallet" },
-        { label: "Donation Verifications", href: "/dashboard/ngo/verifications", icon: "shield-check" },
-        { label: "Staff Management", href: "/dashboard/ngo/staff", icon: "users" },
-        { label: "Donation History", href: "/dashboard/ngo/history", icon: "history" },
-        { label: "Reports & Analytics", href: "/dashboard/ngo/reports", icon: "chart-no-axes-combined" },
+        { label: "Overview", href: "/dashboard/ngo-admin", icon: "layout-dashboard" },
+        { label: "My Campaigns", href: "/dashboard/ngo-admin/campaigns", icon: "hand-heart" },
+        { label: "Received Donations", href: "/dashboard/ngo-admin/donations", icon: "wallet" },
+        { label: "Donation Verifications", href: "/dashboard/ngo-admin/verifications", icon: "shield-check" },
+        { label: "Staff Management", href: "/dashboard/ngo-admin/staff", icon: "users" },
+        { label: "Donation History", href: "/dashboard/ngo-admin/history", icon: "history" },
+        { label: "Reports & Analytics", href: "/dashboard/ngo-admin/reports", icon: "chart-no-axes-combined" },
     ],
 
     NGO_STAFF: [
-        { label: "Overview", href: "/dashboard/ngo", icon: "layout-dashboard" },
-        { label: "Assigned Tasks", href: "/dashboard/ngo/tasks", icon: "clipboard-list" },
-        { label: "Donation Verifications", href: "/dashboard/ngo/verifications", icon: "shield-check" },
-        { label: "Donation History", href: "/dashboard/ngo/history", icon: "history" },
+        { label: "Overview", href: "/dashboard/ngo-staff", icon: "layout-dashboard" },
+        { label: "Assigned Tasks", href: "/dashboard/ngo-staff/tasks", icon: "clipboard-list" },
+        { label: "Donation Verifications", href: "/dashboard/ngo-staff/verifications", icon: "shield-check" },
+        { label: "Donation History", href: "/dashboard/ngo-staff/history", icon: "history" },
     ],
 };
