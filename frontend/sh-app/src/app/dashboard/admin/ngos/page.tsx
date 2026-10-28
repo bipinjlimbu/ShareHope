@@ -22,7 +22,7 @@ import {
     updateNGOStatus,
 } from "@/services/ngoService";
 import type { NGOListItem, NGOStatus } from "@/types/ngo";
-import NGOSkeleton from "@/components/skeleton/admin-dashboard/NGOsSkeleton";
+import NGOsSkeleton from "@/components/skeleton/admin-dashboard/NGOsSkeleton";
 import NGODetailsModal from "@/components/admin-dashboard/NGODetailsModal";
 import ConfirmationModal from "@/components/common/ConfirmationModal";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -338,7 +338,7 @@ export default function AdminNGOsPage() {
     const activeCount = ngos.filter((ngo) => ngo.is_active).length;
 
     if (isLoading) {
-        return <NGOSkeleton />;
+        return <NGOsSkeleton />;
     }
 
     return (
