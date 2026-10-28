@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-    AlertCircle,
     Building2,
     CalendarDays,
     CheckCircle2,
@@ -26,6 +25,7 @@ import type { NGOListItem, NGOStatus } from "@/types/ngo";
 import NGOSkeleton from "@/components/skeleton/admin-dashboard/NGOsSkeleton";
 import NGODetailsModal from "@/components/admin-dashboard/NGODetailsModal";
 import ConfirmationModal from "@/components/common/ConfirmationModal";
+import { useToast } from "@/components/toast/ToastProvider";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const MINIMUM_LOADING_TIME = 500;
@@ -154,6 +154,8 @@ function NGOLogo({ ngo }: { ngo: NGOListItem }) {
 }
 
 export default function AdminNGOsPage() {
+    const { showToast } = useToast();
+
     const [ngos, setNgos] = useState<NGOListItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -162,8 +164,6 @@ export default function AdminNGOsPage() {
     const [selectedNGOId, setSelectedNGOId] = useState<number | null>(null);
 
     const [updatingNGOIds, setUpdatingNGOIds] = useState<number[]>([]);
-    const [statusUpdateError, setStatusUpdateError] = useState("");
-    const [statusUpdateSuccess, setStatusUpdateSuccess] = useState("");
 
     const [selectedDeleteNGO, setSelectedDeleteNGO] =
         useState<NGOListItem | null>(null);
@@ -189,11 +189,13 @@ export default function AdminNGOsPage() {
         } catch (err: unknown) {
             console.error("Failed to fetch NGOs:", err);
 
-            setError(
+            const message =
                 err instanceof Error
                     ? err.message
-                    : "Unable to load NGO records. Please try again."
-            );
+                    : "Unable to load NGO records. Please try again.";
+
+            setError(message);
+            showToast(message, "error");
         } finally {
             const elapsed = Date.now() - startedAt;
             const remaining = Math.max(0, MINIMUM_LOADING_TIME - elapsed);
@@ -206,7 +208,7 @@ export default function AdminNGOsPage() {
 
             setIsLoading(false);
         }
-    }, []);
+    }, [showToast]);
 
     const handleToggleNGOStatus = useCallback(
         async (ngo: NGOListItem) => {
@@ -214,8 +216,6 @@ export default function AdminNGOsPage() {
 
             const nextIsActive = !ngo.is_active;
 
-            setStatusUpdateError("");
-            setStatusUpdateSuccess("");
             setUpdatingNGOIds((current) => [...current, ngo.id]);
 
             try {
@@ -234,19 +234,21 @@ export default function AdminNGOsPage() {
                     )
                 );
 
-                setStatusUpdateSuccess(
+                showToast(
                     response.message ||
                     (nextIsActive
                         ? `${ngo.name} activated successfully.`
-                        : `${ngo.name} deactivated successfully.`)
+                        : `${ngo.name} deactivated successfully.`),
+                    "success"
                 );
             } catch (err: unknown) {
                 console.error("Failed to update NGO status:", err);
 
-                setStatusUpdateError(
+                showToast(
                     err instanceof Error
                         ? err.message
-                        : "Unable to update the NGO status. Please try again."
+                        : "Unable to update the NGO status. Please try again.",
+                    "error"
                 );
             } finally {
                 setUpdatingNGOIds((current) =>
@@ -254,7 +256,7 @@ export default function AdminNGOsPage() {
                 );
             }
         },
-        [updatingNGOIds]
+        [updatingNGOIds, showToast]
     );
 
     const handleDeleteNGO = useCallback(async () => {
@@ -262,8 +264,6 @@ export default function AdminNGOsPage() {
 
         const ngoToDelete = selectedDeleteNGO;
 
-        setStatusUpdateError("");
-        setStatusUpdateSuccess("");
         setIsDeletingNGO(true);
 
         try {
@@ -275,24 +275,24 @@ export default function AdminNGOsPage() {
 
             setSelectedDeleteNGO(null);
 
-            setStatusUpdateSuccess(
+            showToast(
                 response?.message ||
-                `${ngoToDelete.name} deleted successfully.`
+                `${ngoToDelete.name} deleted successfully.`,
+                "success"
             );
         } catch (err: unknown) {
             console.error("Failed to delete NGO:", err);
 
-            setSelectedDeleteNGO(null);
-
-            setStatusUpdateError(
+            showToast(
                 err instanceof Error
                     ? err.message
-                    : `Unable to delete ${ngoToDelete.name}. Please try again.`
+                    : `Unable to delete ${ngoToDelete.name}. Please try again.`,
+                "error"
             );
         } finally {
             setIsDeletingNGO(false);
         }
-    }, [selectedDeleteNGO, isDeletingNGO]);
+    }, [selectedDeleteNGO, isDeletingNGO, showToast]);
 
     useEffect(() => {
         void fetchNGOs();
@@ -374,50 +374,15 @@ export default function AdminNGOsPage() {
                     </header>
 
                     {error && (
-                        <div
-                            role="alert"
-                            className="mb-6 flex flex-col gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"
-                        >
-                            <div className="flex items-start gap-2">
-                                <XCircle
-                                    size={19}
-                                    className="mt-0.5 shrink-0"
-                                />
-                                <div>
-                                    <p className="font-semibold">
-                                        Could not load NGO records
-                                    </p>
-                                    <p className="mt-1 break-words">{error}</p>
-                                </div>
-                            </div>
-
+                        <div className="mb-6 flex justify-end">
                             <button
                                 type="button"
                                 onClick={() => void fetchNGOs()}
-                                className="rounded-lg border border-red-200 px-3 py-2 font-semibold transition hover:bg-red-100"
+                                className="inline-flex items-center gap-2 rounded-xl border border-[#D8E8D4] bg-white px-4 py-2.5 text-sm font-semibold text-[#166534] shadow-sm transition hover:bg-[#F1F7ED] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/15"
                             >
-                                Try again
+                                <XCircle size={16} />
+                                Retry loading NGOs
                             </button>
-                        </div>
-                    )}
-
-                    {statusUpdateError && (
-                        <div
-                            role="alert"
-                            className="mb-6 flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
-                        >
-                            <AlertCircle size={19} className="shrink-0" />
-                            <span>{statusUpdateError}</span>
-                        </div>
-                    )}
-
-                    {statusUpdateSuccess && (
-                        <div
-                            role="status"
-                            className="mb-6 flex items-center gap-2 rounded-2xl border border-[#D8E8D4] bg-[#E5F2E1] p-4 text-sm text-[#166534]"
-                        >
-                            <CheckCircle2 size={19} className="shrink-0" />
-                            <span>{statusUpdateSuccess}</span>
                         </div>
                     )}
 
@@ -498,9 +463,15 @@ export default function AdminNGOsPage() {
                                             aria-label="Filter NGOs by status"
                                             className="h-12 rounded-xl border border-[#DDE7D9] bg-white px-4 text-sm text-[#183B2A] outline-none transition focus:border-[#35A45C] focus:ring-4 focus:ring-[#35A45C]/10"
                                         >
-                                            <option value="ALL">All statuses</option>
-                                            <option value="APPROVED">Approved</option>
-                                            <option value="REJECTED">Rejected</option>
+                                            <option value="ALL">
+                                                All statuses
+                                            </option>
+                                            <option value="APPROVED">
+                                                Approved
+                                            </option>
+                                            <option value="REJECTED">
+                                                Rejected
+                                            </option>
                                         </select>
                                     </div>
                                 </div>
@@ -747,11 +718,9 @@ export default function AdminNGOsPage() {
 
                                                         <button
                                                             type="button"
-                                                            onClick={() => {
-                                                                setStatusUpdateError("");
-                                                                setStatusUpdateSuccess("");
-                                                                setSelectedDeleteNGO(ngo);
-                                                            }}
+                                                            onClick={() =>
+                                                                setSelectedDeleteNGO(ngo)
+                                                            }
                                                             title={`Delete ${ngo.name}`}
                                                             className="flex items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50/50 px-3 py-2.5 text-sm font-semibold text-red-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
                                                         >
