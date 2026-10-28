@@ -10,6 +10,7 @@ import DashboardHeaderSkeleton from "@/components/skeleton/dashboard/DashboardHe
 import { getProfile } from "@/services/profileService";
 import { getNGOByUser } from "@/services/ngoService";
 import type { AuthUser, UserRole } from "@/types/auth";
+import type { NGOStatus } from "@/types/ngo";
 
 interface DashboardLayoutClientProps {
     children: ReactNode;
@@ -21,6 +22,33 @@ const roleRoutes: Record<UserRole, string> = {
     NGO_ADMIN: "/dashboard/ngo",
     NGO_STAFF: "/dashboard/ngo",
 };
+
+function getErrorStatus(error: unknown): number | undefined {
+    if (typeof error !== "object" || error === null) {
+        return undefined;
+    }
+
+    const candidate = error as {
+        status?: number;
+        statusCode?: number;
+        response?: {
+            status?: number;
+        };
+    };
+
+    return (
+        candidate.status ??
+        candidate.statusCode ??
+        candidate.response?.status
+    );
+}
+
+function getNGOStatus(
+    status?: NGOStatus | string,
+    verificationStatus?: NGOStatus | string
+): string | undefined {
+    return status ?? verificationStatus;
+}
 
 function DashboardLayoutContent({
     children,
@@ -58,38 +86,15 @@ function DashboardLayoutContent({
                     return;
                 }
 
-                if (
+                const isDashboardRoot =
                     pathname === "/dashboard" ||
-                    pathname === "/dashboard/"
-                ) {
-                    if (currentUser.role === "NGO_ADMIN") {
-                        try {
-                            await getNGOByUser();
-
-                            if (!isMounted) return;
-
-                            setUser(currentUser);
-                            router.replace("/dashboard/ngo");
-                            return;
-                        } catch {
-                            if (!isMounted) return;
-
-                            setUser(currentUser);
-                            router.replace("/register/ngo");
-                            return;
-                        }
-                    }
-
-                    setUser(currentUser);
-                    router.replace(allowedBaseRoute);
-                    return;
-                }
+                    pathname === "/dashboard/";
 
                 const hasAccess =
                     pathname === allowedBaseRoute ||
                     pathname.startsWith(`${allowedBaseRoute}/`);
 
-                if (!hasAccess) {
+                if (!isDashboardRoot && !hasAccess) {
                     setUser(currentUser);
                     router.replace(allowedBaseRoute);
                     return;
@@ -97,16 +102,50 @@ function DashboardLayoutContent({
 
                 if (currentUser.role === "NGO_ADMIN") {
                     try {
-                        await getNGOByUser();
+                        const ngo = await getNGOByUser();
 
                         if (!isMounted) return;
-                    } catch {
-                        if (!isMounted) return;
+
+                        const ngoStatus = getNGOStatus(
+                            ngo.status,
+                            ngo.verification_status
+                        );
+
+                        if (ngoStatus === "PENDING" || ngoStatus === "REJECTED") {
+                            setUser(currentUser);
+                            router.replace("/profile");
+                            return;
+                        }
+
+                        if (ngoStatus !== "APPROVED") {
+                            setUser(currentUser);
+                            router.replace("/profile");
+                            return;
+                        }
 
                         setUser(currentUser);
-                        router.replace("/register/ngo");
+
+                        if (isDashboardRoot) {
+                            router.replace("/dashboard/ngo");
+                            return;
+                        }
+                    } catch (error: unknown) {
+                        if (!isMounted) return;
+
+                        if (getErrorStatus(error) === 404) {
+                            setUser(currentUser);
+                            router.replace("/register/ngo");
+                            return;
+                        }
+
+                        setUser(null);
+                        router.replace("/login");
                         return;
                     }
+                } else if (isDashboardRoot) {
+                    setUser(currentUser);
+                    router.replace(allowedBaseRoute);
+                    return;
                 }
 
                 setUser(currentUser);
