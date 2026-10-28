@@ -7,6 +7,7 @@ import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardSidebarSkeleton from "@/components/skeleton/dashboard/DashboardSidebarSkeleton";
 import DashboardHeaderSkeleton from "@/components/skeleton/dashboard/DashboardHeaderSkeleton";
+import { ToastProvider } from "@/components/toast/ToastProvider";
 import { getProfile } from "@/services/profileService";
 import { getNGOByUser } from "@/services/ngoService";
 import type { AuthUser, UserRole } from "@/types/auth";
@@ -111,7 +112,10 @@ function DashboardLayoutContent({
                             ngo.verification_status
                         );
 
-                        if (ngoStatus === "PENDING" || ngoStatus === "REJECTED") {
+                        if (
+                            ngoStatus === "PENDING" ||
+                            ngoStatus === "REJECTED"
+                        ) {
                             setUser(currentUser);
                             router.replace("/profile");
                             return;
@@ -219,17 +223,21 @@ export default function DashboardLayoutClient({
     children,
 }: DashboardLayoutClientProps) {
     return (
-        <Suspense
-            fallback={
-                <>
-                    <DashboardSidebarSkeleton />
-                    <div className="md:pl-64">
-                        <DashboardHeaderSkeleton />
-                    </div>
-                </>
-            }
-        >
-            <DashboardLayoutContent>{children}</DashboardLayoutContent>
-        </Suspense>
+        <ToastProvider>
+            <Suspense
+                fallback={
+                    <>
+                        <DashboardSidebarSkeleton />
+                        <div className="md:pl-64">
+                            <DashboardHeaderSkeleton />
+                        </div>
+                    </>
+                }
+            >
+                <DashboardLayoutContent>
+                    {children}
+                </DashboardLayoutContent>
+            </Suspense>
+        </ToastProvider>
     );
 }
