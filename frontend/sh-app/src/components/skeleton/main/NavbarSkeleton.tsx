@@ -25,8 +25,10 @@ export default function NavbarSkeleton() {
                     {["Home", "Campaigns", "NGOs", "About"].map((label) => (
                         <div
                             key={label}
-                            className="h-4 w-12 animate-pulse rounded-md bg-[#E6EDE4]"
-                        />
+                            className="text-sm font-medium text-[#536458]"
+                        >
+                            {label}
+                        </div>
                     ))}
                 </nav>
 
