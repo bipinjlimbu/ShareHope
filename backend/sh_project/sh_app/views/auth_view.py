@@ -144,6 +144,14 @@ def login_view(request):
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
 
+        check_user = User.objects.filter(username=login_credential).first()
+        if check_user and not check_user.is_active:
+            return Response({'error': 'This account is inactive. Please contact support.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        check_user = User.objects.filter(email=login_credential).first()
+        if check_user and not check_user.is_active:
+            return Response({'error': 'This account is inactive. Please contact support.'}, status=status.HTTP_403_FORBIDDEN)
+        
         user = authenticate(request, username=login_credential, password=password)
 
         if user is None:
