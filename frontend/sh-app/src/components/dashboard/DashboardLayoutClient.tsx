@@ -8,6 +8,7 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardSidebarSkeleton from "@/components/skeleton/dashboard/DashboardSidebarSkeleton";
 import DashboardHeaderSkeleton from "@/components/skeleton/dashboard/DashboardHeaderSkeleton";
 import { getProfile } from "@/services/profileService";
+import { getNGOByUser } from "@/services/ngoService";
 import type { AuthUser, UserRole } from "@/types/auth";
 
 interface DashboardLayoutClientProps {
@@ -57,7 +58,28 @@ function DashboardLayoutContent({
                     return;
                 }
 
-                if (pathname === "/dashboard" || pathname === "/dashboard/") {
+                if (
+                    pathname === "/dashboard" ||
+                    pathname === "/dashboard/"
+                ) {
+                    if (currentUser.role === "NGO_ADMIN") {
+                        try {
+                            await getNGOByUser();
+
+                            if (!isMounted) return;
+
+                            setUser(currentUser);
+                            router.replace("/dashboard/ngo");
+                            return;
+                        } catch {
+                            if (!isMounted) return;
+
+                            setUser(currentUser);
+                            router.replace("/register/ngo");
+                            return;
+                        }
+                    }
+
                     setUser(currentUser);
                     router.replace(allowedBaseRoute);
                     return;
@@ -71,6 +93,20 @@ function DashboardLayoutContent({
                     setUser(currentUser);
                     router.replace(allowedBaseRoute);
                     return;
+                }
+
+                if (currentUser.role === "NGO_ADMIN") {
+                    try {
+                        await getNGOByUser();
+
+                        if (!isMounted) return;
+                    } catch {
+                        if (!isMounted) return;
+
+                        setUser(currentUser);
+                        router.replace("/register/ngo");
+                        return;
+                    }
                 }
 
                 setUser(currentUser);
