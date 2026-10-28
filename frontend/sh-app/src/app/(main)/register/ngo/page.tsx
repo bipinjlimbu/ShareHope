@@ -246,13 +246,6 @@ export default function NGORegistrationPage() {
     return (
         <main className="min-h-screen bg-[#FFFCF6] px-4 py-8 sm:px-6 lg:py-12">
             <div className="mx-auto max-w-6xl">
-                <Link
-                    href="/register"
-                    className="mb-6 inline-flex items-center gap-2 text-sm font-medium text-green-800 transition hover:text-green-950"
-                >
-                    <ArrowLeft size={17} />
-                    Back to registration
-                </Link>
 
                 <div className="grid overflow-hidden rounded-3xl border border-green-950/10 bg-white shadow-xl shadow-green-950/5 lg:grid-cols-[0.9fr_1.1fr]">
                     <aside className="relative flex flex-col justify-between overflow-hidden bg-[#14532D] p-7 text-white sm:p-10 lg:p-12">
