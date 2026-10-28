@@ -35,7 +35,6 @@ export default function RegisterPage() {
     const [pageReady, setPageReady] = useState(false);
     const [form, setForm] = useState<RegisterPayload>({ ...initialForm });
     const [errors, setErrors] = useState<RegisterErrors>({});
-    const [success, setSuccess] = useState("");
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -82,8 +81,6 @@ export default function RegisterPage() {
             ...previous,
             [name]: undefined,
         }));
-
-        setSuccess("");
     };
 
     const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -118,16 +115,15 @@ export default function RegisterPage() {
         event.preventDefault();
 
         setErrors({});
-        setSuccess("");
         setLoading(true);
 
         try {
             const response = await registerUser(form);
 
             const successMessage =
-                response.message || "Your account has been created successfully.";
+                response.message ||
+                "Your account has been created successfully.";
 
-            setSuccess(successMessage);
             showToast(successMessage, "success");
 
             setForm({ ...initialForm });
@@ -259,15 +255,6 @@ export default function RegisterPage() {
                             </p>
                         </div>
 
-                        {success && (
-                            <div
-                                role="status"
-                                className="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
-                            >
-                                {success} Redirecting to login...
-                            </div>
-                        )}
-
                         <form
                             onSubmit={handleSubmit}
                             className="space-y-5"
@@ -275,7 +262,10 @@ export default function RegisterPage() {
                         >
                             <div className="grid gap-5 sm:grid-cols-2">
                                 <div>
-                                    <label htmlFor="first_name" className={labelClass}>
+                                    <label
+                                        htmlFor="first_name"
+                                        className={labelClass}
+                                    >
                                         First name
                                     </label>
                                     <input
@@ -292,7 +282,10 @@ export default function RegisterPage() {
                                 </div>
 
                                 <div>
-                                    <label htmlFor="last_name" className={labelClass}>
+                                    <label
+                                        htmlFor="last_name"
+                                        className={labelClass}
+                                    >
                                         Last name
                                     </label>
                                     <input
@@ -310,7 +303,10 @@ export default function RegisterPage() {
                             </div>
 
                             <div>
-                                <label htmlFor="username" className={labelClass}>
+                                <label
+                                    htmlFor="username"
+                                    className={labelClass}
+                                >
                                     Username
                                 </label>
                                 <input
@@ -378,7 +374,10 @@ export default function RegisterPage() {
                             </div>
 
                             <div>
-                                <label htmlFor="profile_picture" className={labelClass}>
+                                <label
+                                    htmlFor="profile_picture"
+                                    className={labelClass}
+                                >
                                     Profile picture{" "}
                                     <span className="font-normal text-gray-400">
                                         (optional)
@@ -401,14 +400,19 @@ export default function RegisterPage() {
                             </div>
 
                             <div>
-                                <label htmlFor="password" className={labelClass}>
+                                <label
+                                    htmlFor="password"
+                                    className={labelClass}
+                                >
                                     Password
                                 </label>
                                 <div className="relative">
                                     <input
                                         id="password"
                                         name="password"
-                                        type={showPassword ? "text" : "password"}
+                                        type={
+                                            showPassword ? "text" : "password"
+                                        }
                                         autoComplete="new-password"
                                         value={form.password}
                                         onChange={handleChange}
@@ -418,7 +422,9 @@ export default function RegisterPage() {
                                     <button
                                         type="button"
                                         onClick={() =>
-                                            setShowPassword((previous) => !previous)
+                                            setShowPassword(
+                                                (previous) => !previous
+                                            )
                                         }
                                         className="absolute inset-y-0 right-3 text-xs font-semibold text-green-700"
                                     >
@@ -429,14 +435,21 @@ export default function RegisterPage() {
                             </div>
 
                             <div>
-                                <label htmlFor="confirm_password" className={labelClass}>
+                                <label
+                                    htmlFor="confirm_password"
+                                    className={labelClass}
+                                >
                                     Confirm password
                                 </label>
                                 <div className="relative">
                                     <input
                                         id="confirm_password"
                                         name="confirm_password"
-                                        type={showConfirmPassword ? "text" : "password"}
+                                        type={
+                                            showConfirmPassword
+                                                ? "text"
+                                                : "password"
+                                        }
                                         autoComplete="new-password"
                                         value={form.confirm_password}
                                         onChange={handleChange}
@@ -446,7 +459,9 @@ export default function RegisterPage() {
                                     <button
                                         type="button"
                                         onClick={() =>
-                                            setShowConfirmPassword((previous) => !previous)
+                                            setShowConfirmPassword(
+                                                (previous) => !previous
+                                            )
                                         }
                                         className="absolute inset-y-0 right-3 text-xs font-semibold text-green-700"
                                     >
@@ -461,7 +476,9 @@ export default function RegisterPage() {
                                 disabled={loading}
                                 className="w-full rounded-xl bg-green-700 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                {loading ? "Creating account..." : "Create account"}
+                                {loading
+                                    ? "Creating account..."
+                                    : "Create account"}
                             </button>
                         </form>
 
