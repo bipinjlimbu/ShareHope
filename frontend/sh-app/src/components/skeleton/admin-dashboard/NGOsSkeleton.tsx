@@ -1,4 +1,3 @@
-
 "use client";
 
 function SkeletonBlock({
@@ -86,7 +85,7 @@ function NGOCardSkeleton() {
     );
 }
 
-export default function NGOSkeleton() {
+export default function NGOsSkeleton() {
     return (
         <main
             aria-label="Loading NGO management"
