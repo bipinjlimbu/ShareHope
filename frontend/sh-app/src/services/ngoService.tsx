@@ -35,7 +35,7 @@ export async function registerNGO(
     }
 
     try {
-        return (await authFetch("/register/ngo/", {
+        return (await authFetch("/ngo/", {
             method: "POST",
             body: formData,
         })) as NGORegistrationResponse;
