@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import {
-    AlertCircle,
     CalendarDays,
     CheckCircle2,
     Clock3,
@@ -24,6 +23,7 @@ import type { RoleFilter, StatusFilter, User } from "@/types/user";
 import UsersSkeleton from "@/components/skeleton/admin-dashboard/UsersSkeleton";
 import UserDetailsModal from "@/components/admin-dashboard/UserDetailsModal";
 import ConfirmationModal from "@/components/common/ConfirmationModal";
+import { useToast } from "@/components/toast/ToastProvider";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const MINIMUM_LOADING_TIME = 650;
@@ -116,6 +116,8 @@ function StatCard({
 }
 
 export default function AdminUsersPage() {
+    const { showToast } = useToast();
+
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -125,11 +127,8 @@ export default function AdminUsersPage() {
     const [showFilters, setShowFilters] = useState(false);
     const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
     const [updatingUserIds, setUpdatingUserIds] = useState<number[]>([]);
-    const [statusUpdateError, setStatusUpdateError] = useState("");
-    const [statusUpdateSuccess, setStatusUpdateSuccess] = useState("");
     const [userToDelete, setUserToDelete] = useState<User | null>(null);
     const [isDeletingUser, setIsDeletingUser] = useState(false);
-    const [deleteError, setDeleteError] = useState("");
 
     const loadUsers = useCallback(async () => {
         setLoading(true);
@@ -145,8 +144,14 @@ export default function AdminUsersPage() {
                     ? result.filter((user) => user.role !== "ADMIN")
                     : []
             );
-        } catch {
-            setError("We couldn't load users. Please try again.");
+        } catch (err: unknown) {
+            const message =
+                err instanceof Error
+                    ? err.message
+                    : "We couldn't load users. Please try again.";
+
+            setError(message);
+            showToast(message, "error");
         } finally {
             const elapsed = Date.now() - startedAt;
             const remaining = Math.max(
@@ -162,7 +167,7 @@ export default function AdminUsersPage() {
 
             setLoading(false);
         }
-    }, []);
+    }, [showToast]);
 
     const handleToggleUserStatus = useCallback(
         async (user: User) => {
@@ -170,8 +175,6 @@ export default function AdminUsersPage() {
 
             const nextIsActive = !user.is_active;
 
-            setStatusUpdateError("");
-            setStatusUpdateSuccess("");
             setUpdatingUserIds((current) => [...current, user.id]);
 
             try {
@@ -188,12 +191,17 @@ export default function AdminUsersPage() {
                     )
                 );
 
-                setStatusUpdateSuccess(response.message);
+                showToast(
+                    response.message ||
+                    `Account ${nextIsActive ? "activated" : "deactivated"} successfully.`,
+                    "success"
+                );
             } catch (err: unknown) {
-                setStatusUpdateError(
+                showToast(
                     err instanceof Error
                         ? err.message
-                        : "We couldn't update the account status. Please try again."
+                        : "We couldn't update the account status. Please try again.",
+                    "error"
                 );
             } finally {
                 setUpdatingUserIds((current) =>
@@ -201,7 +209,7 @@ export default function AdminUsersPage() {
                 );
             }
         },
-        [updatingUserIds]
+        [updatingUserIds, showToast]
     );
 
     const handleDeleteUser = useCallback(async () => {
@@ -209,9 +217,6 @@ export default function AdminUsersPage() {
 
         const userId = userToDelete.id;
 
-        setDeleteError("");
-        setStatusUpdateError("");
-        setStatusUpdateSuccess("");
         setIsDeletingUser(true);
 
         try {
@@ -221,22 +226,27 @@ export default function AdminUsersPage() {
                 currentUsers.filter((user) => user.id !== userId)
             );
 
-            setStatusUpdateSuccess(response.message);
             setUserToDelete(null);
 
             if (selectedUserId === userId) {
                 setSelectedUserId(null);
             }
+
+            showToast(
+                response.message || "User account deleted successfully.",
+                "success"
+            );
         } catch (err: unknown) {
-            setDeleteError(
+            showToast(
                 err instanceof Error
                     ? err.message
-                    : "We couldn't delete this account. Please try again."
+                    : "We couldn't delete this account. Please try again.",
+                "error"
             );
         } finally {
             setIsDeletingUser(false);
         }
-    }, [userToDelete, isDeletingUser, selectedUserId]);
+    }, [userToDelete, isDeletingUser, selectedUserId, showToast]);
 
     useEffect(() => {
         void loadUsers();
@@ -334,56 +344,6 @@ export default function AdminUsersPage() {
                             </div>
                         </div>
                     </header>
-
-                    {error && (
-                        <div
-                            role="alert"
-                            className="mb-6 flex flex-col gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between"
-                        >
-                            <div className="flex items-center gap-2">
-                                <AlertCircle size={19} className="shrink-0" />
-                                {error}
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={() => void loadUsers()}
-                                className="rounded-lg border border-red-200 px-3 py-2 font-semibold transition hover:bg-red-100"
-                            >
-                                Try again
-                            </button>
-                        </div>
-                    )}
-
-                    {statusUpdateError && (
-                        <div
-                            role="alert"
-                            className="mb-6 flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
-                        >
-                            <AlertCircle size={19} className="shrink-0" />
-                            {statusUpdateError}
-                        </div>
-                    )}
-
-                    {deleteError && (
-                        <div
-                            role="alert"
-                            className="mb-6 flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
-                        >
-                            <AlertCircle size={19} className="shrink-0" />
-                            {deleteError}
-                        </div>
-                    )}
-
-                    {statusUpdateSuccess && (
-                        <div
-                            role="status"
-                            className="mb-6 flex items-center gap-2 rounded-2xl border border-[#D8E8D4] bg-[#E5F2E1] p-4 text-sm text-[#166534]"
-                        >
-                            <CheckCircle2 size={19} className="shrink-0" />
-                            {statusUpdateSuccess}
-                        </div>
-                    )}
 
                     <section
                         aria-label="User statistics"
@@ -523,15 +483,27 @@ export default function AdminUsersPage() {
                             </p>
                         </div>
 
-                        {hasActiveFilters && (
-                            <button
-                                type="button"
-                                onClick={clearFilters}
-                                className="self-start rounded-lg px-3 py-2 text-sm font-semibold text-[#166534] transition hover:bg-[#E5F2E1] sm:self-auto"
-                            >
-                                Clear filters
-                            </button>
-                        )}
+                        <div className="flex flex-wrap items-center gap-2">
+                            {error && (
+                                <button
+                                    type="button"
+                                    onClick={() => void loadUsers()}
+                                    className="rounded-xl border border-[#DDE7D9] bg-white px-4 py-2.5 text-sm font-semibold text-[#166534] transition hover:bg-[#E5F2E1]"
+                                >
+                                    Retry loading
+                                </button>
+                            )}
+
+                            {hasActiveFilters && (
+                                <button
+                                    type="button"
+                                    onClick={clearFilters}
+                                    className="rounded-lg px-3 py-2 text-sm font-semibold text-[#166534] transition hover:bg-[#E5F2E1]"
+                                >
+                                    Clear filters
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     {!error && filteredUsers.length === 0 ? (
@@ -724,10 +696,7 @@ export default function AdminUsersPage() {
 
                                                 <button
                                                     type="button"
-                                                    onClick={() => {
-                                                        setDeleteError("");
-                                                        setUserToDelete(user);
-                                                    }}
+                                                    onClick={() => setUserToDelete(user)}
                                                     title={`Delete ${user.username}`}
                                                     className="flex items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50/50 px-3 py-2.5 text-sm font-semibold text-red-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
                                                 >
