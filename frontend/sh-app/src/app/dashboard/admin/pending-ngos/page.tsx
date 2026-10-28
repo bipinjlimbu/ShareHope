@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-    AlertCircle,
     Building2,
     CalendarDays,
     CheckCircle2,
@@ -21,6 +20,7 @@ import type { NGOListItem } from "@/types/ngo";
 import PendingNGOsSkeleton from "@/components/skeleton/admin-dashboard/PendingNGOsSkeleton";
 import NGODetailsModal from "@/components/admin-dashboard/NGODetailsModal";
 import ConfirmationModal from "@/components/common/ConfirmationModal";
+import { useToast } from "@/components/toast/ToastProvider";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const MINIMUM_LOADING_TIME = 500;
@@ -129,9 +129,11 @@ function SummaryCard({
 }
 
 export default function PendingNGOsPage() {
+    const { showToast } = useToast();
+
     const [ngos, setNgos] = useState<NGOListItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [loadError, setLoadError] = useState("");
+    const [loadError, setLoadError] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedNGOId, setSelectedNGOId] = useState<number | null>(null);
 
@@ -139,14 +141,12 @@ export default function PendingNGOsPage() {
         useState<NGOListItem | null>(null);
     const [reviewAction, setReviewAction] = useState<ReviewAction>("REJECT");
     const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-    const [actionError, setActionError] = useState("");
-    const [actionSuccess, setActionSuccess] = useState("");
 
     const fetchPendingNGOs = useCallback(async () => {
         const startedAt = Date.now();
 
         setIsLoading(true);
-        setLoadError("");
+        setLoadError(false);
 
         try {
             const response = await getNGOs();
@@ -163,11 +163,14 @@ export default function PendingNGOsPage() {
                 error
             );
 
-            setLoadError(
+            setLoadError(true);
+
+            showToast(
                 getErrorMessage(
                     error,
                     "Unable to load pending NGO applications. Please try again."
-                )
+                ),
+                "error"
             );
         } finally {
             const elapsed = Date.now() - startedAt;
@@ -181,7 +184,7 @@ export default function PendingNGOsPage() {
 
             setIsLoading(false);
         }
-    }, []);
+    }, [showToast]);
 
     useEffect(() => {
         void fetchPendingNGOs();
@@ -215,8 +218,6 @@ export default function PendingNGOsPage() {
     ) => {
         setSelectedReviewNGO(ngo);
         setReviewAction(action);
-        setActionError("");
-        setActionSuccess("");
     };
 
     const closeReviewConfirmation = () => {
@@ -232,8 +233,6 @@ export default function PendingNGOsPage() {
         const action = reviewAction;
 
         setIsSubmittingReview(true);
-        setActionError("");
-        setActionSuccess("");
 
         try {
             if (action === "APPROVE") {
@@ -248,10 +247,11 @@ export default function PendingNGOsPage() {
 
             setSelectedReviewNGO(null);
 
-            setActionSuccess(
+            showToast(
                 action === "APPROVE"
                     ? `${ngoToReview.name} has been approved successfully.`
-                    : `${ngoToReview.name} has been rejected.`
+                    : `${ngoToReview.name} has been rejected.`,
+                "success"
             );
         } catch (error: unknown) {
             console.error(
@@ -259,13 +259,14 @@ export default function PendingNGOsPage() {
                 error
             );
 
-            setActionError(
+            showToast(
                 getErrorMessage(
                     error,
                     action === "APPROVE"
                         ? "Unable to approve this NGO application. Please try again."
                         : "Unable to reject this NGO application. Please try again."
-                )
+                ),
+                "error"
             );
         } finally {
             setIsSubmittingReview(false);
@@ -313,77 +314,14 @@ export default function PendingNGOsPage() {
                         </header>
 
                         {loadError && (
-                            <section
-                                role="alert"
-                                className="mb-6 rounded-2xl border border-red-200 bg-red-50 p-5"
-                            >
-                                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                    <div className="flex items-start gap-3">
-                                        <AlertCircle
-                                            size={21}
-                                            className="mt-0.5 shrink-0 text-red-600"
-                                        />
-                                        <div>
-                                            <h2 className="font-semibold text-red-800">
-                                                Could not load applications
-                                            </h2>
-                                            <p className="mt-1 break-words text-sm leading-6 text-red-700">
-                                                {loadError}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => void fetchPendingNGOs()}
-                                        className="rounded-lg border border-red-200 px-4 py-2 text-sm font-semibold text-red-800 transition hover:bg-red-100"
-                                    >
-                                        Try again
-                                    </button>
-                                </div>
-                            </section>
-                        )}
-
-                        {actionError && (
-                            <div
-                                role="alert"
-                                className="mb-6 flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
-                            >
-                                <AlertCircle
-                                    size={19}
-                                    className="mt-0.5 shrink-0"
-                                />
-                                <span className="break-words">{actionError}</span>
+                            <div className="mb-6 flex justify-end">
                                 <button
                                     type="button"
-                                    onClick={() => setActionError("")}
-                                    aria-label="Dismiss error"
-                                    className="ml-auto shrink-0 rounded-lg p-1 hover:bg-red-100"
+                                    onClick={() => void fetchPendingNGOs()}
+                                    className="inline-flex items-center gap-2 rounded-xl border border-[#D8E8D4] bg-white px-4 py-2.5 text-sm font-semibold text-[#166534] shadow-sm transition hover:bg-[#F1F7ED] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/15"
                                 >
-                                    <X size={16} />
-                                </button>
-                            </div>
-                        )}
-
-                        {actionSuccess && (
-                            <div
-                                role="status"
-                                className="mb-6 flex items-start gap-2 rounded-2xl border border-[#D8E8D4] bg-[#E5F2E1] p-4 text-sm text-[#166534]"
-                            >
-                                <CheckCircle2
-                                    size={19}
-                                    className="mt-0.5 shrink-0"
-                                />
-                                <span className="break-words">
-                                    {actionSuccess}
-                                </span>
-                                <button
-                                    type="button"
-                                    onClick={() => setActionSuccess("")}
-                                    aria-label="Dismiss success message"
-                                    className="ml-auto shrink-0 rounded-lg p-1 hover:bg-[#D8E8D4]"
-                                >
-                                    <X size={16} />
+                                    <Clock3 size={16} />
+                                    Retry loading applications
                                 </button>
                             </div>
                         )}
