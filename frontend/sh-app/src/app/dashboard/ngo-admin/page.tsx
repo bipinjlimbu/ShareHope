@@ -324,11 +324,6 @@ export default function NGODashboardPage() {
             <div className="mx-auto w-full max-w-[1600px] space-y-7">
                 <header className="flex flex-col justify-between gap-5 rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:p-7 lg:p-8">
                     <div>
-                        <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-[#D8E8D4] bg-[#F5F9F2] px-3 py-1.5 text-xs font-semibold text-[#166534]">
-                            <ShieldCheck size={14} />
-                            NGO Workspace
-                        </div>
-
                         <h1 className="text-3xl font-bold tracking-tight text-[#183B2A] sm:text-4xl">
                             NGO Overview
                         </h1>
