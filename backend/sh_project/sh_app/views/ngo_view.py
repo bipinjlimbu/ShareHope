@@ -6,12 +6,42 @@ from ..models import User, NGO, NGODocument, NGOMembership
 from ..serializers import NGOSerializer
 from ..email_service import send_email
 import re
-
-@api_view(['POST'])
+    
+@api_view(['GET', 'DELETE'])
 @permission_classes([IsAuthenticated])
-def register_ngo_view(request):
+def ngo_by_user_view(request):
+    try:
+        ngo = NGO.objects.get(created_by=request.user)
+    except NGO.DoesNotExist:
+        return Response({'error': 'NGO not found for the user.'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'GET':
+        serializer = NGOSerializer(ngo)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    if request.method == 'DELETE':
+        email = ngo.created_by.email
+        ngo.delete()
+        
+        subject = 'NGO Deleted'
+        message = f'Dear {ngo.created_by.first_name},\n\nYour Rejected NGO "{ngo.name}" Application has been deleted. Please contact the admin for more information.\n\nBest regards,\nShareHope Team'
+        send_email(subject, message, [email])
+        
+        return Response({'message': 'NGO deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
+    
+@api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
+def ngo_view(request):
+    if request.method == 'GET':
+        ngos = NGO.objects.all()
+        serializer = NGOSerializer(ngos, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
     if request.method == 'POST':
         errors = {}
+        
+        if not request.user.is_authenticated:
+            return Response({'error': 'Authentication credentials were not provided.'}, status=status.HTTP_401_UNAUTHORIZED)
         
         if request.user.role != User.Role.NGO_ADMIN:
             return Response({'error': 'Only users with NGO role can register an NGO.'}, status=status.HTTP_403_FORBIDDEN)
@@ -119,36 +149,6 @@ def register_ngo_view(request):
         send_email(subject, message, [request.user.email])
         
         return Response({'message': 'NGO registered successfully.'}, status=status.HTTP_201_CREATED)
-    
-@api_view(['GET', 'DELETE'])
-@permission_classes([IsAuthenticated])
-def ngo_by_user_view(request):
-    try:
-        ngo = NGO.objects.get(created_by=request.user)
-    except NGO.DoesNotExist:
-        return Response({'error': 'NGO not found for the user.'}, status=status.HTTP_404_NOT_FOUND)
-    
-    if request.method == 'GET':
-        serializer = NGOSerializer(ngo)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    
-    if request.method == 'DELETE':
-        email = ngo.created_by.email
-        ngo.delete()
-        
-        subject = 'NGO Deleted'
-        message = f'Dear {ngo.created_by.first_name},\n\nYour Rejected NGO "{ngo.name}" Application has been deleted. Please contact the admin for more information.\n\nBest regards,\nShareHope Team'
-        send_email(subject, message, [email])
-        
-        return Response({'message': 'NGO deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
-    
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def ngo_view(request):
-    if request.method == 'GET':
-        ngos = NGO.objects.all()
-        serializer = NGOSerializer(ngos, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
     
 @api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
