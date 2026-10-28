@@ -19,8 +19,8 @@ interface DashboardLayoutClientProps {
 const roleRoutes: Record<UserRole, string> = {
     ADMIN: "/dashboard/admin",
     DONOR: "/dashboard/donor",
-    NGO_ADMIN: "/dashboard/ngo",
-    NGO_STAFF: "/dashboard/ngo",
+    NGO_ADMIN: "/dashboard/ngo-admin",
+    NGO_STAFF: "/dashboard/ngo-staff",
 };
 
 function getErrorStatus(error: unknown): number | undefined {
