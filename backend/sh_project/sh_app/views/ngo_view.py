@@ -1,6 +1,6 @@
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from ..models import User, NGO, NGODocument, NGOMembership
 from ..serializers import NGOSerializer
@@ -143,7 +143,7 @@ def ngo_by_user_view(request):
         return Response({'message': 'NGO deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
     
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def ngo_view(request):
     if request.method == 'GET':
         ngos = NGO.objects.all()
