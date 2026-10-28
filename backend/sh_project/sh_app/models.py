@@ -52,7 +52,7 @@ class NGO(models.Model):
     name = models.CharField(max_length=200)
     registration_number = models.CharField(max_length=100, unique=True)
     description = models.TextField()
-    email = models.EmailField()
+    email = models.EmailField(unique=True)
     phone = models.CharField(max_length=20)
     address = models.CharField(max_length=255)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
