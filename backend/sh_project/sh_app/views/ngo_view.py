@@ -20,7 +20,7 @@ def ngo_by_user_view(request):
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     if request.method == 'DELETE':
-        email = ngo.created_by.email
+        email = ngo.email
         ngo.delete()
         
         subject = 'NGO Deleted'
@@ -146,7 +146,7 @@ def ngo_view(request):
         
         subject = 'NGO Registration Request'
         message = f'Dear {request.user.first_name},\n\nYour NGO registration request for "{ngo.name}" has been received and is pending approval. We will notify you once the review process is complete.\n\nThank you for your contribution to our community.\n\nBest regards,\nShareHope Team'
-        send_email(subject, message, [request.user.email])
+        send_email(subject, message, [ngo.email])
         
         return Response({'message': 'NGO registered successfully.'}, status=status.HTTP_201_CREATED)
     
@@ -173,14 +173,14 @@ def ngo_detail_view(request, pk):
         if is_active:
             subject = 'NGO Approved'
             message = f'Dear {ngo.created_by.first_name},\n\nYour NGO "{ngo.name}" has been approved and is now active. You can now manage your NGO and its activities.\n\nThank you for your contribution to our community.\n\nBest regards,\nShareHope Team'
-            send_email(subject, message, [ngo.created_by.email])
+            send_email(subject, message, [ngo.email])
             
             return Response({'message': 'NGO activated successfully.'}, status=status.HTTP_200_OK)
                    
         else:
             subject = 'NGO Deactivated'
             message = f'Dear {ngo.created_by.first_name},\n\nYour NGO "{ngo.name}" has been deactivated. Please contact the admin for more information.\n\nBest regards,\nShareHope Team'
-            send_email(subject, message, [ngo.created_by.email])
+            send_email(subject, message, [ngo.email])
             
             return Response({'message': 'NGO deactivated successfully.'}, status=status.HTTP_200_OK)
         
@@ -188,7 +188,7 @@ def ngo_detail_view(request, pk):
         if request.user.role != User.Role.ADMIN:
             return Response({'error': 'Only admin users can delete NGO details.'}, status=status.HTTP_403_FORBIDDEN)
         
-        email = ngo.created_by.email 
+        email = ngo.email 
         ngo.delete()
         
         subject = 'NGO Deleted'
@@ -214,7 +214,7 @@ def approve_ngo_view(request, pk):
         
         subject = 'NGO Approved'
         message = f'Dear {ngo.created_by.first_name},\n\nYour NGO "{ngo.name}" has been approved and is now active. You can now manage your NGO and its activities.\n\nThank you for your contribution to our community.\n\nBest regards,\nShareHope Team'
-        send_email(subject, message, [ngo.created_by.email])
+        send_email(subject, message, [ngo.email])
         
         return Response({'message': 'NGO approved successfully.'}, status=status.HTTP_200_OK)
     
@@ -235,6 +235,6 @@ def reject_ngo_view(request, pk):
         
         subject = 'NGO Rejected'
         message = f'Dear {ngo.created_by.first_name},\n\nWe regret to inform you that your NGO "{ngo.name}" registration has been rejected. Please contact the admin for more information.\n\nBest regards,\nShareHope Team'
-        send_email(subject, message, [ngo.created_by.email])
+        send_email(subject, message, [ngo.email])
         
         return Response({'message': 'NGO rejected successfully.'}, status=status.HTTP_200_OK)
