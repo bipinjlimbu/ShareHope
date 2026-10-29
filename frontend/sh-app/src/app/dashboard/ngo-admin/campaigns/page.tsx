@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -10,6 +11,7 @@ import {
     ImageIcon,
     Layers3,
     Package,
+    Plus,
     RefreshCw,
     Search,
     Target,
@@ -283,7 +285,9 @@ export default function NGOCampaignsPage() {
             const response = await getCampaigns();
 
             if (!Array.isArray(response)) {
-                throw new Error("The campaign API returned an unexpected response.");
+                throw new Error(
+                    "The campaign API returned an unexpected response."
+                );
             }
 
             setCampaigns(response);
@@ -380,19 +384,29 @@ export default function NGOCampaignsPage() {
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-3 self-start rounded-xl border border-[#D8E8D4] bg-[#F5F9F2] px-5 py-3.5 text-sm text-[#183B2A] sm:self-auto">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E5F2E1] text-[#166534]">
-                            <Layers3 size={19} />
+                    <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+                        <div className="flex items-center gap-3 rounded-xl border border-[#D8E8D4] bg-[#F5F9F2] px-5 py-3.5 text-sm text-[#183B2A]">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E5F2E1] text-[#166534]">
+                                <Layers3 size={19} />
+                            </div>
+
+                            <div>
+                                <p className="text-xl font-bold leading-6">
+                                    {campaigns.length.toLocaleString("en-NP")}
+                                </p>
+                                <p className="mt-0.5 whitespace-nowrap text-xs text-[#647568]">
+                                    Total campaigns
+                                </p>
+                            </div>
                         </div>
 
-                        <div>
-                            <p className="text-xl font-bold leading-6">
-                                {campaigns.length.toLocaleString("en-NP")}
-                            </p>
-                            <p className="mt-0.5 text-xs text-[#647568]">
-                                Total campaigns
-                            </p>
-                        </div>
+                        <button
+                            type="button"
+                            className="inline-flex min-h-[58px] items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#166534] px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#14532D] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
+                        >
+                            <Plus size={19} />
+                            Create Campaign
+                        </button>
                     </div>
                 </header>
 
