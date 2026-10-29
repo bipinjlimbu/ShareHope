@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, NGO, NGODocument, NGOMembership
+from .models import User, NGO, NGODocument, NGOMembership, Campaign
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -51,4 +51,22 @@ class NGOMembershipSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = NGOMembership
+        fields = '__all__'
+        
+class CampaignSerializer(serializers.ModelSerializer):
+    ngo = serializers.SerializerMethodField()
+    created_by = serializers.SerializerMethodField()
+    reviewed_by = serializers.SerializerMethodField()
+    
+    def get_ngo(self, obj):
+        return NGOSerializer(obj.ngo).data
+    
+    def get_created_by(self, obj):
+        return UserSerializer(obj.created_by).data
+    
+    def get_reviewed_by(self, obj):
+        return UserSerializer(obj.reviewed_by).data
+    
+    class Meta:
+        model = Campaign
         fields = '__all__'
