@@ -55,6 +55,13 @@ const roleLabels: Record<DashboardRole, string> = {
     NGO_STAFF: "NGO Staff",
 };
 
+const dashboardBaseRoute: Record<DashboardRole, string> = {
+    ADMIN: "/dashboard/admin",
+    DONOR: "/dashboard/donor",
+    NGO_ADMIN: "/dashboard/ngo-admin",
+    NGO_STAFF: "/dashboard/ngo-staff",
+};
+
 export default function DashboardSidebar({
     role,
     isOpen,
@@ -131,10 +138,13 @@ export default function DashboardSidebar({
                     {navItems.map((item) => {
                         const Icon = iconMap[item.icon] ?? LayoutDashboard;
 
-                        const isActive =
-                            pathname === item.href ||
-                            (item.href !== `/dashboard/${role.toLowerCase()}` &&
-                                pathname.startsWith(`${item.href}/`));
+                        const isOverview =
+                            item.href === dashboardBaseRoute[role];
+
+                        const isActive = isOverview
+                            ? pathname === item.href
+                            : pathname === item.href ||
+                            pathname.startsWith(`${item.href}/`);
 
                         return (
                             <Link
