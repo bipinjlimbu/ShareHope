@@ -123,6 +123,6 @@ def campaign_view(request):
         ngo = campaign.ngo
         subject = 'New Campaign Created'
         message = f'A new campaign titled "{campaign.title}" has been created by {request.user.username}. Please review and approve it.'
-        send_email(subject, message, ngo.email)
+        send_email(subject, message, [ngo.email])
         
         return Response({'message': 'Campaign created successfully.'}, status=status.HTTP_201_CREATED)
