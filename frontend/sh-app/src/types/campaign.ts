@@ -62,6 +62,8 @@ export interface Campaign {
     category: string;
     donation_type: CampaignDonationType;
     goal_amount: string | null;
+    collected_amount: string;
+    collected_quantity: number;
     goal_quantity: number | null;
     goal_item_name: string;
     currency: string;
