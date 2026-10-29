@@ -28,7 +28,7 @@ def campaign_view(request):
         currency = request.data.get('currency')
         start_date = request.data.get('start_date')
         end_date = request.data.get('end_date')
-        status = request.data.get('status')
+        campaign_status = request.data.get('status')
         campaign_image = request.FILES.get('campaign_image')
         
         title_pattern = r'^[A-Za-z0-9\s\-\_\.\,\!\?]+$'
@@ -114,7 +114,7 @@ def campaign_view(request):
             currency=currency,
             start_date=start_date,
             end_date=end_date,
-            status=status if status else Campaign.Status.PENDING,
+            status=campaign_status if campaign_status else Campaign.Status.PENDING,
             campaign_image=campaign_image,
             created_by=request.user
         )
