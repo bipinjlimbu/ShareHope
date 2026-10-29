@@ -210,6 +210,7 @@ def approve_ngo_view(request, pk):
             return Response({'error': 'NGO not found.'}, status=status.HTTP_404_NOT_FOUND)
         
         ngo.status = NGO.Status.APPROVED
+        ngo.reviewed_by = request.user
         ngo.save()
         
         subject = 'NGO Approved'
