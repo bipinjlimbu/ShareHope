@@ -12,6 +12,48 @@ export type CampaignStatus =
 
 export type CampaignDonationType = "FUND" | "ITEM" | "BOTH";
 
+export interface CampaignCreatePayload {
+    title: string;
+    description: string;
+    category: string;
+    donation_type: CampaignDonationType;
+    goal_amount: string;
+    goal_quantity: string;
+    goal_item_name: string;
+    currency: string;
+    start_date: string;
+    end_date: string;
+    status?: CampaignStatus | "";
+    campaign_image: File | null;
+}
+
+export interface CampaignCreateResponse {
+    message: string;
+}
+
+export type CampaignCreateErrors = Record<
+    string,
+    string | string[] | undefined
+>;
+
+export interface CampaignCreateFormErrors {
+    title?: string;
+    description?: string;
+    category?: string;
+    donation_type?: string;
+    goal_amount?: string;
+    goal_quantity?: string;
+    goal_item_name?: string;
+    currency?: string;
+    start_date?: string;
+    end_date?: string;
+    status?: string;
+    campaign_image?: string;
+    non_field_errors?: string;
+    general?: string;
+    [key: string]: string | undefined;
+}
+
 export interface Campaign {
     id: number;
     ngo: NGOListItem;
