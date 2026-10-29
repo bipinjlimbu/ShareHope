@@ -24,6 +24,7 @@ import type {
     CampaignStatus,
 } from "@/types/campaign";
 import CampaignsSkeleton from "@/components/skeleton/ngo-admin-dashboard/CampaignsSkeleton";
+import CreateCampaignForm from "@/components/form/CreateCampaignForm";
 import { useToast } from "@/components/toast/ToastProvider";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -273,6 +274,7 @@ export default function NGOCampaignsPage() {
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
     const [donationTypeFilter, setDonationTypeFilter] =
         useState<DonationTypeFilter>("ALL");
+    const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
 
     const fetchCampaigns = useCallback(async () => {
         const startedAt = Date.now();
@@ -370,6 +372,16 @@ export default function NGOCampaignsPage() {
 
     return (
         <main className="min-h-screen w-full bg-[#FFFCF6] px-1.5 py-3 sm:px-2.5 sm:py-4 lg:px-3 xl:px-4 2xl:px-5">
+            {isCreateFormOpen && (
+                <CreateCampaignForm
+                    onClose={() => setIsCreateFormOpen(false)}
+                    onSuccess={() => {
+                        setIsCreateFormOpen(false);
+                        void fetchCampaigns();
+                    }}
+                />
+            )}
+
             <div className="mx-auto w-full max-w-[1600px]">
                 <header className="mb-8 flex flex-col justify-between gap-5 rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:p-7 lg:p-8">
                     <div>
@@ -401,6 +413,7 @@ export default function NGOCampaignsPage() {
 
                         <button
                             type="button"
+                            onClick={() => setIsCreateFormOpen(true)}
                             className="inline-flex min-h-[58px] items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#166534] px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#14532D] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
                         >
                             <Plus size={19} />
