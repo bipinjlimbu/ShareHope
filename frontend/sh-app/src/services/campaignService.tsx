@@ -1,5 +1,6 @@
 import { authFetch } from "@/lib/api";
 import type {
+    Campaign,
     CampaignCreatePayload,
     CampaignCreateResponse,
     CampaignCreateErrors,
@@ -10,6 +11,12 @@ export async function getCampaigns(): Promise<CampaignListResponse> {
     return (await authFetch("/campaign/", {
         method: "GET",
     })) as CampaignListResponse;
+}
+
+export async function getCampaignById(id: number): Promise<Campaign> {
+    return (await authFetch(`/campaign/${id}/`, {
+        method: "GET",
+    })) as Campaign;
 }
 
 export async function createCampaign(
