@@ -126,3 +126,15 @@ def campaign_view(request):
         send_email(subject, message, [ngo.email])
         
         return Response({'message': 'Campaign created successfully.'}, status=status.HTTP_201_CREATED)
+    
+@api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([AllowAny])
+def campaign_detail_view(request, pk):
+    try:
+        campaign = Campaign.objects.get(pk=pk)
+    except Campaign.DoesNotExist:
+        return Response({'error': 'Campaign not found.'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'GET':
+        serializer = CampaignSerializer(campaign)
+        return Response(serializer.data, status=status.HTTP_200_OK)
