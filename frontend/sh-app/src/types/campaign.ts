@@ -44,12 +44,21 @@ export interface CampaignUpdateResponse {
     message: string;
 }
 
+export interface CampaignDeleteResponse {
+    message: string;
+}
+
 export type CampaignCreateErrors = Record<
     string,
     string | string[] | undefined
 >;
 
 export type CampaignUpdateErrors = Record<
+    string,
+    string | string[] | undefined
+>;
+
+export type CampaignDeleteErrors = Record<
     string,
     string | string[] | undefined
 >;
