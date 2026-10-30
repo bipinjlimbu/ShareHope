@@ -299,3 +299,25 @@ def approve_pending_campaign_change_view(request, pk):
         pending_change.delete()
         
         return Response({'message': 'Pending campaign change approved successfully.'}, status=status.HTTP_200_OK)
+    
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def reject_pending_campaign_change_view(request, pk):
+    try:
+        pending_change = PendingCampaignChange.objects.get(pk=pk)
+    except PendingCampaignChange.DoesNotExist:
+        return Response({'error': 'Pending campaign change not found.'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'PATCH':
+        if not request.user.is_staff:
+            return Response({'error': 'Only admin users can reject pending campaign changes.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        campaign = pending_change.campaign
+        ngo = campaign.ngo
+        subject = 'Campaign Update Rejected'
+        message = f'Your update for the campaign titled "{campaign.title}" has been rejected by the admin. Please review the feedback and make necessary changes.'
+        send_email(subject, message, [ngo.email])
+        
+        pending_change.delete()
+        
+        return Response({'message': 'Pending campaign change rejected successfully.'}, status=status.HTTP_200_OK)
