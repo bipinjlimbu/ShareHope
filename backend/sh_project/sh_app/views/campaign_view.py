@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from PIL import Image
 from ..models import User, Campaign, NGO
 from ..serializers import CampaignSerializer, NGOSerializer
 from ..email_service import send_email
@@ -37,6 +38,7 @@ def campaign_view(request):
         goal_quantity_pattern = r'^\d+$'
         goal_item_name_pattern = r'^[A-Za-z0-9\s\-\_\.\,\!\?]+$'
         currency_pattern = r'^[A-Z]{3}$'
+        campaign_image_pattern = r'^[\w,\s-]+\.(jpg|jpeg|png)$'
         
         if not title:
             errors['title'] = 'Title is required.'
@@ -98,6 +100,17 @@ def campaign_view(request):
             
         if not campaign_image:
             errors['campaign_image'] = 'Campaign image is required.'
+        elif not re.match(campaign_image_pattern, campaign_image.name):
+            errors['campaign_image'] = 'Campaign image must be a valid image file (jpg, jpeg, png).'
+        else:
+            try:
+                image = Image.open(campaign_image)
+                width, height = image.size
+                aspect_ratio = width / height
+                if not (1.77 <= aspect_ratio <= 1.78):
+                    errors['campaign_image'] = 'Campaign image must have a 16:9 aspect ratio.'
+            except Exception as e:
+                errors['campaign_image'] = 'Invalid image file.'
             
         if errors:
             return Response({'errors': errors}, status=status.HTTP_400_BAD_REQUEST)
