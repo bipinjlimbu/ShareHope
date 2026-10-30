@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -29,6 +28,7 @@ import type {
 import CampaignDetailsModal from "@/components/ngo-admin-dashboard/CampaignDetailsModal";
 import CampaignsSkeleton from "@/components/skeleton/ngo-admin-dashboard/CampaignsSkeleton";
 import CreateCampaignForm from "@/components/form/CreateCampaignForm";
+import EditCampaignForm from "@/components/form/EditCampaignForm";
 import { useToast } from "@/components/toast/ToastProvider";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -274,8 +274,12 @@ export default function NGOCampaignsPage() {
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
     const [donationTypeFilter, setDonationTypeFilter] =
         useState<DonationTypeFilter>("ALL");
+
     const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
     const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(
+        null
+    );
+    const [campaignToEdit, setCampaignToEdit] = useState<Campaign | null>(
         null
     );
 
@@ -381,6 +385,17 @@ export default function NGOCampaignsPage() {
                         onClose={() => setIsCreateFormOpen(false)}
                         onSuccess={() => {
                             setIsCreateFormOpen(false);
+                            void fetchCampaigns();
+                        }}
+                    />
+                )}
+
+                {campaignToEdit && (
+                    <EditCampaignForm
+                        campaign={campaignToEdit}
+                        onClose={() => setCampaignToEdit(null)}
+                        onSuccess={() => {
+                            setCampaignToEdit(null);
                             void fetchCampaigns();
                         }}
                     />
@@ -631,139 +646,153 @@ export default function NGOCampaignsPage() {
                                     aria-label="Campaign list"
                                     className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2 lg:gap-6 2xl:gap-7"
                                 >
-                                    {filteredCampaigns.map((campaign) => (
-                                        <article
-                                            key={campaign.id}
-                                            className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[#E5EDE3] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C9DFC4] hover:shadow-md"
-                                        >
-                                            <div className="flex min-w-0 items-start gap-4 p-5 pb-0 sm:gap-5 sm:p-6 sm:pb-0">
-                                                <CampaignImage campaign={campaign} />
+                                    {filteredCampaigns.map((campaign) => {
+                                        const canEdit =
+                                            campaign.status === "APPROVED" ||
+                                            campaign.status === "ACTIVE";
 
-                                                <div className="flex min-w-0 flex-1 flex-col">
-                                                    <div className="flex min-w-0 flex-wrap items-center gap-2">
-                                                        <StatusBadge status={campaign.status} />
+                                        return (
+                                            <article
+                                                key={campaign.id}
+                                                className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[#E5EDE3] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C9DFC4] hover:shadow-md"
+                                            >
+                                                <div className="flex min-w-0 items-start gap-4 p-5 pb-0 sm:gap-5 sm:p-6 sm:pb-0">
+                                                    <CampaignImage campaign={campaign} />
 
-                                                        <span className="max-w-full truncate rounded-full bg-[#F1F7ED] px-3 py-1.5 text-xs font-semibold text-[#526B56]">
-                                                            {campaign.category || "Uncategorized"}
-                                                        </span>
-                                                    </div>
+                                                    <div className="flex min-w-0 flex-1 flex-col">
+                                                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                                                            <StatusBadge status={campaign.status} />
 
-                                                    <div className="mt-3 min-w-0">
-                                                        <h3 className="break-words text-lg font-bold leading-6 text-[#183B2A] sm:text-xl">
-                                                            {campaign.title}
-                                                        </h3>
-
-                                                        <p className="mt-1 text-xs text-[#829184]">
-                                                            Campaign #{campaign.id}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex flex-1 flex-col p-5 pt-4 sm:p-6 sm:pt-4">
-                                                <div className="flex flex-wrap gap-2">
-                                                    <span className="inline-flex items-center gap-1.5 rounded-lg border border-[#E5EDE3] bg-[#FAFCF8] px-3 py-2 text-xs font-medium text-[#526B56]">
-                                                        <Package size={14} />
-                                                        {getDonationTypeLabel(campaign.donation_type)}
-                                                    </span>
-
-                                                    <span className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-[#E5EDE3] bg-[#FAFCF8] px-3 py-2 text-xs font-medium text-[#526B56]">
-                                                        <Layers3 size={14} className="shrink-0" />
-                                                        <span className="truncate">
-                                                            {campaign.ngo?.name || "NGO not specified"}
-                                                        </span>
-                                                    </span>
-                                                </div>
-
-                                                <div className="mt-5 rounded-xl border border-[#DDE8D7] bg-[#F4F8F0] p-4">
-                                                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#647568]">
-                                                        {campaign.donation_type === "FUND" ? (
-                                                            <Coins size={15} className="text-[#27824B]" />
-                                                        ) : campaign.donation_type === "ITEM" ? (
-                                                            <Package size={15} className="text-[#27824B]" />
-                                                        ) : (
-                                                            <Target size={15} className="text-[#27824B]" />
-                                                        )}
-                                                        Campaign goal
-                                                    </div>
-
-                                                    <p className="mt-2 break-words text-base font-bold leading-6 text-[#183B2A]">
-                                                        {getGoalDescription(campaign)}
-                                                    </p>
-                                                </div>
-
-                                                <div className="mt-4 grid grid-cols-2 gap-3">
-                                                    <div className="rounded-xl border border-[#E8EDE4] bg-white p-3">
-                                                        <p className="flex items-center gap-1.5 text-xs text-[#829184]">
-                                                            <CalendarDays size={14} className="shrink-0" />
-                                                            Starts
-                                                        </p>
-                                                        <p className="mt-1.5 break-words text-sm font-semibold text-[#35543B]">
-                                                            {formatDate(campaign.start_date)}
-                                                        </p>
-                                                    </div>
-
-                                                    <div className="rounded-xl border border-[#E8EDE4] bg-white p-3">
-                                                        <p className="flex items-center gap-1.5 text-xs text-[#829184]">
-                                                            <CalendarDays size={14} className="shrink-0" />
-                                                            Ends
-                                                        </p>
-                                                        <p className="mt-1.5 break-words text-sm font-semibold text-[#35543B]">
-                                                            {formatDate(campaign.end_date)}
-                                                        </p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="mt-auto pt-5">
-                                                    <div className="mb-4 flex items-center justify-between gap-3 border-t border-[#EDF2E9] pt-4 text-xs text-[#829184]">
-                                                        <span className="min-w-0 truncate">
-                                                            Created by{" "}
-                                                            <span className="font-semibold text-[#526B56]">
-                                                                {getCreatorName(campaign)}
+                                                            <span className="max-w-full truncate rounded-full bg-[#F1F7ED] px-3 py-1.5 text-xs font-semibold text-[#526B56]">
+                                                                {campaign.category || "Uncategorized"}
                                                             </span>
-                                                        </span>
+                                                        </div>
 
-                                                        <span className="shrink-0">
-                                                            {formatDate(campaign.created_at)}
-                                                        </span>
-                                                    </div>
+                                                        <div className="mt-3 min-w-0">
+                                                            <h3 className="break-words text-lg font-bold leading-6 text-[#183B2A] sm:text-xl">
+                                                                {campaign.title}
+                                                            </h3>
 
-                                                    <div className="space-y-3">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                setSelectedCampaignId(campaign.id)
-                                                            }
-                                                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#166534] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#124D29] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
-                                                        >
-                                                            <Search size={16} />
-                                                            View Details
-                                                        </button>
-
-                                                        <div className="grid grid-cols-2 gap-3">
-                                                            <button
-                                                                type="button"
-                                                                title={`Edit ${campaign.title}`}
-                                                                className="flex items-center justify-center gap-2 rounded-xl border border-[#DDE7D9] bg-[#F8FAF6] px-3 py-2.5 text-sm font-semibold text-[#526B56] transition hover:bg-[#E5F2E1] hover:text-[#166534] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/10"
-                                                            >
-                                                                <Edit size={15} />
-                                                                Edit
-                                                            </button>
-
-                                                            <button
-                                                                type="button"
-                                                                title={`Delete ${campaign.title}`}
-                                                                className="flex items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50/50 px-3 py-2.5 text-sm font-semibold text-red-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-4 focus:ring-red-100"
-                                                            >
-                                                                <Trash2 size={15} />
-                                                                Delete
-                                                            </button>
+                                                            <p className="mt-1 text-xs text-[#829184]">
+                                                                Campaign #{campaign.id}
+                                                            </p>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </article>
-                                    ))}
+
+                                                <div className="flex flex-1 flex-col p-5 pt-4 sm:p-6 sm:pt-4">
+                                                    <div className="flex flex-wrap gap-2">
+                                                        <span className="inline-flex items-center gap-1.5 rounded-lg border border-[#E5EDE3] bg-[#FAFCF8] px-3 py-2 text-xs font-medium text-[#526B56]">
+                                                            <Package size={14} />
+                                                            {getDonationTypeLabel(campaign.donation_type)}
+                                                        </span>
+
+                                                        <span className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-[#E5EDE3] bg-[#FAFCF8] px-3 py-2 text-xs font-medium text-[#526B56]">
+                                                            <Layers3 size={14} className="shrink-0" />
+                                                            <span className="truncate">
+                                                                {campaign.ngo?.name || "NGO not specified"}
+                                                            </span>
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="mt-5 rounded-xl border border-[#DDE8D7] bg-[#F4F8F0] p-4">
+                                                        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#647568]">
+                                                            {campaign.donation_type === "FUND" ? (
+                                                                <Coins size={15} className="text-[#27824B]" />
+                                                            ) : campaign.donation_type === "ITEM" ? (
+                                                                <Package size={15} className="text-[#27824B]" />
+                                                            ) : (
+                                                                <Target size={15} className="text-[#27824B]" />
+                                                            )}
+                                                            Campaign goal
+                                                        </div>
+
+                                                        <p className="mt-2 break-words text-base font-bold leading-6 text-[#183B2A]">
+                                                            {getGoalDescription(campaign)}
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="mt-4 grid grid-cols-2 gap-3">
+                                                        <div className="rounded-xl border border-[#E8EDE4] bg-white p-3">
+                                                            <p className="flex items-center gap-1.5 text-xs text-[#829184]">
+                                                                <CalendarDays size={14} className="shrink-0" />
+                                                                Starts
+                                                            </p>
+                                                            <p className="mt-1.5 break-words text-sm font-semibold text-[#35543B]">
+                                                                {formatDate(campaign.start_date)}
+                                                            </p>
+                                                        </div>
+
+                                                        <div className="rounded-xl border border-[#E8EDE4] bg-white p-3">
+                                                            <p className="flex items-center gap-1.5 text-xs text-[#829184]">
+                                                                <CalendarDays size={14} className="shrink-0" />
+                                                                Ends
+                                                            </p>
+                                                            <p className="mt-1.5 break-words text-sm font-semibold text-[#35543B]">
+                                                                {formatDate(campaign.end_date)}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="mt-auto pt-5">
+                                                        <div className="mb-4 flex items-center justify-between gap-3 border-t border-[#EDF2E9] pt-4 text-xs text-[#829184]">
+                                                            <span className="min-w-0 truncate">
+                                                                Created by{" "}
+                                                                <span className="font-semibold text-[#526B56]">
+                                                                    {getCreatorName(campaign)}
+                                                                </span>
+                                                            </span>
+
+                                                            <span className="shrink-0">
+                                                                {formatDate(campaign.created_at)}
+                                                            </span>
+                                                        </div>
+
+                                                        <div className="space-y-3">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    setSelectedCampaignId(campaign.id)
+                                                                }
+                                                                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#166534] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#124D29] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
+                                                            >
+                                                                <Search size={16} />
+                                                                View Details
+                                                            </button>
+
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                <button
+                                                                    type="button"
+                                                                    title={
+                                                                        canEdit
+                                                                            ? `Edit ${campaign.title}`
+                                                                            : "Only approved or active campaigns can be edited"
+                                                                    }
+                                                                    disabled={!canEdit}
+                                                                    onClick={() =>
+                                                                        setCampaignToEdit(campaign)
+                                                                    }
+                                                                    className="flex items-center justify-center gap-2 rounded-xl border border-[#DDE7D9] bg-[#F8FAF6] px-3 py-2.5 text-sm font-semibold text-[#526B56] transition hover:bg-[#E5F2E1] hover:text-[#166534] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-[#F8FAF6] disabled:hover:text-[#526B56]"
+                                                                >
+                                                                    <Edit size={15} />
+                                                                    Edit
+                                                                </button>
+
+                                                                <button
+                                                                    type="button"
+                                                                    title={`Delete ${campaign.title}`}
+                                                                    className="flex items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50/50 px-3 py-2.5 text-sm font-semibold text-red-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-4 focus:ring-red-100"
+                                                                >
+                                                                    <Trash2 size={15} />
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </article>
+                                        );
+                                    })}
                                 </section>
                             )}
 
