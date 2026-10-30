@@ -70,3 +70,21 @@ class CampaignSerializer(serializers.ModelSerializer):
     class Meta:
         model = Campaign
         fields = '__all__'
+        
+class PendingCampaignChangeSerializer(serializers.ModelSerializer):
+    campaign = serializers.SerializerMethodField()
+    created_by = serializers.SerializerMethodField()
+    reviewed_by = serializers.SerializerMethodField()
+    
+    def get_campaign(self, obj):
+        return CampaignSerializer(obj.campaign).data
+    
+    def get_created_by(self, obj):
+        return UserSerializer(obj.created_by).data
+    
+    def get_reviewed_by(self, obj):
+        return UserSerializer(obj.reviewed_by).data
+    
+    class Meta:
+        model = Campaign
+        fields = '__all__'
