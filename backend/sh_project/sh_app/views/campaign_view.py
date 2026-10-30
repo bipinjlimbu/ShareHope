@@ -231,6 +231,18 @@ def pending_campaign_change_view(request):
         serializer = PendingCampaignChangeSerializer(pending_changes, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def pending_campaign_change_detail_view(request, pk):
+    try:
+        pending_change = PendingCampaignChange.objects.get(pk=pk)
+    except PendingCampaignChange.DoesNotExist:
+        return Response({'error': 'Pending campaign change not found.'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'GET':
+        serializer = PendingCampaignChangeSerializer(pending_change)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
 def approve_campaign_view(request, pk):
