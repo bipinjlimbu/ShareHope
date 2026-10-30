@@ -202,9 +202,7 @@ def campaign_detail_view(request, pk):
                 
         if errors:
             return Response({'errors': errors}, status=status.HTTP_400_BAD_REQUEST)
-        
-        campaign = Campaign.objects.get(pk=pk)
-        
+                
         pending_campaign_change = PendingCampaignChange.objects.create(
             campaign=campaign,
             title=title,
@@ -223,3 +221,13 @@ def campaign_detail_view(request, pk):
         send_email(subject, message, [ngo.email])
         
         return Response({'message': 'Campaign update submitted for approval.'}, status=status.HTTP_200_OK)
+    
+    if request.method == 'DELETE':
+        ngo = campaign.ngo
+        campaign.delete()
+        
+        subject = 'Campaign Deleted'
+        message = f'The campaign titled "{campaign.title}" has been deleted by {request.user.username}. Please review the deletion.'
+        send_email(subject, message, [ngo.email])
+        
+        return Response({'message': 'Campaign deleted successfully.'}, status=status.HTTP_200_OK)
