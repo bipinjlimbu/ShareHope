@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from django.utils import timezone
 from PIL import Image
 from ..models import User, Campaign, NGO, PendingCampaignChange
 from ..serializers import CampaignSerializer, NGOSerializer
@@ -79,10 +80,14 @@ def campaign_view(request):
             
         if not start_date:
             errors['start_date'] = 'Start date is required.'
+        elif start_date < str(timezone.now().date()):
+            errors['start_date'] = 'Start date cannot be in the past.'
             
         if not end_date:
             errors['end_date'] = 'End date is required.'
-            
+        elif end_date <= start_date:
+            errors['end_date'] = 'End date must be after the start date.'
+
         if not campaign_image:
             errors['campaign_image'] = 'Campaign image is required.'
         elif not re.match(campaign_image_pattern, campaign_image.name):
