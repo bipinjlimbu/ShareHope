@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from django.utils import timezone
 from PIL import Image
 from ..models import User, Campaign, NGO, PendingCampaignChange
-from ..serializers import CampaignSerializer, NGOSerializer
+from ..serializers import CampaignSerializer, PendingCampaignChangeSerializer
 from ..email_service import send_email
 import re
 
@@ -222,6 +222,14 @@ def campaign_detail_view(request, pk):
         send_email(subject, message, [ngo.email])
         
         return Response({'message': 'Campaign deleted successfully.'}, status=status.HTTP_200_OK)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def pending_campaign_change_view(request):
+    if request.method == 'GET':
+        pending_changes = PendingCampaignChange.objects.all()
+        serializer = PendingCampaignChangeSerializer(pending_changes, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
