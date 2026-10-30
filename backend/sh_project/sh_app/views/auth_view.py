@@ -106,7 +106,7 @@ def register_view(request):
         
     if profile_picture and not re.match(profile_picture_pattern, profile_picture.name):
         errors['profile_picture'] = 'Profile picture must be a valid image file (jpg, jpeg, png, gif).'
-    if profile_picture:
+    elif profile_picture:
         try:
             image = Image.open(profile_picture)
             width, height = image.size
