@@ -14,6 +14,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
+from PIL import Image
 from ..email_service import send_email, welcome_email
 from ..models import User
 from ..serializers import UserSerializer
@@ -105,6 +106,15 @@ def register_view(request):
         
     if profile_picture and not re.match(profile_picture_pattern, profile_picture.name):
         errors['profile_picture'] = 'Profile picture must be a valid image file (jpg, jpeg, png, gif).'
+    if profile_picture:
+        try:
+            image = Image.open(profile_picture)
+            width, height = image.size
+            aspect_ratio = width / height
+            if not (0.9 <= aspect_ratio <= 1.1):
+                errors['profile_picture'] = 'Profile picture must have a 1:1 aspect ratio.'
+        except Exception as e:
+            errors['profile_picture'] = 'Invalid image file.'
 
     if errors:
         return Response(errors, status=status.HTTP_400_BAD_REQUEST)
