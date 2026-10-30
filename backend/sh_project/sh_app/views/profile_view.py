@@ -5,6 +5,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.contrib.auth.hashers import make_password, check_password
+from PIL import Image
 from ..models import User
 from ..serializers import UserSerializer
 from ..email_service import send_email
@@ -60,6 +61,15 @@ def profile_view(request):
             
         if profile_picture and not re.match(profile_picture_pattern, profile_picture.name):
             errors['profile_picture'] = 'Profile picture must be a valid image file (jpg, jpeg, png, gif).'
+        elif profile_picture:
+            try:
+                image = Image.open(profile_picture)
+                width, height = image.size
+                aspect_ratio = width / height
+                if not (0.9 <= aspect_ratio <= 1.1):
+                    errors['profile_picture'] = 'Profile picture must have a 1:1 aspect ratio.'
+            except Exception as e:
+                errors['profile_picture'] = 'Invalid image file.'
             
         if errors:
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
