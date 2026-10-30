@@ -5,11 +5,13 @@ import {
     CalendarDays,
     CheckCircle2,
     Clock3,
+    Edit,
     ImageIcon,
     Layers3,
     Package,
     Search,
     Target,
+    Trash2,
     X,
 } from "lucide-react";
 import { getCampaigns } from "@/services/campaignService";
@@ -308,11 +310,7 @@ export default function NGOCampaignsPage() {
                 <div className="mx-auto w-full max-w-[1600px]">
                     <header className="mb-8 flex flex-col justify-between gap-5 rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:p-7 lg:p-8">
                         <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#27824B]">
-                                NGO workspace
-                            </p>
-
-                            <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#183B2A] sm:text-4xl">
+                            <h1 className="text-3xl font-bold tracking-tight text-[#183B2A] sm:text-4xl">
                                 Campaigns
                             </h1>
 
@@ -448,22 +446,12 @@ export default function NGOCampaignsPage() {
                                                 All statuses
                                             </option>
                                             <option value="DRAFT">Draft</option>
-                                            <option value="PENDING">
-                                                Pending
-                                            </option>
-                                            <option value="APPROVED">
-                                                Approved
-                                            </option>
+                                            <option value="PENDING">Pending</option>
+                                            <option value="APPROVED">Approved</option>
                                             <option value="ACTIVE">Active</option>
-                                            <option value="REJECTED">
-                                                Rejected
-                                            </option>
-                                            <option value="COMPLETED">
-                                                Completed
-                                            </option>
-                                            <option value="CANCELLED">
-                                                Cancelled
-                                            </option>
+                                            <option value="REJECTED">Rejected</option>
+                                            <option value="COMPLETED">Completed</option>
+                                            <option value="CANCELLED">Cancelled</option>
                                         </select>
 
                                         <select
@@ -668,18 +656,40 @@ export default function NGOCampaignsPage() {
                                                     </span>
                                                 </div>
 
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setSelectedCampaignId(
-                                                            campaign.id
-                                                        )
-                                                    }
-                                                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#166534] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#14532D] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
-                                                >
-                                                    <Search size={16} />
-                                                    View Details
-                                                </button>
+                                                <div className="space-y-3">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setSelectedCampaignId(
+                                                                campaign.id
+                                                            )
+                                                        }
+                                                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#166534] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#124D29] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
+                                                    >
+                                                        <Search size={16} />
+                                                        View Details
+                                                    </button>
+
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <button
+                                                            type="button"
+                                                            title={`Edit ${campaign.title}`}
+                                                            className="flex items-center justify-center gap-2 rounded-xl border border-[#DDE7D9] bg-[#F8FAF6] px-3 py-2.5 text-sm font-semibold text-[#526B56] transition hover:bg-[#E5F2E1] hover:text-[#166534] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/10"
+                                                        >
+                                                            <Edit size={15} />
+                                                            Edit
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            title={`Delete ${campaign.title}`}
+                                                            className="flex items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50/50 px-3 py-2.5 text-sm font-semibold text-red-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-4 focus:ring-red-100"
+                                                        >
+                                                            <Trash2 size={15} />
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </article>
                                     ))}
