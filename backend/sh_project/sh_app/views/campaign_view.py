@@ -151,3 +151,19 @@ def campaign_detail_view(request, pk):
     if request.method == 'GET':
         serializer = CampaignSerializer(campaign)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    if request.method == 'PUT':
+        errors = {}
+        
+        title = request.data.get('title', campaign.title)
+        description = request.data.get('description', campaign.description)
+        category = request.data.get('category', campaign.category)
+        donation_type = request.data.get('donation_type', campaign.donation_type)
+        goal_amount = request.data.get('goal_amount', campaign.goal_amount)
+        goal_quantity = request.data.get('goal_quantity', campaign.goal_quantity)
+        goal_item_name = request.data.get('goal_item_name', campaign.goal_item_name)
+        currency = request.data.get('currency', campaign.currency)
+        start_date = request.data.get('start_date', campaign.start_date)
+        end_date = request.data.get('end_date', campaign.end_date)
+        campaign_status = request.data.get('status', campaign.status)
+        campaign_image = request.FILES.get('campaign_image', None)
