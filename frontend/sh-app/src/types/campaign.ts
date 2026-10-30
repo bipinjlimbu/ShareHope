@@ -27,11 +27,29 @@ export interface CampaignCreatePayload {
     campaign_image: File | null;
 }
 
+export interface CampaignUpdatePayload {
+    title?: string;
+    description?: string;
+    goal_amount?: string;
+    goal_quantity?: string;
+    end_date?: string;
+    campaign_image?: File | null;
+}
+
 export interface CampaignCreateResponse {
     message: string;
 }
 
+export interface CampaignUpdateResponse {
+    message: string;
+}
+
 export type CampaignCreateErrors = Record<
+    string,
+    string | string[] | undefined
+>;
+
+export type CampaignUpdateErrors = Record<
     string,
     string | string[] | undefined
 >;
@@ -48,6 +66,18 @@ export interface CampaignCreateFormErrors {
     start_date?: string;
     end_date?: string;
     status?: string;
+    campaign_image?: string;
+    non_field_errors?: string;
+    general?: string;
+    [key: string]: string | undefined;
+}
+
+export interface CampaignUpdateFormErrors {
+    title?: string;
+    description?: string;
+    goal_amount?: string;
+    goal_quantity?: string;
+    end_date?: string;
     campaign_image?: string;
     non_field_errors?: string;
     general?: string;
