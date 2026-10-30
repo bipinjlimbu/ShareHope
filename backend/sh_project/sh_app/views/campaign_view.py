@@ -245,3 +245,26 @@ def approve_campaign_view(request, pk):
         send_email(subject, message, [ngo.email])
         
         return Response({'message': 'Campaign approved successfully.'}, status=status.HTTP_200_OK)
+    
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def reject_campaign_view(request, pk):
+    try:
+        campaign = Campaign.objects.get(pk=pk)
+    except Campaign.DoesNotExist:
+        return Response({'error': 'Campaign not found.'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'PATCH':
+        if not request.user.is_staff:
+            return Response({'error': 'Only admin users can reject campaigns.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        campaign.status = Campaign.Status.REJECTED
+        campaign.reviewed_by = request.user
+        campaign.save()
+        
+        ngo = campaign.ngo
+        subject = 'Campaign Rejected'
+        message = f'Your campaign titled "{campaign.title}" has been rejected by the admin. Please review the feedback and make necessary changes.'
+        send_email(subject, message, [ngo.email])
+        
+        return Response({'message': 'Campaign rejected successfully.'}, status=status.HTTP_200_OK)
