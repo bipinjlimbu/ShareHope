@@ -209,10 +209,11 @@ def campaign_detail_view(request, pk):
     
     if request.method == 'DELETE':
         ngo = campaign.ngo
+        campaign_title = campaign.title
         campaign.delete()
         
         subject = 'Campaign Deleted'
-        message = f'The campaign titled "{campaign.title}" has been deleted by {request.user.username}. Please review the deletion.'
+        message = f'The campaign titled "{campaign_title}" has been deleted by {request.user.username}. Please review the deletion.'
         send_email(subject, message, [ngo.email])
         
         return Response({'message': 'Campaign deleted successfully.'}, status=status.HTTP_200_OK)
