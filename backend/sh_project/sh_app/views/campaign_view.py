@@ -56,27 +56,12 @@ def campaign_view(request):
         if not donation_type:
             errors['donation_type'] = 'Donation type is required.'
             
-        if donation_type == Campaign.DonationType.FUND:
+        if donation_type in [Campaign.DonationType.FUND, Campaign.DonationType.BOTH]:
             if not goal_amount:
                 errors['goal_amount'] = 'Goal amount is required for fund donation type.'
             elif not re.match(goal_amount_pattern, str(goal_amount)):
                 errors['goal_amount'] = 'Goal amount should be a valid number with up to two decimal places.'
-        elif donation_type == Campaign.DonationType.ITEM:
-            if not goal_quantity:
-                errors['goal_quantity'] = 'Goal quantity is required for item donation type.'
-            elif not re.match(goal_quantity_pattern, str(goal_quantity)):
-                errors['goal_quantity'] = 'Goal quantity should be a valid integer.'
-                
-            if not goal_item_name:
-                errors['goal_item_name'] = 'Goal item name is required for item donation type.'
-            elif not re.match(goal_item_name_pattern, goal_item_name):
-                errors['goal_item_name'] = 'Goal item name should only contain letters, numbers, spaces, and basic punctuation.'
-        else:
-            if not goal_amount:
-                errors['goal_amount'] = 'Goal amount is required for fund donation type.'
-            elif not re.match(goal_amount_pattern, str(goal_amount)):
-                errors['goal_amount'] = 'Goal amount should be a valid number with up to two decimal places.'
-                
+        elif donation_type in [Campaign.DonationType.ITEM, Campaign.DonationType.BOTH]:
             if not goal_quantity:
                 errors['goal_quantity'] = 'Goal quantity is required for item donation type.'
             elif not re.match(goal_quantity_pattern, str(goal_quantity)):
