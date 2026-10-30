@@ -5,6 +5,9 @@ import type {
     CampaignCreateResponse,
     CampaignCreateErrors,
     CampaignListResponse,
+    CampaignUpdatePayload,
+    CampaignUpdateResponse,
+    CampaignUpdateErrors,
 } from "@/types/campaign";
 
 export async function getCampaigns(): Promise<CampaignListResponse> {
@@ -59,5 +62,45 @@ export async function createCampaign(
         })) as CampaignCreateResponse;
     } catch (error: unknown) {
         throw error as CampaignCreateErrors;
+    }
+}
+
+export async function updateCampaign(
+    id: number,
+    payload: CampaignUpdatePayload
+): Promise<CampaignUpdateResponse> {
+    const formData = new FormData();
+
+    if (payload.title !== undefined) {
+        formData.append("title", payload.title);
+    }
+
+    if (payload.description !== undefined) {
+        formData.append("description", payload.description);
+    }
+
+    if (payload.goal_amount !== undefined) {
+        formData.append("goal_amount", payload.goal_amount);
+    }
+
+    if (payload.goal_quantity !== undefined) {
+        formData.append("goal_quantity", payload.goal_quantity);
+    }
+
+    if (payload.end_date !== undefined) {
+        formData.append("end_date", payload.end_date);
+    }
+
+    if (payload.campaign_image) {
+        formData.append("campaign_image", payload.campaign_image);
+    }
+
+    try {
+        return (await authFetch(`/campaign/${id}/`, {
+            method: "PUT",
+            body: formData,
+        })) as CampaignUpdateResponse;
+    } catch (error: unknown) {
+        throw error as CampaignUpdateErrors;
     }
 }
