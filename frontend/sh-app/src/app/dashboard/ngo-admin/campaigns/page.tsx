@@ -19,7 +19,10 @@ import {
     X,
     XCircle,
 } from "lucide-react";
-import { getCampaigns } from "@/services/campaignService";
+import {
+    deleteCampaign,
+    getCampaigns,
+} from "@/services/campaignService";
 import type {
     Campaign,
     CampaignDonationType,
@@ -29,6 +32,7 @@ import CampaignDetailsModal from "@/components/ngo-admin-dashboard/CampaignDetai
 import CampaignsSkeleton from "@/components/skeleton/ngo-admin-dashboard/CampaignsSkeleton";
 import CreateCampaignForm from "@/components/form/CreateCampaignForm";
 import EditCampaignForm from "@/components/form/EditCampaignForm";
+import ConfirmationModal from "@/components/common/ConfirmationModal";
 import { useToast } from "@/components/toast/ToastProvider";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -172,6 +176,42 @@ function getGoalDescription(campaign: Campaign): string {
     return parts.length > 0 ? parts.join(" · ") : "No goal specified";
 }
 
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+        return error.message;
+    }
+
+    if (typeof error === "string") {
+        return error;
+    }
+
+    if (error && typeof error === "object") {
+        const errorObject = error as Record<string, unknown>;
+
+        if (typeof errorObject.message === "string") {
+            return errorObject.message;
+        }
+
+        if (typeof errorObject.detail === "string") {
+            return errorObject.detail;
+        }
+
+        if (typeof errorObject.general === "string") {
+            return errorObject.general;
+        }
+
+        if (typeof errorObject.non_field_errors === "string") {
+            return errorObject.non_field_errors;
+        }
+
+        if (Array.isArray(errorObject.non_field_errors)) {
+            return errorObject.non_field_errors.join(" ");
+        }
+    }
+
+    return "Unable to delete the campaign. Please try again.";
+}
+
 function StatusBadge({ status }: { status: string }) {
     const normalizedStatus = normalizeStatus(status);
 
@@ -282,6 +322,10 @@ export default function NGOCampaignsPage() {
     const [campaignToEdit, setCampaignToEdit] = useState<Campaign | null>(
         null
     );
+    const [campaignToDelete, setCampaignToDelete] = useState<Campaign | null>(
+        null
+    );
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const fetchCampaigns = useCallback(async () => {
         const startedAt = Date.now();
@@ -326,6 +370,32 @@ export default function NGOCampaignsPage() {
     useEffect(() => {
         void fetchCampaigns();
     }, [fetchCampaigns]);
+
+    const handleDeleteCampaign = async () => {
+        if (!campaignToDelete || isDeleting) {
+            return;
+        }
+
+        setIsDeleting(true);
+
+        try {
+            const response = await deleteCampaign(campaignToDelete.id);
+
+            showToast(
+                response.message || "Campaign deleted successfully.",
+                "success"
+            );
+
+            setCampaignToDelete(null);
+
+            await fetchCampaigns();
+        } catch (err: unknown) {
+            console.error("Failed to delete campaign:", err);
+            showToast(getErrorMessage(err), "error");
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
     const filteredCampaigns = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
@@ -781,6 +851,9 @@ export default function NGOCampaignsPage() {
                                                                 <button
                                                                     type="button"
                                                                     title={`Delete ${campaign.title}`}
+                                                                    onClick={() =>
+                                                                        setCampaignToDelete(campaign)
+                                                                    }
                                                                     className="flex items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50/50 px-3 py-2.5 text-sm font-semibold text-red-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-4 focus:ring-red-100"
                                                                 >
                                                                     <Trash2 size={15} />
@@ -809,6 +882,21 @@ export default function NGOCampaignsPage() {
                 isOpen={selectedCampaignId !== null}
                 campaignId={selectedCampaignId}
                 onClose={() => setSelectedCampaignId(null)}
+            />
+
+            <ConfirmationModal
+                isOpen={campaignToDelete !== null}
+                title="Delete Campaign?"
+                description="Are you sure you want to permanently delete this campaign? This action cannot be undone."
+                itemName={campaignToDelete?.title}
+                confirmText="Delete Campaign"
+                isDeleting={isDeleting}
+                onConfirm={() => void handleDeleteCampaign()}
+                onCancel={() => {
+                    if (!isDeleting) {
+                        setCampaignToDelete(null);
+                    }
+                }}
             />
         </>
     );
