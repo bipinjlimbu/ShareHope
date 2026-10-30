@@ -268,3 +268,34 @@ def reject_campaign_view(request, pk):
         send_email(subject, message, [ngo.email])
         
         return Response({'message': 'Campaign rejected successfully.'}, status=status.HTTP_200_OK)
+    
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def approve_pending_campaign_change_view(request, pk):
+    try:
+        pending_change = PendingCampaignChange.objects.get(pk=pk)
+    except PendingCampaignChange.DoesNotExist:
+        return Response({'error': 'Pending campaign change not found.'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'PATCH':
+        if not request.user.is_staff:
+            return Response({'error': 'Only admin users can approve pending campaign changes.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        campaign = pending_change.campaign
+        campaign.title = pending_change.title
+        campaign.description = pending_change.description
+        campaign.goal_amount = pending_change.goal_amount
+        campaign.goal_quantity = pending_change.goal_quantity
+        campaign.end_date = pending_change.end_date
+        if pending_change.campaign_image:
+            campaign.campaign_image = pending_change.campaign_image
+        campaign.save()
+        
+        ngo = campaign.ngo
+        subject = 'Campaign Update Approved'
+        message = f'Your update for the campaign titled "{campaign.title}" has been approved by the admin. The changes are now live.'
+        send_email(subject, message, [ngo.email])
+        
+        pending_change.delete()
+        
+        return Response({'message': 'Pending campaign change approved successfully.'}, status=status.HTTP_200_OK)
