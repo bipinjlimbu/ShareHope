@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from PIL import Image
 from ..models import User, NGO, NGODocument, NGOMembership
 from ..serializers import NGOSerializer
 from ..email_service import send_email
@@ -104,7 +105,14 @@ def ngo_view(request):
             errors['ngo_logo'] = 'NGO logo is required.'
         elif not re.match(ngo_logo_pattern, ngo_logo.name):
             errors['ngo_logo'] = 'NGO logo must be a valid image file (jpg, jpeg, png).'
-            
+        else:
+            try:
+                image = Image.open(ngo_logo)
+                if image.size[0] != image.size[1]:
+                    errors['ngo_logo'] = 'NGO logo must have an aspect ratio of 1:1.'
+            except Exception as e:
+                errors['ngo_logo'] = 'Error occurred while processing the image.'
+
         if not ngo_document_type:
             errors['ngo_document_type'] = 'NGO document type is required.'
             
