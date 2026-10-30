@@ -22,10 +22,12 @@ def ngo_by_user_view(request):
     
     if request.method == 'DELETE':
         email = ngo.email
+        ngo_name = ngo.name
+        ngo_created_by = ngo.created_by.first_name
         ngo.delete()
         
         subject = 'NGO Deleted'
-        message = f'Dear {ngo.created_by.first_name},\n\nYour Rejected NGO "{ngo.name}" Application has been deleted. Please contact the admin for more information.\n\nBest regards,\nShareHope Team'
+        message = f'Dear {ngo_created_by},\n\nYour Rejected NGO "{ngo_name}" Application has been deleted. Please contact the admin for more information.\n\nBest regards,\nShareHope Team'
         send_email(subject, message, [email])
         
         return Response({'message': 'NGO deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
@@ -197,10 +199,12 @@ def ngo_detail_view(request, pk):
             return Response({'error': 'Only admin users can delete NGO details.'}, status=status.HTTP_403_FORBIDDEN)
         
         email = ngo.email 
+        ngo_name = ngo.name
+        ngo_created_by = ngo.created_by.first_name
         ngo.delete()
         
         subject = 'NGO Deleted'
-        message = f'Dear {ngo.created_by.first_name},\n\nYour NGO "{ngo.name}" has been deleted by the admin. Please contact the admin for more information.\n\nBest regards,\nShareHope Team'
+        message = f'Dear {ngo_created_by},\n\nYour NGO "{ngo_name}" has been deleted by the admin. Please contact the admin for more information.\n\nBest regards,\nShareHope Team'
         send_email(subject, message, [email])
         
         return Response({'message': 'NGO deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
