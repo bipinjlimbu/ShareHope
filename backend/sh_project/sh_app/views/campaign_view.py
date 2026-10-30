@@ -222,3 +222,26 @@ def campaign_detail_view(request, pk):
         send_email(subject, message, [ngo.email])
         
         return Response({'message': 'Campaign deleted successfully.'}, status=status.HTTP_200_OK)
+    
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated])
+def approve_campaign_view(request, pk):
+    try:
+        campaign = Campaign.objects.get(pk=pk)
+    except Campaign.DoesNotExist:
+        return Response({'error': 'Campaign not found.'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'PATCH':
+        if not request.user.is_staff:
+            return Response({'error': 'Only admin users can approve campaigns.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        campaign.status = Campaign.Status.APPROVED
+        campaign.reviewed_by = request.user
+        campaign.save()
+        
+        ngo = campaign.ngo
+        subject = 'Campaign Approved'
+        message = f'Your campaign titled "{campaign.title}" has been approved by the admin. You can now start receiving donations.'
+        send_email(subject, message, [ngo.email])
+        
+        return Response({'message': 'Campaign approved successfully.'}, status=status.HTTP_200_OK)
