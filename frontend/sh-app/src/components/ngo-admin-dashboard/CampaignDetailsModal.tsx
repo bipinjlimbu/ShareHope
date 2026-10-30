@@ -187,7 +187,7 @@ function CampaignHeroImage({ campaign }: { campaign: Campaign }) {
     }, [campaign.campaign_image]);
 
     return (
-        <div className="flex h-48 w-full items-center justify-center overflow-hidden rounded-2xl border border-[#DDE8D7] bg-[#E5F2E1] text-[#166534] sm:h-60">
+        <div className="aspect-video w-full overflow-hidden rounded-2xl border border-[#DDE8D7] bg-[#E5F2E1] text-[#166534]">
             {imageUrl && !imageFailed ? (
                 <img
                     src={imageUrl}
@@ -196,7 +196,7 @@ function CampaignHeroImage({ campaign }: { campaign: Campaign }) {
                     onError={() => setImageFailed(true)}
                 />
             ) : (
-                <div className="flex flex-col items-center gap-2 text-[#4C8154]">
+                <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-[#4C8154]">
                     <ImageIcon size={34} />
                     <span className="text-sm font-medium">
                         No campaign image
