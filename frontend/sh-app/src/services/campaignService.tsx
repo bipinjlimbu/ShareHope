@@ -8,6 +8,8 @@ import type {
     CampaignUpdatePayload,
     CampaignUpdateResponse,
     CampaignUpdateErrors,
+    CampaignDeleteResponse,
+    CampaignDeleteErrors,
 } from "@/types/campaign";
 
 export async function getCampaigns(): Promise<CampaignListResponse> {
@@ -102,5 +104,17 @@ export async function updateCampaign(
         })) as CampaignUpdateResponse;
     } catch (error: unknown) {
         throw error as CampaignUpdateErrors;
+    }
+}
+
+export async function deleteCampaign(
+    id: number
+): Promise<CampaignDeleteResponse> {
+    try {
+        return (await authFetch(`/campaign/${id}/`, {
+            method: "DELETE",
+        })) as CampaignDeleteResponse;
+    } catch (error: unknown) {
+        throw error as CampaignDeleteErrors;
     }
 }
