@@ -16,6 +16,8 @@ import type {
     CampaignRejectErrors,
     PendingCampaignChange,
     PendingCampaignChangeListResponse,
+    PendingCampaignChangeApproveResponse,
+    PendingCampaignChangeApproveErrors,
 } from "@/types/campaign";
 
 export async function getCampaigns(): Promise<CampaignListResponse> {
@@ -161,4 +163,16 @@ export async function getPendingCampaignChangeById(
     return (await authFetch(`/campaign/pending-change/${id}/`, {
         method: "GET",
     })) as PendingCampaignChange;
+}
+
+export async function approvePendingCampaignChange(
+    id: number
+): Promise<PendingCampaignChangeApproveResponse> {
+    try {
+        return (await authFetch(`/campaign/pending-change/${id}/approve/`, {
+            method: "PATCH",
+        })) as PendingCampaignChangeApproveResponse;
+    } catch (error: unknown) {
+        throw error as PendingCampaignChangeApproveErrors;
+    }
 }
