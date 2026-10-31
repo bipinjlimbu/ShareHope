@@ -56,6 +56,10 @@ export interface CampaignRejectResponse {
     message: string;
 }
 
+export interface PendingCampaignChangeApproveResponse {
+    message: string;
+}
+
 export type CampaignCreateErrors = Record<
     string,
     string | string[] | undefined
@@ -77,6 +81,11 @@ export type CampaignApproveErrors = Record<
 >;
 
 export type CampaignRejectErrors = Record<
+    string,
+    string | string[] | undefined
+>;
+
+export type PendingCampaignChangeApproveErrors = Record<
     string,
     string | string[] | undefined
 >;
