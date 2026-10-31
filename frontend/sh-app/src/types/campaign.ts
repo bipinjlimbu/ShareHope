@@ -21,6 +21,8 @@ export type CampaignStatusUpdate =
 
 export type CampaignDonationType = "FUND" | "ITEM" | "BOTH";
 
+export type PendingCampaignChangeStatus = "APPROVED" | "REJECTED";
+
 export interface CampaignCreatePayload {
     title: string;
     description: string;
@@ -73,53 +75,37 @@ export interface CampaignRejectResponse {
     message: string;
 }
 
-export interface PendingCampaignChangeApproveResponse {
+export interface PendingCampaignChangeStatusResponse {
     message: string;
 }
 
-export interface PendingCampaignChangeRejectResponse {
-    message: string;
+export interface CampaignCreateErrors {
+    [key: string]: string | string[] | undefined;
 }
 
-export type CampaignCreateErrors = Record<
-    string,
-    string | string[] | undefined
->;
+export interface CampaignUpdateErrors {
+    [key: string]: string | string[] | undefined;
+}
 
-export type CampaignUpdateErrors = Record<
-    string,
-    string | string[] | undefined
->;
+export interface CampaignStatusUpdateErrors {
+    [key: string]: string | string[] | undefined;
+}
 
-export type CampaignStatusUpdateErrors = Record<
-    string,
-    string | string[] | undefined
->;
+export interface CampaignDeleteErrors {
+    [key: string]: string | string[] | undefined;
+}
 
-export type CampaignDeleteErrors = Record<
-    string,
-    string | string[] | undefined
->;
+export interface CampaignApproveErrors {
+    [key: string]: string | string[] | undefined;
+}
 
-export type CampaignApproveErrors = Record<
-    string,
-    string | string[] | undefined
->;
+export interface CampaignRejectErrors {
+    [key: string]: string | string[] | undefined;
+}
 
-export type CampaignRejectErrors = Record<
-    string,
-    string | string[] | undefined
->;
-
-export type PendingCampaignChangeApproveErrors = Record<
-    string,
-    string | string[] | undefined
->;
-
-export type PendingCampaignChangeRejectErrors = Record<
-    string,
-    string | string[] | undefined
->;
+export interface PendingCampaignChangeStatusErrors {
+    [key: string]: string | string[] | undefined;
+}
 
 export interface CampaignCreateFormErrors {
     title?: string;
