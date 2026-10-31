@@ -104,6 +104,7 @@ class Campaign(models.Model):
         APPROVED = "APPROVED", "Approved"
         REJECTED = "REJECTED", "Rejected"
         ACTIVE = "ACTIVE", "Active"
+        INACTIVE = "INACTIVE", "Inactive"
         COMPLETED = "COMPLETED", "Completed"
         CANCELLED = "CANCELLED", "Cancelled"
 
