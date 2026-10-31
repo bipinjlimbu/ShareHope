@@ -222,27 +222,7 @@ def campaign_detail_view(request, pk):
         send_email(subject, message, [ngo.email])
         
         return Response({'message': 'Campaign deleted successfully.'}, status=status.HTTP_200_OK)
-    
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def pending_campaign_change_view(request):
-    if request.method == 'GET':
-        pending_changes = PendingCampaignChange.objects.all()
-        serializer = PendingCampaignChangeSerializer(pending_changes, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def pending_campaign_change_detail_view(request, pk):
-    try:
-        pending_change = PendingCampaignChange.objects.get(pk=pk)
-    except PendingCampaignChange.DoesNotExist:
-        return Response({'error': 'Pending campaign change not found.'}, status=status.HTTP_404_NOT_FOUND)
-    
-    if request.method == 'GET':
-        serializer = PendingCampaignChangeSerializer(pending_change)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    
+  
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
 def approve_campaign_view(request, pk):
@@ -288,6 +268,26 @@ def reject_campaign_view(request, pk):
         send_email(subject, message, [ngo.email])
         
         return Response({'message': 'Campaign rejected successfully.'}, status=status.HTTP_200_OK)
+      
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def pending_campaign_change_view(request):
+    if request.method == 'GET':
+        pending_changes = PendingCampaignChange.objects.all()
+        serializer = PendingCampaignChangeSerializer(pending_changes, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def pending_campaign_change_detail_view(request, pk):
+    try:
+        pending_change = PendingCampaignChange.objects.get(pk=pk)
+    except PendingCampaignChange.DoesNotExist:
+        return Response({'error': 'Pending campaign change not found.'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'GET':
+        serializer = PendingCampaignChangeSerializer(pending_change)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
 @api_view(['PATCH'])
 @permission_classes([IsAuthenticated])
