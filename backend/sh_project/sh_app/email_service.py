@@ -5,15 +5,32 @@ from django.core.mail import send_mail
 
 logger = logging.getLogger(__name__)
 
+
 def send_email(subject, message, recipient):
     try:
+        if isinstance(recipient, str):
+            recipient_list = [recipient]
+        else:
+            recipient_list = list(recipient)
+
+        recipient_list = [
+            email.strip()
+            for email in recipient_list
+            if isinstance(email, str) and email.strip()
+        ]
+
+        if not recipient_list:
+            logger.warning("No valid email recipient provided.")
+            return
+
         send_mail(
             subject,
             message,
             settings.DEFAULT_FROM_EMAIL,
-            [recipient],
+            recipient_list,
             fail_silently=False,
         )
+
     except Exception:
         logger.exception("Failed to send email to %s", recipient)
 
@@ -28,6 +45,7 @@ def send_in_background(subject, message, recipient):
 
 def welcome_email(user):
     subject = "Welcome to ShareHope"
+
     message = (
         f"Hello {user.first_name or user.username},\n\n"
         "Welcome to ShareHope!\n\n"
@@ -42,6 +60,7 @@ def welcome_email(user):
 
 def donation_email(recipient_email, donor_name, campaign_name):
     subject = "New Donation - ShareHope"
+
     message = (
         "Hello,\n\n"
         f"{donor_name} has made a donation to "
