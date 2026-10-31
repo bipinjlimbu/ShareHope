@@ -48,6 +48,10 @@ export interface CampaignDeleteResponse {
     message: string;
 }
 
+export interface CampaignApproveResponse {
+    message: string;
+}
+
 export type CampaignCreateErrors = Record<
     string,
     string | string[] | undefined
@@ -59,6 +63,11 @@ export type CampaignUpdateErrors = Record<
 >;
 
 export type CampaignDeleteErrors = Record<
+    string,
+    string | string[] | undefined
+>;
+
+export type CampaignApproveErrors = Record<
     string,
     string | string[] | undefined
 >;
