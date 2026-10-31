@@ -240,6 +240,7 @@ def campaign_detail_view(request, pk):
             elif status_update == Campaign.Status.INACTIVE:
                 subject = 'Campaign Deactivated'
                 message = f'Your campaign titled "{campaign.title}" has been deactivated by the admin. It is no longer accepting donations.'
+                
         else:
             if status_update == Campaign.Status.CANCELLED:
                 subject = 'Campaign Cancelled'
@@ -271,7 +272,7 @@ def pending_campaign_change_view(request):
         serializer = PendingCampaignChangeSerializer(pending_changes, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-@api_view(['GET'])
+@api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def pending_campaign_change_detail_view(request, pk):
     try:
@@ -283,55 +284,37 @@ def pending_campaign_change_detail_view(request, pk):
         serializer = PendingCampaignChangeSerializer(pending_change)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-@api_view(['PATCH'])
-@permission_classes([IsAuthenticated])
-def approve_pending_campaign_change_view(request, pk):
-    try:
-        pending_change = PendingCampaignChange.objects.get(pk=pk)
-    except PendingCampaignChange.DoesNotExist:
-        return Response({'error': 'Pending campaign change not found.'}, status=status.HTTP_404_NOT_FOUND)
-    
     if request.method == 'PATCH':
+        status_update = request.data.get('status')
+        if status_update not in ['APPROVED', 'REJECTED']:
+            return Response({'error': 'Invalid status value. Must be APPROVED or REJECTED.'}, status=status.HTTP_400_BAD_REQUEST)
+        
         if not request.user.is_staff:
-            return Response({'error': 'Only admin users can approve pending campaign changes.'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': 'Only admin users can approve or reject pending campaign changes.'}, status=status.HTTP_403_FORBIDDEN)
         
-        campaign = pending_change.campaign
-        campaign.title = pending_change.title
-        campaign.description = pending_change.description
-        campaign.goal_amount = pending_change.goal_amount
-        campaign.goal_quantity = pending_change.goal_quantity
-        campaign.end_date = pending_change.end_date
-        if pending_change.campaign_image:
-            campaign.campaign_image = pending_change.campaign_image
-        campaign.save()
-        
-        ngo = campaign.ngo
-        subject = 'Campaign Update Approved'
-        message = f'Your update for the campaign titled "{campaign.title}" has been approved by the admin. The changes are now live.'
-        send_email(subject, message, [ngo.email])
-        
+        if status_update == 'APPROVED':
+            campaign = pending_change.campaign
+            campaign.title = pending_change.title
+            campaign.description = pending_change.description
+            campaign.goal_amount = pending_change.goal_amount
+            campaign.goal_quantity = pending_change.goal_quantity
+            campaign.end_date = pending_change.end_date
+            if pending_change.campaign_image:
+                campaign.campaign_image = pending_change.campaign_image
+            campaign.save()
+            
+            ngo = campaign.ngo
+            subject = 'Campaign Update Approved'
+            message = f'Your update for the campaign titled "{campaign.title}" has been approved by the admin. The changes are now live.'
+            send_email(subject, message, [ngo.email])
+            
+        elif status_update == 'REJECTED':
+            campaign = pending_change.campaign
+            ngo = campaign.ngo
+            subject = 'Campaign Update Rejected'
+            message = f'Your update for the campaign titled "{campaign.title}" has been rejected by the admin. Please review the feedback and make necessary changes.'
+            send_email(subject, message, [ngo.email])
+            
         pending_change.delete()
         
-        return Response({'message': 'Pending campaign change approved successfully.'}, status=status.HTTP_200_OK)
-    
-@api_view(['PATCH'])
-@permission_classes([IsAuthenticated])
-def reject_pending_campaign_change_view(request, pk):
-    try:
-        pending_change = PendingCampaignChange.objects.get(pk=pk)
-    except PendingCampaignChange.DoesNotExist:
-        return Response({'error': 'Pending campaign change not found.'}, status=status.HTTP_404_NOT_FOUND)
-    
-    if request.method == 'PATCH':
-        if not request.user.is_staff:
-            return Response({'error': 'Only admin users can reject pending campaign changes.'}, status=status.HTTP_403_FORBIDDEN)
-        
-        campaign = pending_change.campaign
-        ngo = campaign.ngo
-        subject = 'Campaign Update Rejected'
-        message = f'Your update for the campaign titled "{campaign.title}" has been rejected by the admin. Please review the feedback and make necessary changes.'
-        send_email(subject, message, [ngo.email])
-        
-        pending_change.delete()
-        
-        return Response({'message': 'Pending campaign change rejected successfully.'}, status=status.HTTP_200_OK)
+        return Response({'message': f'Pending campaign change {status_update.lower()} successfully.'}, status=status.HTTP_200_OK)
