@@ -19,6 +19,7 @@ import {
 import {
     approveCampaign,
     getCampaigns,
+    rejectCampaign,
 } from "@/services/campaignService";
 import type {
     Campaign,
@@ -235,9 +236,14 @@ export default function PendingCampaignsPage() {
     const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(
         null
     );
+
     const [campaignToApprove, setCampaignToApprove] =
         useState<Campaign | null>(null);
+    const [campaignToReject, setCampaignToReject] =
+        useState<Campaign | null>(null);
+
     const [isApproving, setIsApproving] = useState(false);
+    const [isRejecting, setIsRejecting] = useState(false);
 
     const fetchPendingCampaigns = useCallback(async () => {
         const startedAt = Date.now();
@@ -288,7 +294,7 @@ export default function PendingCampaignsPage() {
     }, [fetchPendingCampaigns]);
 
     const handleApproveCampaign = async () => {
-        if (!campaignToApprove || isApproving) return;
+        if (!campaignToApprove || isApproving || isRejecting) return;
 
         setIsApproving(true);
 
@@ -301,11 +307,7 @@ export default function PendingCampaignsPage() {
                 )
             );
 
-            showToast(
-                "Campaign approved successfully.",
-                "success"
-            );
-
+            showToast("Campaign approved successfully.", "success");
             setCampaignToApprove(null);
         } catch (err: unknown) {
             console.error("Failed to approve campaign:", err);
@@ -316,6 +318,34 @@ export default function PendingCampaignsPage() {
             );
         } finally {
             setIsApproving(false);
+        }
+    };
+
+    const handleRejectCampaign = async () => {
+        if (!campaignToReject || isRejecting || isApproving) return;
+
+        setIsRejecting(true);
+
+        try {
+            await rejectCampaign(campaignToReject.id);
+
+            setCampaigns((previousCampaigns) =>
+                previousCampaigns.filter(
+                    (campaign) => campaign.id !== campaignToReject.id
+                )
+            );
+
+            showToast("Campaign rejected successfully.", "success");
+            setCampaignToReject(null);
+        } catch (err: unknown) {
+            console.error("Failed to reject campaign:", err);
+
+            showToast(
+                getErrorMessage(err) || "Failed to reject campaign.",
+                "error"
+            );
+        } finally {
+            setIsRejecting(false);
         }
     };
 
@@ -710,7 +740,7 @@ export default function PendingCampaignsPage() {
                                                                 onClick={() =>
                                                                     setCampaignToApprove(campaign)
                                                                 }
-                                                                disabled={isApproving}
+                                                                disabled={isApproving || isRejecting}
                                                                 className="flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 focus:outline-none focus:ring-4 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
                                                             >
                                                                 <CheckCircle2 size={16} />
@@ -719,7 +749,11 @@ export default function PendingCampaignsPage() {
 
                                                             <button
                                                                 type="button"
-                                                                className="flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-sm font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-100 focus:outline-none focus:ring-4 focus:ring-red-100"
+                                                                onClick={() =>
+                                                                    setCampaignToReject(campaign)
+                                                                }
+                                                                disabled={isApproving || isRejecting}
+                                                                className="flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-sm font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-100 focus:outline-none focus:ring-4 focus:ring-red-100 disabled:cursor-not-allowed disabled:opacity-50"
                                                             >
                                                                 <XCircle size={16} />
                                                                 Reject
@@ -764,6 +798,25 @@ export default function PendingCampaignsPage() {
                 onCancel={() => {
                     if (!isApproving) {
                         setCampaignToApprove(null);
+                    }
+                }}
+            />
+
+            <ConfirmationModal
+                isOpen={campaignToReject !== null}
+                title="Reject Campaign?"
+                description="Are you sure you want to reject this campaign? Once rejected, it will no longer appear in the pending campaigns list."
+                itemName={campaignToReject?.title}
+                confirmText="Reject Campaign"
+                isDeleting={isRejecting}
+                buttonColor="bg-red-600"
+                buttonHoverColor="hover:bg-red-700"
+                iconBackgroundColor="bg-red-50"
+                iconColor="text-red-600"
+                onConfirm={handleRejectCampaign}
+                onCancel={() => {
+                    if (!isRejecting) {
+                        setCampaignToReject(null);
                     }
                 }}
             />
