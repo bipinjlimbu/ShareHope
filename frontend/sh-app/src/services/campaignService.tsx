@@ -10,6 +10,9 @@ import type {
     CampaignUpdateErrors,
     CampaignDeleteResponse,
     CampaignDeleteErrors,
+    CampaignStatusUpdatePayload,
+    CampaignStatusUpdateResponse,
+    CampaignStatusUpdateErrors,
     CampaignApproveResponse,
     CampaignApproveErrors,
     CampaignRejectResponse,
@@ -117,6 +120,20 @@ export async function updateCampaign(
     }
 }
 
+export async function updateCampaignStatus(
+    id: number,
+    payload: CampaignStatusUpdatePayload
+): Promise<CampaignStatusUpdateResponse> {
+    try {
+        return (await authFetch(`/campaign/${id}/`, {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+        })) as CampaignStatusUpdateResponse;
+    } catch (error: unknown) {
+        throw error as CampaignStatusUpdateErrors;
+    }
+}
+
 export async function deleteCampaign(
     id: number
 ): Promise<CampaignDeleteResponse> {
@@ -133,9 +150,9 @@ export async function approveCampaign(
     id: number
 ): Promise<CampaignApproveResponse> {
     try {
-        return (await authFetch(`/campaign/${id}/approve/`, {
-            method: "PATCH",
-        })) as CampaignApproveResponse;
+        return await updateCampaignStatus(id, {
+            status: "APPROVED",
+        });
     } catch (error: unknown) {
         throw error as CampaignApproveErrors;
     }
@@ -145,9 +162,9 @@ export async function rejectCampaign(
     id: number
 ): Promise<CampaignRejectResponse> {
     try {
-        return (await authFetch(`/campaign/${id}/reject/`, {
-            method: "PATCH",
-        })) as CampaignRejectResponse;
+        return await updateCampaignStatus(id, {
+            status: "REJECTED",
+        });
     } catch (error: unknown) {
         throw error as CampaignRejectErrors;
     }
