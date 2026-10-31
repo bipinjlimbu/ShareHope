@@ -12,6 +12,8 @@ import type {
     CampaignDeleteErrors,
     CampaignApproveResponse,
     CampaignApproveErrors,
+    CampaignRejectResponse,
+    CampaignRejectErrors,
 } from "@/types/campaign";
 
 export async function getCampaigns(): Promise<CampaignListResponse> {
@@ -130,5 +132,17 @@ export async function approveCampaign(
         })) as CampaignApproveResponse;
     } catch (error: unknown) {
         throw error as CampaignApproveErrors;
+    }
+}
+
+export async function rejectCampaign(
+    id: number
+): Promise<CampaignRejectResponse> {
+    try {
+        return (await authFetch(`/campaign/${id}/reject/`, {
+            method: "PATCH",
+        })) as CampaignRejectResponse;
+    } catch (error: unknown) {
+        throw error as CampaignRejectErrors;
     }
 }
