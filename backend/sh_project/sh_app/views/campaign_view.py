@@ -130,7 +130,7 @@ def campaign_view(request):
         
         return Response({'message': 'Campaign created successfully.'}, status=status.HTTP_201_CREATED)
     
-@api_view(['GET', 'PUT', 'DELETE'])
+@api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
 @permission_classes([AllowAny])
 def campaign_detail_view(request, pk):
     try:
@@ -211,6 +211,29 @@ def campaign_detail_view(request, pk):
         send_email(subject, message, [ngo.email])
         
         return Response({'message': 'Campaign update submitted for approval.'}, status=status.HTTP_200_OK)
+    
+    if request.method == 'PATCH':
+        if campaign.created_by != request.user and not request.user.is_staff:
+            return Response({'error': 'You do not have permission to update this campaign.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        status_update = request.data.get('status')
+        if status_update not in [Campaign.Status.APPROVED, Campaign.Status.REJECTED, Campaign.Status.ACTIVE, Campaign.Status.INACTIVE, Campaign.Status.COMPLETED, Campaign.Status.CANCELLED]:
+            return Response({'error': 'Invalid status value.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        campaign.status = status_update
+        campaign.save()
+        
+        ngo = campaign.ngo
+        subject = 'Campaign Status Updated'
+        
+        if request.user.is_staff:
+            message = f'The status of your campaign titled "{campaign.title}" has been updated to "{status_update}" by the admin.'
+        else:
+            message = f'You have updated the status of your campaign titled "{campaign.title}" to "{status_update}".'
+            
+        send_email(subject, message, [ngo.email])
+        
+        return Response({'message': 'Campaign status updated successfully.'}, status=status.HTTP_200_OK)
     
     if request.method == 'DELETE':
         ngo = campaign.ngo
