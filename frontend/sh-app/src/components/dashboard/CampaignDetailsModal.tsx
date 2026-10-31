@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { getCampaignById } from "@/services/campaignService";
 import type { Campaign } from "@/types/campaign";
-import CampaignDetailsModalSkeleton from "@/components/skeleton/ngo-admin-dashboard/CampaignDetailsModalSkeleton";
+import CampaignDetailsModalSkeleton from "@/components/skeleton/dashboard/CampaignDetailsModalSkeleton";
 
 interface CampaignDetailsModalProps {
     isOpen: boolean;

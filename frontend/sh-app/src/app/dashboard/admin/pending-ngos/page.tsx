@@ -18,7 +18,7 @@ import {
 import { approveNGO, getNGOs, rejectNGO } from "@/services/ngoService";
 import type { NGOListItem } from "@/types/ngo";
 import PendingNGOsSkeleton from "@/components/skeleton/admin-dashboard/PendingNGOsSkeleton";
-import NGODetailsModal from "@/components/admin-dashboard/NGODetailsModal";
+import NGODetailsModal from "@/components/dashboard/NGODetailsModal";
 import ConfirmationModal from "@/components/common/ConfirmationModal";
 import { useToast } from "@/components/toast/ToastProvider";
 

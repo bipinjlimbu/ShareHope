@@ -23,7 +23,7 @@ import {
 } from "@/services/ngoService";
 import type { NGOListItem, NGOStatus } from "@/types/ngo";
 import NGOsSkeleton from "@/components/skeleton/admin-dashboard/NGOsSkeleton";
-import NGODetailsModal from "@/components/admin-dashboard/NGODetailsModal";
+import NGODetailsModal from "@/components/dashboard/NGODetailsModal";
 import ConfirmationModal from "@/components/common/ConfirmationModal";
 import { useToast } from "@/components/toast/ToastProvider";
 

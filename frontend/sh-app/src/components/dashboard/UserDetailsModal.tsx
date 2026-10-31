@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { getUserById } from "@/services/userService";
 import type { User } from "@/types/user";
-import UserDetailsModalSkeleton from "@/components/skeleton/admin-dashboard/UserDetailsModalSkeleton";
+import UserDetailsModalSkeleton from "@/components/skeleton/dashboard/UserDetailsModalSkeleton";
 
 interface UserDetailsModalProps {
     userId: number;

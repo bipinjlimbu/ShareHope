@@ -28,7 +28,7 @@ import type {
     CampaignDonationType,
     CampaignStatus,
 } from "@/types/campaign";
-import CampaignDetailsModal from "@/components/ngo-admin-dashboard/CampaignDetailsModal";
+import CampaignDetailsModal from "@/components/dashboard/CampaignDetailsModal";
 import CampaignsSkeleton from "@/components/skeleton/ngo-admin-dashboard/CampaignsSkeleton";
 import CreateCampaignForm from "@/components/form/CreateCampaignForm";
 import EditCampaignForm from "@/components/form/EditCampaignForm";

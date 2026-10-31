@@ -21,7 +21,7 @@ import {
 } from "@/services/userService";
 import type { RoleFilter, StatusFilter, User } from "@/types/user";
 import UsersSkeleton from "@/components/skeleton/admin-dashboard/UsersSkeleton";
-import UserDetailsModal from "@/components/admin-dashboard/UserDetailsModal";
+import UserDetailsModal from "@/components/dashboard/UserDetailsModal";
 import ConfirmationModal from "@/components/common/ConfirmationModal";
 import { useToast } from "@/components/toast/ToastProvider";
 

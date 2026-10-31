@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { getNGOById } from "@/services/ngoService";
 import type { NGOListItem } from "@/types/ngo";
-import NGODetailsModalSkeleton from "@/components/skeleton/admin-dashboard/NGODetailsModalSkeleton";
+import NGODetailsModalSkeleton from "@/components/skeleton/dashboard/NGODetailsModalSkeleton";
 
 interface NGODetailsModalProps {
     isOpen: boolean;
