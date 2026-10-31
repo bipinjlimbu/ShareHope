@@ -16,12 +16,16 @@ import {
     X,
     XCircle,
 } from "lucide-react";
-import { getCampaigns } from "@/services/campaignService";
+import {
+    approveCampaign,
+    getCampaigns,
+} from "@/services/campaignService";
 import type {
     Campaign,
     CampaignDonationType,
 } from "@/types/campaign";
 import CampaignDetailsModal from "@/components/dashboard/CampaignDetailsModal";
+import ConfirmationModal from "@/components/common/ConfirmationModal";
 import PendingCampaignsSkeleton from "@/components/skeleton/admin-dashboard/PendingCampaignsSkeleton";
 import { useToast } from "@/components/toast/ToastProvider";
 
@@ -127,6 +131,27 @@ function getGoalDescription(campaign: Campaign): string {
     return parts.length > 0 ? parts.join(" · ") : "No goal specified";
 }
 
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+        return error.message;
+    }
+
+    if (typeof error === "string") {
+        return error;
+    }
+
+    if (error && typeof error === "object") {
+        const errorData = error as Record<string, unknown>;
+        const message = errorData.detail ?? errorData.message;
+
+        if (typeof message === "string") {
+            return message;
+        }
+    }
+
+    return "Something went wrong. Please try again.";
+}
+
 function SummaryCard({
     title,
     value,
@@ -210,6 +235,9 @@ export default function PendingCampaignsPage() {
     const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(
         null
     );
+    const [campaignToApprove, setCampaignToApprove] =
+        useState<Campaign | null>(null);
+    const [isApproving, setIsApproving] = useState(false);
 
     const fetchPendingCampaigns = useCallback(async () => {
         const startedAt = Date.now();
@@ -236,9 +264,8 @@ export default function PendingCampaignsPage() {
             console.error("Failed to fetch pending campaigns:", err);
 
             const message =
-                err instanceof Error
-                    ? err.message
-                    : "Unable to load pending campaigns. Please try again.";
+                getErrorMessage(err) ||
+                "Unable to load pending campaigns. Please try again.";
 
             setError(message);
             showToast(message, "error");
@@ -259,6 +286,38 @@ export default function PendingCampaignsPage() {
     useEffect(() => {
         void fetchPendingCampaigns();
     }, [fetchPendingCampaigns]);
+
+    const handleApproveCampaign = async () => {
+        if (!campaignToApprove || isApproving) return;
+
+        setIsApproving(true);
+
+        try {
+            await approveCampaign(campaignToApprove.id);
+
+            setCampaigns((previousCampaigns) =>
+                previousCampaigns.filter(
+                    (campaign) => campaign.id !== campaignToApprove.id
+                )
+            );
+
+            showToast(
+                "Campaign approved successfully.",
+                "success"
+            );
+
+            setCampaignToApprove(null);
+        } catch (err: unknown) {
+            console.error("Failed to approve campaign:", err);
+
+            showToast(
+                getErrorMessage(err) || "Failed to approve campaign.",
+                "error"
+            );
+        } finally {
+            setIsApproving(false);
+        }
+    };
 
     const filteredCampaigns = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
@@ -648,7 +707,11 @@ export default function PendingCampaignsPage() {
                                                         <div className="grid grid-cols-2 gap-3">
                                                             <button
                                                                 type="button"
-                                                                className="flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 focus:outline-none focus:ring-4 focus:ring-emerald-100"
+                                                                onClick={() =>
+                                                                    setCampaignToApprove(campaign)
+                                                                }
+                                                                disabled={isApproving}
+                                                                className="flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 focus:outline-none focus:ring-4 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
                                                             >
                                                                 <CheckCircle2 size={16} />
                                                                 Approve
@@ -684,6 +747,25 @@ export default function PendingCampaignsPage() {
                 isOpen={selectedCampaignId !== null}
                 campaignId={selectedCampaignId}
                 onClose={() => setSelectedCampaignId(null)}
+            />
+
+            <ConfirmationModal
+                isOpen={campaignToApprove !== null}
+                title="Approve Campaign?"
+                description="Are you sure you want to approve this campaign? Once approved, it will no longer appear in the pending campaigns list."
+                itemName={campaignToApprove?.title}
+                confirmText="Approve Campaign"
+                isDeleting={isApproving}
+                buttonColor="bg-[#166534]"
+                buttonHoverColor="hover:bg-[#124D29]"
+                iconBackgroundColor="bg-emerald-50"
+                iconColor="text-emerald-600"
+                onConfirm={handleApproveCampaign}
+                onCancel={() => {
+                    if (!isApproving) {
+                        setCampaignToApprove(null);
+                    }
+                }}
             />
         </>
     );
