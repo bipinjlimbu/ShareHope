@@ -133,4 +133,19 @@ export interface Campaign {
     created_at: string;
 }
 
+export interface PendingCampaignChange {
+    id: number;
+    campaign: Campaign;
+    title: string;
+    description: string;
+    goal_amount: string | null;
+    goal_quantity: number | null;
+    end_date: string | null;
+    campaign_image: string | null;
+    submitted_by: User;
+    submitted_at: string;
+}
+
 export type CampaignListResponse = Campaign[];
+
+export type PendingCampaignChangeListResponse = PendingCampaignChange[];
