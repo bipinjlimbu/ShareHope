@@ -7,6 +7,15 @@ export type CampaignStatus =
     | "APPROVED"
     | "REJECTED"
     | "ACTIVE"
+    | "INACTIVE"
+    | "COMPLETED"
+    | "CANCELLED";
+
+export type CampaignStatusUpdate =
+    | "APPROVED"
+    | "REJECTED"
+    | "ACTIVE"
+    | "INACTIVE"
     | "COMPLETED"
     | "CANCELLED";
 
@@ -36,11 +45,19 @@ export interface CampaignUpdatePayload {
     campaign_image?: File | null;
 }
 
+export interface CampaignStatusUpdatePayload {
+    status: CampaignStatusUpdate;
+}
+
 export interface CampaignCreateResponse {
     message: string;
 }
 
 export interface CampaignUpdateResponse {
+    message: string;
+}
+
+export interface CampaignStatusUpdateResponse {
     message: string;
 }
 
@@ -70,6 +87,11 @@ export type CampaignCreateErrors = Record<
 >;
 
 export type CampaignUpdateErrors = Record<
+    string,
+    string | string[] | undefined
+>;
+
+export type CampaignStatusUpdateErrors = Record<
     string,
     string | string[] | undefined
 >;
