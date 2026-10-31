@@ -19,10 +19,9 @@ import type {
     CampaignRejectErrors,
     PendingCampaignChange,
     PendingCampaignChangeListResponse,
-    PendingCampaignChangeApproveResponse,
-    PendingCampaignChangeApproveErrors,
-    PendingCampaignChangeRejectResponse,
-    PendingCampaignChangeRejectErrors,
+    PendingCampaignChangeStatus,
+    PendingCampaignChangeStatusResponse,
+    PendingCampaignChangeStatusErrors,
 } from "@/types/campaign";
 
 export async function getCampaigns(): Promise<CampaignListResponse> {
@@ -184,26 +183,36 @@ export async function getPendingCampaignChangeById(
     })) as PendingCampaignChange;
 }
 
+export async function updatePendingCampaignChangeStatus(
+    id: number,
+    status: PendingCampaignChangeStatus
+): Promise<PendingCampaignChangeStatusResponse> {
+    try {
+        return (await authFetch(`/campaign/pending-change/${id}/`, {
+            method: "PATCH",
+            body: JSON.stringify({ status }),
+        })) as PendingCampaignChangeStatusResponse;
+    } catch (error: unknown) {
+        throw error as PendingCampaignChangeStatusErrors;
+    }
+}
+
 export async function approvePendingCampaignChange(
     id: number
-): Promise<PendingCampaignChangeApproveResponse> {
+): Promise<PendingCampaignChangeStatusResponse> {
     try {
-        return (await authFetch(`/campaign/pending-change/${id}/approve/`, {
-            method: "PATCH",
-        })) as PendingCampaignChangeApproveResponse;
+        return await updatePendingCampaignChangeStatus(id, "APPROVED");
     } catch (error: unknown) {
-        throw error as PendingCampaignChangeApproveErrors;
+        throw error as PendingCampaignChangeStatusErrors;
     }
 }
 
 export async function rejectPendingCampaignChange(
     id: number
-): Promise<PendingCampaignChangeRejectResponse> {
+): Promise<PendingCampaignChangeStatusResponse> {
     try {
-        return (await authFetch(`/campaign/pending-change/${id}/reject/`, {
-            method: "PATCH",
-        })) as PendingCampaignChangeRejectResponse;
+        return await updatePendingCampaignChangeStatus(id, "REJECTED");
     } catch (error: unknown) {
-        throw error as PendingCampaignChangeRejectErrors;
+        throw error as PendingCampaignChangeStatusErrors;
     }
 }
