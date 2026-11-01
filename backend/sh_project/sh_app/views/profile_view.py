@@ -12,11 +12,19 @@ from ..email_service import send_email
 import secrets
 import re
 
+def update_token_expiration():
+    today = timezone.localtime()
+    User.objects.filter(otp_expires_at__lt=today).update(hashed_otp=None, otp_expires_at=None)
+    User.objects.filter(reset_expires_at__lt=today).update(reset_hash=None, reset_expires_at=None)
+
 @api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def profile_view(request):
     if request.method == 'GET':
         user = request.user
+        
+        update_token_expiration()
+        
         serializer = UserSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
