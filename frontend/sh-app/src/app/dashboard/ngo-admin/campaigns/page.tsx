@@ -47,6 +47,7 @@ const campaignStatusStyles: Record<CampaignStatus, string> = {
     APPROVED: "bg-sky-50 text-sky-700",
     REJECTED: "bg-red-50 text-red-700",
     ACTIVE: "bg-emerald-50 text-emerald-700",
+    INACTIVE: "bg-gray-50 text-gray-700",
     COMPLETED: "bg-violet-50 text-violet-700",
     CANCELLED: "bg-[#F4F7F0] text-[#647568]",
 };
@@ -57,6 +58,7 @@ const campaignStatusLabels: Record<CampaignStatus, string> = {
     APPROVED: "Approved",
     REJECTED: "Rejected",
     ACTIVE: "Active",
+    INACTIVE: "Inactive",
     COMPLETED: "Completed",
     CANCELLED: "Cancelled",
 };
@@ -70,6 +72,7 @@ function normalizeStatus(status: string): CampaignStatus | null {
         normalized === "APPROVED" ||
         normalized === "REJECTED" ||
         normalized === "ACTIVE" ||
+        normalized === "INACTIVE" ||
         normalized === "COMPLETED" ||
         normalized === "CANCELLED"
     ) {
@@ -226,11 +229,13 @@ function StatusBadge({ status }: { status: string }) {
     const Icon =
         normalizedStatus === "REJECTED" || normalizedStatus === "CANCELLED"
             ? XCircle
-            : normalizedStatus === "ACTIVE" ||
-                normalizedStatus === "COMPLETED" ||
-                normalizedStatus === "APPROVED"
-                ? CheckCircle2
-                : Clock3;
+            : normalizedStatus === "INACTIVE"
+                ? Clock3
+                : normalizedStatus === "ACTIVE" ||
+                    normalizedStatus === "COMPLETED" ||
+                    normalizedStatus === "APPROVED"
+                    ? CheckCircle2
+                    : Clock3;
 
     return (
         <span
