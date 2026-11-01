@@ -4,7 +4,6 @@ from django.core.validators import MinValueValidator
 from django.utils import timezone
 import uuid
 
-
 class User(AbstractUser):
     class Role(models.TextChoices):
         ADMIN = "ADMIN", "Admin"
@@ -21,18 +20,6 @@ class User(AbstractUser):
     otp_expires_at = models.DateTimeField(blank=True, null=True)
     reset_hash = models.CharField(max_length=128, blank=True, null=True)
     reset_expires_at = models.DateTimeField(blank=True, null=True)
-    
-    def save(self, *args, **kwargs):
-        if self.otp_expires_at and self.otp_expires_at < timezone.now():
-            self.hashed_otp = None
-            self.otp_expires_at = None
-        super().save(*args, **kwargs)
-        
-    def save(self, *args, **kwargs):
-        if self.reset_expires_at and self.reset_expires_at < timezone.now():
-            self.reset_hash = None
-            self.reset_expires_at = None
-        super().save(*args, **kwargs)
 
     def save(self, *args, **kwargs):
         if self.is_staff or self.is_superuser:
@@ -79,7 +66,6 @@ class NGODocument(models.Model):
     def __str__(self):
         return f"{self.ngo.name} - {self.document_type}"
 
-
 class NGOMembership(models.Model):
     class Status(models.TextChoices):
         ACTIVE = "ACTIVE", "Active"
@@ -95,7 +81,6 @@ class NGOMembership(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.ngo.name}"
-
 
 class Campaign(models.Model):
     class Status(models.TextChoices):
@@ -185,7 +170,6 @@ class Donation(models.Model):
     def __str__(self):
         return str(self.reference_number)
 
-
 class DonationItem(models.Model):
     donation = models.ForeignKey(Donation, on_delete=models.CASCADE, related_name="items")
     item_name = models.CharField(max_length=150)
@@ -196,7 +180,6 @@ class DonationItem(models.Model):
 
     def __str__(self):
         return f"{self.item_name} x {self.quantity}"
-
 
 class Payment(models.Model):
     class Status(models.TextChoices):
@@ -217,7 +200,6 @@ class Payment(models.Model):
     def __str__(self):
         return f"{self.donation.reference_number} - {self.amount} {self.currency}"
 
-
 class DonationVerification(models.Model):
     class Result(models.TextChoices):
         RECEIVED = "RECEIVED", "Received"
@@ -235,7 +217,6 @@ class DonationVerification(models.Model):
     def __str__(self):
         return f"{self.donation.reference_number} - {self.result}"
 
-
 class Notification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
     title = models.CharField(max_length=200)
@@ -248,7 +229,6 @@ class Notification(models.Model):
 
     def __str__(self):
         return self.title
-
 
 class AuditLog(models.Model):
     actor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="audit_logs")
