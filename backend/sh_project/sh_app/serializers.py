@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, NGO, NGODocument, NGOMembership, Campaign
+from .models import User, NGO, NGODocument, NGOMembership, Campaign, PendingCampaignChange
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -73,18 +73,14 @@ class CampaignSerializer(serializers.ModelSerializer):
         
 class PendingCampaignChangeSerializer(serializers.ModelSerializer):
     campaign = serializers.SerializerMethodField()
-    created_by = serializers.SerializerMethodField()
-    reviewed_by = serializers.SerializerMethodField()
+    submitted_by = serializers.SerializerMethodField()
     
     def get_campaign(self, obj):
         return CampaignSerializer(obj.campaign).data
     
-    def get_created_by(self, obj):
-        return UserSerializer(obj.created_by).data
-    
-    def get_reviewed_by(self, obj):
-        return UserSerializer(obj.reviewed_by).data
-    
+    def get_submitted_by(self, obj):
+        return UserSerializer(obj.submitted_by).data
+        
     class Meta:
-        model = Campaign
+        model = PendingCampaignChange
         fields = '__all__'
