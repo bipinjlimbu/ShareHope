@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -20,6 +21,7 @@ import {
 import {
     deleteCampaign,
     getCampaigns,
+    updateCampaignStatus,
 } from "@/services/campaignService";
 import type {
     Campaign,
@@ -208,7 +210,7 @@ function getErrorMessage(error: unknown): string {
         }
     }
 
-    return "Unable to delete the campaign. Please try again.";
+    return "Unable to complete the campaign action. Please try again.";
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -324,6 +326,7 @@ export default function AdminCampaignsPage() {
         null
     );
     const [isDeleting, setIsDeleting] = useState(false);
+    const [updatingCampaignIds, setUpdatingCampaignIds] = useState<number[]>([]);
 
     const fetchCampaigns = useCallback(async () => {
         const startedAt = Date.now();
@@ -372,6 +375,59 @@ export default function AdminCampaignsPage() {
         void fetchCampaigns();
     }, [fetchCampaigns]);
 
+    const handleToggleCampaignStatus = async (campaign: Campaign) => {
+        const currentStatus = campaign.status.toUpperCase();
+
+        if (
+            currentStatus === "APPROVED" ||
+            currentStatus === "COMPLETED" ||
+            currentStatus === "CANCELLED" ||
+            currentStatus === "REJECTED" ||
+            updatingCampaignIds.includes(campaign.id)
+        ) {
+            return;
+        }
+
+        if (currentStatus !== "ACTIVE" && currentStatus !== "INACTIVE") {
+            return;
+        }
+
+        const nextStatus: CampaignStatus =
+            currentStatus === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+
+        setUpdatingCampaignIds((current) => [...current, campaign.id]);
+
+        try {
+            const response = await updateCampaignStatus(campaign.id, {
+                status: nextStatus,
+            });
+
+            setCampaigns((currentCampaigns) =>
+                currentCampaigns.map((currentCampaign) =>
+                    currentCampaign.id === campaign.id
+                        ? {
+                            ...currentCampaign,
+                            status: nextStatus,
+                        }
+                        : currentCampaign
+                )
+            );
+
+            showToast(
+                response.message ||
+                `Campaign ${nextStatus === "ACTIVE" ? "activated" : "deactivated"} successfully.`,
+                "success"
+            );
+        } catch (err: unknown) {
+            console.error("Failed to update campaign status:", err);
+            showToast(getErrorMessage(err), "error");
+        } finally {
+            setUpdatingCampaignIds((current) =>
+                current.filter((id) => id !== campaign.id)
+            );
+        }
+    };
+
     const handleDeleteCampaign = async () => {
         if (!campaignToDelete || isDeleting) {
             return;
@@ -398,7 +454,6 @@ export default function AdminCampaignsPage() {
         }
     };
 
-    // Draft and pending campaigns are managed on the separate approval page.
     const displayedCampaigns = useMemo(() => {
         return campaigns.filter(
             (campaign) =>
@@ -703,9 +758,22 @@ export default function AdminCampaignsPage() {
                                     className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2 lg:gap-6 2xl:gap-7"
                                 >
                                     {filteredCampaigns.map((campaign) => {
+                                        const currentStatus =
+                                            campaign.status.toUpperCase();
+
                                         const isActive =
-                                            campaign.status.toUpperCase() ===
-                                            "ACTIVE";
+                                            currentStatus === "ACTIVE";
+
+                                        const isToggleDisabled =
+                                            currentStatus === "APPROVED" ||
+                                            currentStatus === "COMPLETED" ||
+                                            currentStatus === "CANCELLED" ||
+                                            currentStatus === "REJECTED" ||
+                                            (currentStatus !== "ACTIVE" &&
+                                                currentStatus !== "INACTIVE");
+
+                                        const isUpdating =
+                                            updatingCampaignIds.includes(campaign.id);
 
                                         return (
                                             <article
@@ -859,35 +927,58 @@ export default function AdminCampaignsPage() {
                                                             <div className="grid grid-cols-2 gap-3">
                                                                 <button
                                                                     type="button"
+                                                                    disabled={
+                                                                        isToggleDisabled ||
+                                                                        isUpdating
+                                                                    }
                                                                     aria-label={
                                                                         isActive
                                                                             ? `Deactivate ${campaign.title}`
                                                                             : `Activate ${campaign.title}`
                                                                     }
                                                                     title={
-                                                                        isActive
-                                                                            ? "Deactivate campaign"
-                                                                            : "Activate campaign"
+                                                                        isToggleDisabled
+                                                                            ? `${campaignStatusLabels[normalizeStatus(currentStatus) || "APPROVED"]} campaigns cannot be toggled`
+                                                                            : isActive
+                                                                                ? "Deactivate campaign"
+                                                                                : "Activate campaign"
                                                                     }
-                                                                    className="flex items-center justify-center gap-2 rounded-xl border border-[#DDE7D9] bg-[#F8FAF6] px-3 py-2.5 text-sm font-semibold text-[#526B56] transition hover:bg-[#E5F2E1] hover:text-[#166534]"
+                                                                    onClick={() =>
+                                                                        void handleToggleCampaignStatus(
+                                                                            campaign
+                                                                        )
+                                                                    }
+                                                                    className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${isToggleDisabled
+                                                                        ? "cursor-not-allowed border-[#E5EDE3] bg-[#F3F5F1] text-[#A0AAA0]"
+                                                                        : "border-[#DDE7D9] bg-[#F8FAF6] text-[#526B56] hover:bg-[#E5F2E1] hover:text-[#166534]"
+                                                                        }`}
                                                                 >
-                                                                    <span
-                                                                        className={`relative h-4 w-7 shrink-0 rounded-full ${isActive
-                                                                            ? "bg-[#35A45C]"
-                                                                            : "bg-[#C9D3C6]"
-                                                                            }`}
-                                                                    >
-                                                                        <span
-                                                                            className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm ${isActive
-                                                                                ? "right-0.5"
-                                                                                : "left-0.5"
-                                                                                }`}
+                                                                    {isUpdating ? (
+                                                                        <RefreshCw
+                                                                            size={15}
+                                                                            className="shrink-0 animate-spin"
                                                                         />
-                                                                    </span>
+                                                                    ) : (
+                                                                        <span
+                                                                            className={`relative h-4 w-7 shrink-0 rounded-full ${isActive
+                                                                                ? "bg-[#35A45C]"
+                                                                                : "bg-[#C9D3C6]"
+                                                                                }`}
+                                                                        >
+                                                                            <span
+                                                                                className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm ${isActive
+                                                                                    ? "right-0.5"
+                                                                                    : "left-0.5"
+                                                                                    }`}
+                                                                            />
+                                                                        </span>
+                                                                    )}
 
-                                                                    {isActive
-                                                                        ? "Deactivate"
-                                                                        : "Activate"}
+                                                                    {isUpdating
+                                                                        ? "Updating..."
+                                                                        : isActive
+                                                                            ? "Deactivate"
+                                                                            : "Activate"}
                                                                 </button>
 
                                                                 <button
