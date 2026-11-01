@@ -169,7 +169,7 @@ def campaign_detail_view(request, pk):
         goal_amount = request.data.get('goal_amount', campaign.goal_amount)
         goal_quantity = request.data.get('goal_quantity', campaign.goal_quantity)
         end_date = request.data.get('end_date', campaign.end_date)
-        campaign_image = request.FILES.get('campaign_image', campaign.campaign_image)
+        campaign_image = request.FILES.get('campaign_image')
         
         title_pattern = r'^[A-Za-z0-9\s\-\_\.\,\!\?]+$'
         goal_amount_pattern = r'^\d+(\.\d{1,2})?$'
@@ -194,7 +194,7 @@ def campaign_detail_view(request, pk):
                 
         if not end_date:
             errors['end_date'] = 'End date is required.'
-        elif end_date <= campaign.start_date:
+        elif end_date <= str(campaign.start_date):
             errors['end_date'] = 'End date must be after the start date.'
         
         if campaign_image and not re.match(campaign_image_pattern, campaign_image.name):
@@ -219,7 +219,7 @@ def campaign_detail_view(request, pk):
             goal_amount=goal_amount if campaign.donation_type in [Campaign.DonationType.FUND, Campaign.DonationType.BOTH] else None,
             goal_quantity=goal_quantity if campaign.donation_type in [Campaign.DonationType.ITEM, Campaign.DonationType.BOTH] else None,
             end_date=end_date,
-            campaign_image=campaign_image if campaign_image != campaign.campaign_image else None,
+            campaign_image=campaign_image if campaign_image else campaign.campaign_image,
             submitted_by=request.user
         )
         pending_campaign_change.save()
