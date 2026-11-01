@@ -9,10 +9,29 @@ from ..serializers import CampaignSerializer, PendingCampaignChangeSerializer
 from ..email_service import send_email
 import re
 
+def update_campaign_statuses():
+    today = timezone.localdate()
+
+    Campaign.objects.filter(
+        status=Campaign.Status.APPROVED,
+        start_date__lte=today,
+        end_date__gte=today
+    ).update(status=Campaign.Status.ACTIVE)
+
+    Campaign.objects.filter(
+        status__in=[
+            Campaign.Status.ACTIVE,
+            Campaign.Status.INACTIVE
+        ],
+        end_date__lt=today
+    ).update(status=Campaign.Status.COMPLETED)
+
 @api_view(['GET', 'POST'])
 @permission_classes([AllowAny])
 def campaign_view(request):
     if request.method == 'GET':
+        update_campaign_statuses()
+        
         campaigns = Campaign.objects.all()
         serializer = CampaignSerializer(campaigns, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
