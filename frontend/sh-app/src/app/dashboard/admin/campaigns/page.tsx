@@ -27,7 +27,7 @@ import type {
     CampaignStatus,
 } from "@/types/campaign";
 import CampaignDetailsModal from "@/components/dashboard/CampaignDetailsModal";
-import CampaignsSkeleton from "@/components/skeleton/ngo-admin-dashboard/CampaignsSkeleton";
+import CampaignsSkeleton from "@/components/skeleton/admin-dashboard/CampaignsSkeleton";
 import ConfirmationModal from "@/components/common/ConfirmationModal";
 import { useToast } from "@/components/toast/ToastProvider";
 
