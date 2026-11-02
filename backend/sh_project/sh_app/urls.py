@@ -1,5 +1,6 @@
 from django.urls import path
 from .views.auth_view import register_view, login_view, refresh_token_view, logout_view, csrf_token_view, verify_otp_view, resend_reset_otp_view
+from .views.main_view import contact_view
 from .views.profile_view import profile_view, verify_email_view, resend_otp_view
 from .views.user_view import user_view, user_detail_view
 from .views.ngo_view import ngo_by_user_view, ngo_view, ngo_detail_view, approve_ngo_view, reject_ngo_view
@@ -27,4 +28,5 @@ urlpatterns = [
     path('campaign/<int:pk>/', campaign_detail_view, name='campaign_detail'),
     path('campaign/pending-change/', pending_campaign_change_view, name='pending_campaign_change'),
     path('campaign/pending-change/<int:pk>/', pending_campaign_change_detail_view, name='pending_campaign_change_detail'),
+    path('contact/', contact_view, name='contact'),
 ]
