@@ -1,10 +1,12 @@
+
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import {
     CalendarDays,
     CheckCircle2,
     Clock3,
+    ImageIcon,
     Layers3,
     PencilLine,
     Search,
@@ -17,6 +19,22 @@ interface PendingCampaignChangesSectionProps {
     pendingChanges: PendingCampaignChange[];
     searchQuery: string;
     onSearchChange: (value: string) => void;
+}
+
+const API_URL = (
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
+)
+    .replace(/\/api\/?$/, "")
+    .replace(/\/+$/, "");
+
+function getCampaignImageUrl(image: string | null | undefined): string | null {
+    if (!image) return null;
+
+    if (image.startsWith("http://") || image.startsWith("https://")) {
+        return image;
+    }
+
+    return `${API_URL}${image.startsWith("/") ? "" : "/"}${image}`;
 }
 
 function formatDate(value: string | null): string {
@@ -74,12 +92,30 @@ function PendingEditCard({
     change: PendingCampaignChange;
 }) {
     const campaign = change.campaign;
+    const [imageFailed, setImageFailed] = useState(false);
+
+    const imageUrl = getCampaignImageUrl(campaign?.campaign_image);
+
+    useEffect(() => {
+        setImageFailed(false);
+    }, [campaign?.campaign_image]);
 
     return (
         <article className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[#E5EDE3] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C9DFC4] hover:shadow-md">
             <div className="flex items-start gap-4 p-5 pb-0 sm:p-6 sm:pb-0">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[#EAF3E5] text-[#166534]">
-                    <PencilLine size={27} strokeWidth={1.6} />
+                <div className="relative aspect-video w-32 shrink-0 overflow-hidden rounded-xl bg-[#EAF3E5] sm:w-40">
+                    {imageUrl && !imageFailed ? (
+                        <img
+                            src={imageUrl}
+                            alt={campaign?.title || "Campaign image"}
+                            className="h-full w-full object-cover"
+                            onError={() => setImageFailed(true)}
+                        />
+                    ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[#166534]">
+                            <ImageIcon size={27} strokeWidth={1.6} />
+                        </div>
+                    )}
                 </div>
 
                 <div className="min-w-0 flex-1">
