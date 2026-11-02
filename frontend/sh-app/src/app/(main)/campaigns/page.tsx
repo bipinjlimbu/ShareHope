@@ -20,7 +20,7 @@ import type {
     Campaign,
     CampaignDonationType,
 } from "@/types/campaign";
-import CampaignsSkeleton from "@/components/skeleton/main/CampaignsSkeleton";
+import CampaignsDataFetchSkeleton from "@/components/skeleton/main/CampaignsDataFetchSkeleton";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "")
     .replace(/\/+$/, "")
@@ -247,10 +247,6 @@ export default function CampaignsPage() {
         setCategory("ALL");
     };
 
-    if (loading) {
-        return <CampaignsSkeleton />;
-    }
-
     return (
         <main className="min-h-screen bg-[#FFFCF6] px-5 py-12 sm:px-8 sm:py-16">
             <div className="mx-auto max-w-7xl">
@@ -335,7 +331,9 @@ export default function CampaignsPage() {
                     </div>
                 </section>
 
-                {error ? (
+                {loading ? (
+                    <CampaignsDataFetchSkeleton />
+                ) : error ? (
                     <div
                         role="alert"
                         className="mx-auto max-w-xl rounded-2xl border border-red-200 bg-red-50 p-6 text-center"
