@@ -25,6 +25,7 @@ import ConfirmationModal from "@/components/common/ConfirmationModal";
 import PendingCampaignsSkeleton from "@/components/skeleton/admin-dashboard/PendingCampaignsSkeleton";
 import PendingCampaignsSection from "@/components/admin-dashboard/PendingCampaignsSection";
 import PendingCampaignChangesSection from "@/components/admin-dashboard/PendingCampaignChangesSection";
+import PendingCampaignChangeDetailsModal from "@/components/admin-dashboard/PendingCampaignChangeDetailsModal";
 import { useToast } from "@/components/toast/ToastProvider";
 
 const MINIMUM_LOADING_TIME = 500;
@@ -109,6 +110,10 @@ export default function PendingCampaignsPage() {
     const [selectedCampaignId, setSelectedCampaignId] = useState<number | null>(
         null
     );
+
+    const [selectedPendingChangeId, setSelectedPendingChangeId] = useState<
+        number | null
+    >(null);
 
     const [campaignToApprove, setCampaignToApprove] =
         useState<Campaign | null>(null);
@@ -420,6 +425,7 @@ export default function PendingCampaignsPage() {
                                     pendingChanges={pendingChanges}
                                     searchQuery={searchQuery}
                                     onSearchChange={setSearchQuery}
+                                    onViewDetails={setSelectedPendingChangeId}
                                 />
                             )}
 
@@ -437,6 +443,12 @@ export default function PendingCampaignsPage() {
                 isOpen={selectedCampaignId !== null}
                 campaignId={selectedCampaignId}
                 onClose={() => setSelectedCampaignId(null)}
+            />
+
+            <PendingCampaignChangeDetailsModal
+                isOpen={selectedPendingChangeId !== null}
+                changeId={selectedPendingChangeId}
+                onClose={() => setSelectedPendingChangeId(null)}
             />
 
             <ConfirmationModal
