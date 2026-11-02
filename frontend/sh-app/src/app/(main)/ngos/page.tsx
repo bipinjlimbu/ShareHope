@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import {
     AlertCircle,
     Building2,
@@ -212,8 +213,16 @@ function NGOCard({ ngo }: { ngo: NGOListItem }) {
     const [logoFailed, setLogoFailed] = useState(false);
     const logoUrl = getNGOLogoUrl(ngo.ngo_logo);
 
+    useEffect(() => {
+        setLogoFailed(false);
+    }, [ngo.ngo_logo]);
+
     return (
-        <article className="group flex min-w-0 flex-col overflow-hidden rounded-3xl border border-[#E5EDE3] bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#C9DFC4] hover:shadow-xl">
+        <Link
+            href={`/ngos/${ngo.id}/`}
+            aria-label={`View organization: ${ngo.name}`}
+            className="group flex min-w-0 flex-col overflow-hidden rounded-3xl border border-[#E5EDE3] bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#C9DFC4] hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#35A45C]/30"
+        >
             <div className="relative h-52 w-full overflow-hidden bg-[#E5F2E1] sm:h-56">
                 {logoUrl && !logoFailed ? (
                     <img
@@ -288,6 +297,6 @@ function NGOCard({ ngo }: { ngo: NGOListItem }) {
                     </div>
                 </div>
             </div>
-        </article>
+        </Link>
     );
 }
