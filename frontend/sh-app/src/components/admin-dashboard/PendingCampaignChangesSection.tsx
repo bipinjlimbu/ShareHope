@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo, useEffect, useState } from "react";
@@ -19,6 +18,7 @@ interface PendingCampaignChangesSectionProps {
     pendingChanges: PendingCampaignChange[];
     searchQuery: string;
     onSearchChange: (value: string) => void;
+    onViewDetails: (id: number) => void;
 }
 
 const API_URL = (
@@ -66,9 +66,11 @@ function PendingStatusBadge({ label = "Pending Approval" }: { label?: string }) 
 function PlaceholderAction({
     children,
     variant,
+    onClick,
 }: {
     children: React.ReactNode;
     variant: "primary" | "success" | "danger";
+    onClick?: () => void;
 }) {
     const styles = {
         primary: "border-[#166534] bg-[#166534] text-white",
@@ -76,11 +78,25 @@ function PlaceholderAction({
         danger: "border-red-200 bg-red-50 text-red-600",
     };
 
+    const className = `inline-flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm font-semibold ${styles[variant]} ${onClick
+        ? "cursor-pointer transition hover:bg-[#124D29] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
+        : "cursor-default"
+        }`;
+
+    if (onClick) {
+        return (
+            <button
+                type="button"
+                onClick={onClick}
+                className={className}
+            >
+                {children}
+            </button>
+        );
+    }
+
     return (
-        <span
-            aria-disabled="true"
-            className={`inline-flex w-full cursor-default items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm font-semibold ${styles[variant]}`}
-        >
+        <span aria-disabled="true" className={className}>
             {children}
         </span>
     );
@@ -88,8 +104,10 @@ function PlaceholderAction({
 
 function PendingEditCard({
     change,
+    onViewDetails,
 }: {
     change: PendingCampaignChange;
+    onViewDetails: (id: number) => void;
 }) {
     const campaign = change.campaign;
     const [imageFailed, setImageFailed] = useState(false);
@@ -185,7 +203,10 @@ function PendingEditCard({
                     </div>
 
                     <div className="space-y-3">
-                        <PlaceholderAction variant="primary">
+                        <PlaceholderAction
+                            variant="primary"
+                            onClick={() => onViewDetails(change.id)}
+                        >
                             <Search size={16} />
                             View Details
                         </PlaceholderAction>
@@ -212,6 +233,7 @@ export default function PendingCampaignChangesSection({
     pendingChanges,
     searchQuery,
     onSearchChange,
+    onViewDetails,
 }: PendingCampaignChangesSectionProps) {
     const filteredChanges = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
@@ -330,6 +352,7 @@ export default function PendingCampaignChangesSection({
                         <PendingEditCard
                             key={change.id}
                             change={change}
+                            onViewDetails={onViewDetails}
                         />
                     ))}
                 </section>
