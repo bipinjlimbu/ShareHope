@@ -361,16 +361,16 @@ export default function PendingCampaignsPage() {
                                             setSearchQuery("");
                                         }}
                                         className={`flex min-w-0 items-center justify-center gap-2 rounded-xl px-3 py-4 text-sm font-semibold transition sm:px-5 ${activeTab === "NEW"
-                                                ? "bg-[#166534] text-white shadow-sm"
-                                                : "text-[#647568] hover:bg-[#F1F7ED] hover:text-[#183B2A]"
+                                            ? "bg-[#166534] text-white shadow-sm"
+                                            : "text-[#647568] hover:bg-[#F1F7ED] hover:text-[#183B2A]"
                                             }`}
                                     >
                                         <Layers3 size={17} />
                                         <span>New Campaigns</span>
                                         <span
                                             className={`rounded-full px-2 py-0.5 text-xs ${activeTab === "NEW"
-                                                    ? "bg-white/20 text-white"
-                                                    : "bg-[#E5F2E1] text-[#166534]"
+                                                ? "bg-white/20 text-white"
+                                                : "bg-[#E5F2E1] text-[#166534]"
                                                 }`}
                                         >
                                             {campaigns.length}
@@ -384,16 +384,16 @@ export default function PendingCampaignsPage() {
                                             setSearchQuery("");
                                         }}
                                         className={`flex min-w-0 items-center justify-center gap-2 rounded-xl px-3 py-4 text-sm font-semibold transition sm:px-5 ${activeTab === "EDITS"
-                                                ? "bg-[#166534] text-white shadow-sm"
-                                                : "text-[#647568] hover:bg-[#F1F7ED] hover:text-[#183B2A]"
+                                            ? "bg-[#166534] text-white shadow-sm"
+                                            : "text-[#647568] hover:bg-[#F1F7ED] hover:text-[#183B2A]"
                                             }`}
                                     >
                                         <PencilLine size={17} />
                                         <span>Edit Requests</span>
                                         <span
                                             className={`rounded-full px-2 py-0.5 text-xs ${activeTab === "EDITS"
-                                                    ? "bg-white/20 text-white"
-                                                    : "bg-amber-100 text-amber-700"
+                                                ? "bg-white/20 text-white"
+                                                : "bg-amber-100 text-amber-700"
                                                 }`}
                                         >
                                             {pendingChanges.length}
