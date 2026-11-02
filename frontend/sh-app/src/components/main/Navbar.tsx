@@ -6,7 +6,7 @@ import type { AuthUser } from "@/types/auth";
 import { getProfile } from "@/services/profileService";
 import { getAuthStatus } from "@/lib/authStatus";
 import LogoutButton from "@/components/main/LogoutButton";
-import NavbarSkeleton from "@/components/skeleton/main/NavbarSkeleton";
+import NavbarDataFetchSkeleton from "@/components/skeleton/main/NavbarDataFetchSkeleton";
 import NavLogo from "@/images/NavLogo.png";
 
 const links = [
@@ -14,6 +14,7 @@ const links = [
     { label: "Campaigns", href: "/campaigns" },
     { label: "NGOs", href: "/ngos" },
     { label: "About", href: "/about" },
+    { label: "Contact", href: "/contact" },
 ];
 
 export default function Navbar() {
@@ -78,6 +79,7 @@ export default function Navbar() {
         }
 
         function handleStorageChange() {
+            setIsCheckingAuth(true);
             void syncUser();
         }
 
@@ -94,10 +96,6 @@ export default function Navbar() {
             window.removeEventListener("storage", handleStorageChange);
         };
     }, []);
-
-    if (isCheckingAuth) {
-        return <NavbarSkeleton />;
-    }
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "");
     const username = user?.username ?? "";
@@ -141,7 +139,9 @@ export default function Navbar() {
                 </nav>
 
                 <div className="hidden items-center gap-3 md:flex">
-                    {user ? (
+                    {isCheckingAuth ? (
+                        <NavbarDataFetchSkeleton />
+                    ) : user ? (
                         <>
                             <a
                                 href="/profile"
@@ -240,7 +240,9 @@ export default function Navbar() {
                             </a>
                         ))}
 
-                        {user ? (
+                        {isCheckingAuth ? (
+                            <NavbarDataFetchSkeleton mobile />
+                        ) : user ? (
                             <>
                                 <a
                                     href="/profile"
@@ -267,6 +269,7 @@ export default function Navbar() {
                                         </span>
                                     </span>
                                 </a>
+
                                 <div className="mt-3">
                                     <LogoutButton
                                         onLoggedOut={closeMenu}
