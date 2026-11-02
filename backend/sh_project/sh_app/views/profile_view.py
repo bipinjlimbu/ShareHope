@@ -86,7 +86,9 @@ def profile_view(request):
         user.username = username
         user.first_name = first_name
         user.last_name = last_name
-        user.email = email
+        if user.email != email:
+            user.email = email
+            user.is_verified = False
         user.phone = phone
         if profile_picture:
             user.profile_picture = profile_picture
