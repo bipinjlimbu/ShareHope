@@ -1,4 +1,6 @@
+"use client";
 
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import {
     ArrowRight,
@@ -7,26 +9,30 @@ import {
     MapPin,
     MessageCircle,
     Send,
+    ShieldCheck,
+    LayoutDashboard,
 } from "lucide-react";
+import { getAuthStatus } from "@/lib/authStatus";
+import { getProfile } from "@/services/profileService";
+import { sendContactMessage } from "@/services/mainService";
+import type { ContactErrors } from "@/types/main";
+import ContactSkeleton from "@/components/skeleton/main/ContactSkeleton";
 
 const contactDetails = [
     {
         icon: Mail,
         label: "Email",
         value: "support@sharehope.org",
-        href: "mailto:support@sharehope.org",
     },
     {
         icon: MapPin,
         label: "Location",
         value: "Nepal",
-        href: null,
     },
     {
         icon: Clock3,
         label: "Response time",
         value: "Usually within 1–2 business days",
-        href: null,
     },
 ];
 
@@ -49,6 +55,160 @@ const faqs = [
 ];
 
 export default function ContactPage() {
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [isProfileLoading, setIsProfileLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const [formData, setFormData] = useState({
+        name: "",
+        email: "",
+        message: "",
+    });
+
+    const [errors, setErrors] = useState<ContactErrors>({});
+    const [successMessage, setSuccessMessage] = useState("");
+    const [generalError, setGeneralError] = useState("");
+
+    const loadProfile = useCallback(async () => {
+        if (!getAuthStatus()) {
+            setIsAuthenticated(false);
+            setIsAdmin(false);
+            setFormData({
+                name: "",
+                email: "",
+                message: "",
+            });
+            setIsProfileLoading(false);
+            return;
+        }
+
+        setIsAuthenticated(true);
+        setIsProfileLoading(true);
+
+        try {
+            const response = await getProfile();
+            const user = response.user;
+
+            setIsAdmin(user.role === "ADMIN");
+
+            const fullName = [user.first_name, user.last_name]
+                .filter(Boolean)
+                .join(" ")
+                .trim();
+
+            setFormData((previous) => ({
+                ...previous,
+                name: fullName || user.username || "",
+                email: user.email || "",
+            }));
+        } catch {
+            setIsAdmin(false);
+        } finally {
+            setIsProfileLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadProfile();
+
+        const handleAuthChange = () => {
+            loadProfile();
+        };
+
+        window.addEventListener("auth-change", handleAuthChange);
+
+        return () => {
+            window.removeEventListener("auth-change", handleAuthChange);
+        };
+    }, [loadProfile]);
+
+    const handleChange = (
+        field: keyof typeof formData,
+        value: string
+    ) => {
+        setFormData((previous) => ({
+            ...previous,
+            [field]: value,
+        }));
+
+        setErrors((previous) => ({
+            ...previous,
+            [field]: undefined,
+        }));
+
+        setSuccessMessage("");
+        setGeneralError("");
+    };
+
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        setIsSubmitting(true);
+        setErrors({});
+        setSuccessMessage("");
+        setGeneralError("");
+
+        try {
+            const response = await sendContactMessage(formData);
+
+            setSuccessMessage(
+                response.message || "Your message has been sent successfully."
+            );
+
+            setFormData((previous) => ({
+                ...previous,
+                message: "",
+            }));
+        } catch (error: unknown) {
+            const response = error as ContactErrors;
+            const fieldErrors: ContactErrors = {};
+
+            if (response && typeof response === "object") {
+                if (typeof response.name === "string") {
+                    fieldErrors.name = response.name;
+                }
+
+                if (typeof response.email === "string") {
+                    fieldErrors.email = response.email;
+                }
+
+                if (typeof response.message === "string") {
+                    fieldErrors.message = response.message;
+                }
+
+                const otherErrors = Object.entries(response).filter(
+                    ([key]) =>
+                        !["name", "email", "message", "general"].includes(key)
+                );
+
+                if (otherErrors.length > 0) {
+                    fieldErrors.general = otherErrors
+                        .map(([, value]) =>
+                            Array.isArray(value) ? value.join(" ") : String(value)
+                        )
+                        .join(" ");
+                }
+
+                if (response.general) {
+                    fieldErrors.general = response.general;
+                }
+            }
+
+            setErrors(fieldErrors);
+
+            if (fieldErrors.general) {
+                setGeneralError(fieldErrors.general);
+            } else if (Object.keys(fieldErrors).length === 0) {
+                setGeneralError(
+                    "Something went wrong while sending your message. Please try again."
+                );
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return (
         <main className="overflow-hidden bg-[#FFFCF6] text-[#183B2A]">
             <section className="relative border-b border-[#E5EBDD]">
@@ -76,7 +236,9 @@ export default function ContactPage() {
                                 <MessageCircle size={21} />
                             </div>
                             <div>
-                                <p className="text-sm font-semibold">We are here to help.</p>
+                                <p className="text-sm font-semibold">
+                                    We are here to help.
+                                </p>
                                 <p className="mt-1 text-sm text-[#7B897E]">
                                     Every message matters to us.
                                 </p>
@@ -141,18 +303,9 @@ export default function ContactPage() {
                                             <p className="text-xs font-semibold uppercase tracking-wider text-[#8A968B]">
                                                 {detail.label}
                                             </p>
-                                            {detail.href ? (
-                                                <a
-                                                    href={detail.href}
-                                                    className="mt-1 inline-block break-all text-sm font-semibold text-[#183B2A] transition hover:text-[#29904C]"
-                                                >
-                                                    {detail.value}
-                                                </a>
-                                            ) : (
-                                                <p className="mt-1 text-sm font-semibold leading-6 text-[#183B2A]">
-                                                    {detail.value}
-                                                </p>
-                                            )}
+                                            <p className="mt-1 break-all text-sm font-semibold leading-6 text-[#183B2A]">
+                                                {detail.value}
+                                            </p>
                                         </div>
                                     </div>
                                 );
@@ -160,7 +313,9 @@ export default function ContactPage() {
                         </div>
 
                         <div className="mt-14 border-l-2 border-[#29904C] pl-5">
-                            <p className="text-sm font-semibold">Prefer exploring first?</p>
+                            <p className="text-sm font-semibold">
+                                Prefer exploring first?
+                            </p>
                             <Link
                                 href="/campaigns/"
                                 className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-[#29904C] transition hover:gap-3"
@@ -171,109 +326,207 @@ export default function ContactPage() {
                         </div>
                     </aside>
 
-                    <div className="border border-[#E4E9DF] bg-white p-6 shadow-[0_12px_50px_rgba(24,59,42,0.04)] sm:p-10 lg:p-12">
-                        <div className="mb-9">
-                            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#29904C]">
-                                Send a message
-                            </p>
-                            <h2 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">
-                                How can we help?
-                            </h2>
-                            <p className="mt-3 text-sm leading-7 text-[#7B897E]">
-                                Fill in the details below and our team will get back to you.
-                            </p>
+                    {isProfileLoading ? (
+                        <ContactSkeleton />
+                    ) : isAdmin ? (
+                        <div className="relative flex min-h-[480px] flex-col justify-between overflow-hidden bg-[#164B2D] p-8 text-white sm:p-12">
+                            <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full border border-white/10" />
+                            <div className="absolute -right-8 -top-8 h-48 w-48 rounded-full border border-white/10" />
+                            <div className="absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-[#29904C]/20 blur-3xl" />
+
+                            <div className="relative">
+                                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/10 text-[#C5E5C3]">
+                                    <ShieldCheck size={26} />
+                                </div>
+
+                                <p className="mt-10 text-xs font-bold uppercase tracking-[0.2em] text-[#B9D9B9]">
+                                    Administrator workspace
+                                </p>
+
+                                <h2 className="mt-4 max-w-md font-serif text-4xl leading-tight sm:text-5xl">
+                                    Your work makes ShareHope possible.
+                                </h2>
+
+                                <p className="mt-6 max-w-md text-sm leading-7 text-white/70">
+                                    Manage the platform, oversee activities, and help ensure
+                                    every contribution reaches its intended purpose. Your
+                                    administrator workspace brings the essential tools
+                                    together in one place.
+                                </p>
+                            </div>
+
+                            <div className="relative mt-12 border-t border-white/15 pt-8">
+                                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#B9D9B9]">
+                                    Your workspace
+                                </p>
+
+                                <p className="mt-3 max-w-md text-sm leading-7 text-white/70">
+                                    Continue managing users, NGOs, campaigns, donations,
+                                    and platform activities from your dashboard.
+                                </p>
+
+                                <Link
+                                    href="/dashboard/admin/"
+                                    className="mt-8 inline-flex w-full items-center justify-center gap-3 bg-white px-6 py-4 text-sm font-semibold text-[#164B2D] transition hover:bg-[#E5F2E1]"
+                                >
+                                    <LayoutDashboard size={17} />
+                                    Go to Admin Dashboard
+                                    <ArrowRight size={16} />
+                                </Link>
+                            </div>
                         </div>
-
-                        <form
-                            action="mailto:support@sharehope.org"
-                            method="POST"
-                            encType="text/plain"
-                            className="space-y-6"
-                        >
-                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                                <div>
-                                    <label
-                                        htmlFor="name"
-                                        className="mb-2 block text-sm font-semibold"
-                                    >
-                                        Full name
-                                    </label>
-                                    <input
-                                        id="name"
-                                        name="Name"
-                                        type="text"
-                                        placeholder="Your full name"
-                                        required
-                                        className="w-full border border-[#E2E8DE] bg-[#FFFCF6] px-4 py-3.5 text-sm outline-none transition placeholder:text-[#A4AEA5] focus:border-[#29904C] focus:ring-2 focus:ring-[#29904C]/10"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label
-                                        htmlFor="email"
-                                        className="mb-2 block text-sm font-semibold"
-                                    >
-                                        Email address
-                                    </label>
-                                    <input
-                                        id="email"
-                                        name="Email"
-                                        type="email"
-                                        placeholder="you@example.com"
-                                        required
-                                        className="w-full border border-[#E2E8DE] bg-[#FFFCF6] px-4 py-3.5 text-sm outline-none transition placeholder:text-[#A4AEA5] focus:border-[#29904C] focus:ring-2 focus:ring-[#29904C]/10"
-                                    />
-                                </div>
+                    ) : (
+                        <div className="border border-[#E4E9DF] bg-white p-6 shadow-[0_12px_50px_rgba(24,59,42,0.04)] sm:p-10 lg:p-12">
+                            <div className="mb-9">
+                                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#29904C]">
+                                    Send a message
+                                </p>
+                                <h2 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">
+                                    How can we help?
+                                </h2>
+                                <p className="mt-3 text-sm leading-7 text-[#7B897E]">
+                                    {isAuthenticated
+                                        ? "Your profile details have been filled in. You can edit them before sending."
+                                        : "Fill in the details below and our team will get back to you."}
+                                </p>
                             </div>
 
-                            <div>
-                                <label
-                                    htmlFor="subject"
-                                    className="mb-2 block text-sm font-semibold"
-                                >
-                                    Subject
-                                </label>
-                                <input
-                                    id="subject"
-                                    name="Subject"
-                                    type="text"
-                                    placeholder="What is your message about?"
-                                    required
-                                    className="w-full border border-[#E2E8DE] bg-[#FFFCF6] px-4 py-3.5 text-sm outline-none transition placeholder:text-[#A4AEA5] focus:border-[#29904C] focus:ring-2 focus:ring-[#29904C]/10"
-                                />
-                            </div>
-
-                            <div>
-                                <label
-                                    htmlFor="message"
-                                    className="mb-2 block text-sm font-semibold"
-                                >
-                                    Your message
-                                </label>
-                                <textarea
-                                    id="message"
-                                    name="Message"
-                                    rows={6}
-                                    placeholder="Write your message here..."
-                                    required
-                                    className="w-full resize-y border border-[#E2E8DE] bg-[#FFFCF6] px-4 py-3.5 text-sm outline-none transition placeholder:text-[#A4AEA5] focus:border-[#29904C] focus:ring-2 focus:ring-[#29904C]/10"
-                                />
-                            </div>
-
-                            <button
-                                type="submit"
-                                className="inline-flex w-full items-center justify-center gap-3 bg-[#166534] px-7 py-4 text-sm font-semibold text-white transition hover:bg-[#14532D] sm:w-auto"
+                            <form
+                                onSubmit={handleSubmit}
+                                noValidate
+                                className="space-y-6"
                             >
-                                Send message
-                                <Send size={16} />
-                            </button>
+                                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                    <div>
+                                        <label
+                                            htmlFor="name"
+                                            className="mb-2 block text-sm font-semibold"
+                                        >
+                                            Full name
+                                        </label>
+                                        <input
+                                            id="name"
+                                            name="name"
+                                            type="text"
+                                            value={formData.name}
+                                            onChange={(event) =>
+                                                handleChange("name", event.target.value)
+                                            }
+                                            placeholder="Your full name"
+                                            aria-invalid={!!errors.name}
+                                            aria-describedby={
+                                                errors.name ? "name-error" : undefined
+                                            }
+                                            className="w-full border border-[#E2E8DE] bg-[#FFFCF6] px-4 py-3.5 text-sm outline-none transition placeholder:text-[#A4AEA5] focus:border-[#29904C] focus:ring-2 focus:ring-[#29904C]/10"
+                                        />
+                                        {errors.name && (
+                                            <p
+                                                id="name-error"
+                                                className="mt-2 text-xs text-red-600"
+                                            >
+                                                {errors.name}
+                                            </p>
+                                        )}
+                                    </div>
 
-                            <p className="text-xs leading-6 text-[#929D93]">
-                                This form opens your default email application. Your message
-                                will not be submitted directly to ShareHope.
-                            </p>
-                        </form>
-                    </div>
+                                    <div>
+                                        <label
+                                            htmlFor="email"
+                                            className="mb-2 block text-sm font-semibold"
+                                        >
+                                            Email address
+                                        </label>
+                                        <input
+                                            id="email"
+                                            name="email"
+                                            type="email"
+                                            value={formData.email}
+                                            onChange={(event) =>
+                                                handleChange("email", event.target.value)
+                                            }
+                                            placeholder="you@example.com"
+                                            aria-invalid={!!errors.email}
+                                            aria-describedby={
+                                                errors.email ? "email-error" : undefined
+                                            }
+                                            className="w-full border border-[#E2E8DE] bg-[#FFFCF6] px-4 py-3.5 text-sm outline-none transition placeholder:text-[#A4AEA5] focus:border-[#29904C] focus:ring-2 focus:ring-[#29904C]/10"
+                                        />
+                                        {errors.email && (
+                                            <p
+                                                id="email-error"
+                                                className="mt-2 text-xs text-red-600"
+                                            >
+                                                {errors.email}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label
+                                        htmlFor="message"
+                                        className="mb-2 block text-sm font-semibold"
+                                    >
+                                        Your message
+                                    </label>
+                                    <textarea
+                                        id="message"
+                                        name="message"
+                                        rows={6}
+                                        value={formData.message}
+                                        onChange={(event) =>
+                                            handleChange("message", event.target.value)
+                                        }
+                                        placeholder="Write your message here..."
+                                        aria-invalid={!!errors.message}
+                                        aria-describedby={
+                                            errors.message ? "message-error" : undefined
+                                        }
+                                        className="w-full resize-y border border-[#E2E8DE] bg-[#FFFCF6] px-4 py-3.5 text-sm outline-none transition placeholder:text-[#A4AEA5] focus:border-[#29904C] focus:ring-2 focus:ring-[#29904C]/10"
+                                    />
+                                    {errors.message && (
+                                        <p
+                                            id="message-error"
+                                            className="mt-2 text-xs text-red-600"
+                                        >
+                                            {errors.message}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {generalError && (
+                                    <div
+                                        role="alert"
+                                        className="border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                                    >
+                                        {generalError}
+                                    </div>
+                                )}
+
+                                {successMessage && (
+                                    <div
+                                        role="status"
+                                        className="border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
+                                    >
+                                        {successMessage}
+                                    </div>
+                                )}
+
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className="inline-flex w-full items-center justify-center gap-3 bg-[#166534] px-7 py-4 text-sm font-semibold text-white transition hover:bg-[#14532D] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                                >
+                                    {isSubmitting ? "Sending..." : "Send message"}
+                                    <Send size={16} />
+                                </button>
+
+                                <p className="text-xs leading-6 text-[#929D93]">
+                                    Your message will be sent to the ShareHope support team.
+                                </p>
+                            </form>
+                        </div>
+                    )}
                 </div>
             </section>
 
