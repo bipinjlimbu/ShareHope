@@ -58,7 +58,10 @@ function getErrorMessage(error: unknown): string {
             }
         }
 
-        if (typeof responseError.non_field_errors === "string") {
+        if (
+            typeof responseError.non_field_errors === "string" &&
+            responseError.non_field_errors.trim()
+        ) {
             return responseError.non_field_errors;
         }
     }
@@ -139,39 +142,15 @@ export default function ResetPasswordPage() {
         };
     }, [router, showToast]);
 
-    const passwordPattern =
-        /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
-
-    function validateForm(): boolean {
-        const validationErrors: Record<string, string> = {};
-
-        if (!newPassword) {
-            validationErrors.new_password = "New password is required.";
-        } else if (!passwordPattern.test(newPassword)) {
-            validationErrors.new_password =
-                "Use at least 8 characters, including a letter, a number, and a special character (@$!%*#?&).";
-        }
-
-        if (!confirmPassword) {
-            validationErrors.confirm_password =
-                "Please confirm your new password.";
-        } else if (newPassword !== confirmPassword) {
-            validationErrors.confirm_password = "Passwords do not match.";
-        }
-
-        setErrors(validationErrors);
-        return Object.keys(validationErrors).length === 0;
-    }
-
-    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        if (isSubmitting || redirectingRef.current || !validateForm()) {
+        if (isSubmitting || redirectingRef.current) {
             return;
         }
 
-        setIsSubmitting(true);
         setErrors({});
+        setIsSubmitting(true);
 
         const payload: ResetPasswordPayload = {
             new_password: newPassword,
@@ -214,13 +193,9 @@ export default function ResetPasswordPage() {
         } finally {
             setIsSubmitting(false);
         }
-    }
+    };
 
     if (isPageLoading || redirectingRef.current) {
-        return <ResetPasswordSkeleton />;
-    }
-
-    if (isSubmitting) {
         return <ResetPasswordSkeleton />;
     }
 
@@ -316,12 +291,10 @@ export default function ResetPasswordPage() {
                                 <button
                                     type="button"
                                     onClick={() =>
-                                        setShowNewPassword(
-                                            (previous) => !previous
-                                        )
+                                        setShowNewPassword((previous) => !previous)
                                     }
                                     disabled={isSubmitting}
-                                    className="absolute inset-y-0 right-3 text-xs font-semibold text-emerald-700 hover:text-emerald-800"
+                                    className="absolute inset-y-0 right-3 text-xs font-semibold text-emerald-700 hover:text-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
                                     aria-label={
                                         showNewPassword
                                             ? "Hide new password"
@@ -346,8 +319,8 @@ export default function ResetPasswordPage() {
                                 id="password-requirements"
                                 className="mt-2 text-xs leading-5 text-slate-500"
                             >
-                                At least 8 characters, with a letter, number,
-                                and special character.
+                                Follow the password requirements provided by
+                                the application.
                             </p>
                         </div>
 
@@ -399,7 +372,7 @@ export default function ResetPasswordPage() {
                                         )
                                     }
                                     disabled={isSubmitting}
-                                    className="absolute inset-y-0 right-3 text-xs font-semibold text-emerald-700 hover:text-emerald-800"
+                                    className="absolute inset-y-0 right-3 text-xs font-semibold text-emerald-700 hover:text-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
                                     aria-label={
                                         showConfirmPassword
                                             ? "Hide confirmation password"
@@ -424,9 +397,13 @@ export default function ResetPasswordPage() {
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="w-full rounded-xl bg-emerald-600 px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-200 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-200 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            Reset password
+                            {isSubmitting && (
+                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                            )}
+
+                            {isSubmitting ? "Resetting password..." : "Reset password"}
                         </button>
                     </form>
 
