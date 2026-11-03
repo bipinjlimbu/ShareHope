@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { getNGOs } from "@/services/ngoService";
 import type { NGOListItem } from "@/types/ngo";
-import NGOsSkeleton from "@/components/skeleton/main/NGOsSkeleton";
+import NGOsDataFetchSkeleton from "@/components/skeleton/main/NGOsDataFetchSkeleton";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "")
     .replace(/\/+$/, "")
@@ -79,10 +79,6 @@ export default function NGOsPage() {
             ngo.address,
         ].some((value) => value?.toLowerCase().includes(query));
     });
-
-    if (loading) {
-        return <NGOsSkeleton />;
-    }
 
     return (
         <main className="min-h-screen bg-[#FFFCF6] px-5 py-12 sm:px-8 sm:py-16">
@@ -151,6 +147,8 @@ export default function NGOsPage() {
                             Try again
                         </button>
                     </div>
+                ) : loading ? (
+                    <NGOsDataFetchSkeleton />
                 ) : filteredNGOs.length === 0 ? (
                     <div className="rounded-3xl border border-dashed border-[#D5E3D0] bg-white px-6 py-16 text-center">
                         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
