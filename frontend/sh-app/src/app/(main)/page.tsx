@@ -19,7 +19,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { getAuthStatus } from "@/lib/authStatus";
 
 import HomeButtonSkeleton from "@/components/skeleton/main/HomeButtonSkeleton";
-import HomeCampaignDataFetchSkeleton from "@/components/skeleton/main/HomeCampaignDataFetchSkeleton";
+import HomeCampaignsDataFetchSkeleton from "@/components/skeleton/main/HomeCampaignsDataFetchSkeleton";
 
 import {
     AlertCircle,
@@ -941,7 +941,7 @@ export default function Home() {
 
                     <div className="mt-9">
                         {campaignsLoading ? (
-                            <HomeCampaignDataFetchSkeleton />
+                            <HomeCampaignsDataFetchSkeleton />
                         ) : campaignsError ? (
                             <div
                                 role="alert"
