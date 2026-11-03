@@ -2,13 +2,13 @@
 
 import { useEffect, useState, type FormEvent, type ChangeEvent } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { requestPasswordResetOtp } from "@/services/authService";
 import { useToast } from "@/components/toast/ToastProvider";
 import ForgotPasswordSkeleton from "@/components/skeleton/auth/ForgotPasswordSkeleton";
 import type { ForgotPasswordPayload } from "@/types/auth";
 import FooterLogo from "@/images/FooterLogo.png";
-import Image from "next/image";
 import { getAuthStatus } from "@/lib/authStatus";
 
 function getErrorMessage(error: unknown): string {
@@ -75,37 +75,22 @@ export default function ForgotPasswordPage() {
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
 
-        const normalizedEmail = email.trim();
-
-        if (!normalizedEmail) {
-            showToast("Please enter your email address.", "error");
-            return;
-        }
-
-        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-        if (!emailPattern.test(normalizedEmail)) {
-            showToast("Please enter a valid email address.", "error");
-            return;
-        }
+        const payload: ForgotPasswordPayload = {
+            email: email.trim(),
+        };
 
         setLoading(true);
 
         try {
-            const payload: ForgotPasswordPayload = {
-                email: normalizedEmail,
-            };
-
             const response = await requestPasswordResetOtp(payload);
 
-            setEmail(normalizedEmail);
             showToast(
                 response.message || "Password-reset OTP sent successfully.",
                 "success"
             );
 
             router.push(
-                `/login/verify-otp?email=${encodeURIComponent(normalizedEmail)}`
+                `/login/verify-otp?email=${encodeURIComponent(payload.email)}`
             );
         } catch (error: unknown) {
             showToast(getErrorMessage(error), "error");
