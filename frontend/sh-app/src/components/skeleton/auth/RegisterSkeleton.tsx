@@ -1,7 +1,11 @@
 export default function RegisterSkeleton() {
     return (
-        <main className="min-h-screen animate-pulse bg-[#FFFCF6] px-4 py-10 sm:px-6 lg:py-16">
-            <div className="mx-auto grid max-w-6xl overflow-hidden rounded-3xl bg-white shadow-xl shadow-green-950/5 lg:grid-cols-2">
+        <main
+            aria-label="Loading registration page"
+            aria-busy="true"
+            className="min-h-screen bg-[#FFFCF6] px-4 py-10 sm:px-6 lg:py-16"
+        >
+            <div className="mx-auto grid max-w-6xl animate-pulse overflow-hidden rounded-3xl bg-white shadow-xl shadow-green-950/5 lg:grid-cols-2">
                 <section className="relative flex flex-col justify-between overflow-hidden bg-[#14532D] p-8 sm:p-12 lg:p-14">
                     <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-green-400/10" />
                     <div className="absolute -bottom-24 -left-20 h-72 w-72 rounded-full bg-lime-300/10" />
@@ -25,6 +29,7 @@ export default function RegisterSkeleton() {
 
                     <div className="relative mt-16 rounded-2xl border border-white/15 bg-white/10 p-5">
                         <div className="h-5 w-56 max-w-full rounded bg-white/20" />
+
                         <div className="mt-4 space-y-2">
                             <div className="h-4 w-full rounded bg-green-100/20" />
                             <div className="h-4 w-11/12 rounded bg-green-100/20" />
@@ -47,6 +52,7 @@ export default function RegisterSkeleton() {
                                     <div className="mb-2 h-4 w-24 rounded bg-gray-200" />
                                     <div className="h-12 rounded-xl border border-gray-200 bg-gray-100" />
                                 </div>
+
                                 <div>
                                     <div className="mb-2 h-4 w-24 rounded bg-gray-200" />
                                     <div className="h-12 rounded-xl border border-gray-200 bg-gray-100" />
@@ -75,7 +81,7 @@ export default function RegisterSkeleton() {
 
                             <div>
                                 <div className="mb-2 h-4 w-36 rounded bg-gray-200" />
-                                <div className="h-12 rounded-xl border border-gray-200 bg-gray-100" />
+                                <div className="h-14 rounded-xl border border-gray-200 bg-gray-100" />
                             </div>
 
                             <div>
