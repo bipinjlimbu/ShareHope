@@ -24,27 +24,17 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
 
     useEffect(() => {
-        const checkAuthStatus = () => {
-            if (getAuthStatus()) {
-                showToast(
-                    "You are already logged in, so you are not allowed to access this page.",
-                    "error"
-                );
+        if (getAuthStatus()) {
+            showToast(
+                "You are already logged in, so you are not allowed to access this page.",
+                "error"
+            );
 
-                router.replace("/");
-                return;
-            }
+            router.replace("/");
+            return;
+        }
 
-            setIsPageLoading(false);
-        };
-
-        checkAuthStatus();
-
-        window.addEventListener("auth-change", checkAuthStatus);
-
-        return () => {
-            window.removeEventListener("auth-change", checkAuthStatus);
-        };
+        setIsPageLoading(false);
     }, [router, showToast]);
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
