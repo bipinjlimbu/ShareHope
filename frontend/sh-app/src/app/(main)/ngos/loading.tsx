@@ -15,7 +15,6 @@ export default function Loading() {
 
                     <div className="mx-auto mt-5 max-w-xl space-y-2">
                         <div className="mx-auto h-4 w-full max-w-md rounded bg-[#E5EDE3]" />
-                        <div className="mx-auto h-4 w-3/4 max-w-sm rounded bg-[#E5EDE3]" />
                     </div>
                 </header>
 
