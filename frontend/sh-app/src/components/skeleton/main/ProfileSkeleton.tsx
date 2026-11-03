@@ -1,6 +1,10 @@
 export default function ProfileSkeleton() {
     return (
-        <main className="min-h-screen animate-pulse bg-[#FFFCF6] px-5 py-10 sm:px-8 sm:py-14">
+        <main
+            className="min-h-screen animate-pulse bg-[#FFFCF6] px-5 py-10 sm:px-8 sm:py-14"
+            aria-label="Loading profile"
+            aria-busy="true"
+        >
             <div className="mx-auto max-w-5xl">
                 <div className="mb-8">
                     <div className="h-4 w-28 rounded bg-[#DDE9D9]" />
