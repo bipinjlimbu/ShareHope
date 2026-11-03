@@ -1,61 +1,41 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+    type ReactNode,
+} from "react";
+import Link from "next/link";
 import type { ProfileUser } from "@/types/profile";
+import type {
+    Campaign,
+    CampaignDonationType,
+} from "@/types/campaign";
 import { getProfile } from "@/services/profileService";
+import { getCampaigns } from "@/services/campaignService";
 import { useToast } from "@/components/toast/ToastProvider";
 import { getAuthStatus } from "@/lib/authStatus";
 
-const campaigns = [
-    {
-        id: 1,
-        title: "Help children return to school",
-        category: "Education",
-        ngo: "Bright Future Foundation",
-        donation_type: "BOTH",
-        goal_amount: 150000,
-        raised_amount: 97500,
-        goal_quantity: 200,
-        donated_quantity: 126,
-        goal_item_name: "School supply kits",
-        status: "ACTIVE",
-        image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1000&q=85",
-        donors: 84,
-        featured: true,
-    },
-    {
-        id: 2,
-        title: "Nutritious meals for families",
-        category: "Food & Essentials",
-        ngo: "Community Care Nepal",
-        donation_type: "ITEM",
-        goal_amount: null,
-        raised_amount: 0,
-        goal_quantity: 500,
-        donated_quantity: 315,
-        goal_item_name: "Food packages",
-        status: "ACTIVE",
-        image: "https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=1000&q=85",
-        donors: 62,
-        featured: false,
-    },
-    {
-        id: 3,
-        title: "Clean water for rural communities",
-        category: "Health & Water",
-        ngo: "Himalayan Hope Initiative",
-        donation_type: "FUND",
-        goal_amount: 250000,
-        raised_amount: 172500,
-        goal_quantity: null,
-        donated_quantity: 0,
-        goal_item_name: "",
-        status: "ACTIVE",
-        image: "https://images.unsplash.com/photo-1541544741938-0af808871cc0?auto=format&fit=crop&w=1000&q=85",
-        donors: 137,
-        featured: false,
-    },
-];
+import HomeButtonSkeleton from "@/components/skeleton/main/HomeButtonSkeleton";
+import HomeCampaignDataFetchSkeleton from "@/components/skeleton/main/HomeCampaignDataFetchSkeleton";
+
+import {
+    AlertCircle,
+    CalendarDays,
+    CheckCircle2,
+    Coins,
+    ImageIcon,
+    Layers3,
+    Package,
+    RefreshCw,
+    Target,
+} from "lucide-react";
+
+const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "")
+    .replace(/\/+$/, "")
+    .replace(/\/api$/i, "");
 
 const categories = [
     {
@@ -143,13 +123,6 @@ function Icon({
                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </>
         ),
-        globe: (
-            <>
-                <circle cx="12" cy="12" r="10" />
-                <path d="M2 12h20" />
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z" />
-            </>
-        ),
         check: (
             <>
                 <path d="m5 12 4 4L19 6" />
@@ -178,195 +151,385 @@ function Icon({
     );
 }
 
-function CampaignCard({
-    campaign,
-}: {
-    campaign: (typeof campaigns)[number];
-}) {
-    const isItem = campaign.donation_type === "ITEM";
-    const isBoth = campaign.donation_type === "BOTH";
+function getCampaignImageUrl(path: string | null): string | null {
+    if (!path) return null;
 
-    const moneyProgress = campaign.goal_amount
-        ? Math.min(
-            100,
+    if (/^https?:\/\//i.test(path)) return path;
+
+    return `${API_URL}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+function formatDate(value: string): string {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return "Unknown date";
+    }
+
+    return new Intl.DateTimeFormat("en-NP", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        timeZone: "Asia/Kathmandu",
+    }).format(date);
+}
+
+function formatAmount(amount: string | null, currency: string): string {
+    if (amount === null || amount === "") {
+        return "No fund goal";
+    }
+
+    const numericAmount = Number(amount);
+
+    if (!Number.isFinite(numericAmount)) {
+        return `${currency} ${amount}`;
+    }
+
+    return `${currency} ${numericAmount.toLocaleString("en-NP", {
+        maximumFractionDigits: 2,
+    })}`;
+}
+
+function getDonationTypeLabel(type: CampaignDonationType): string {
+    switch (type) {
+        case "FUND":
+            return "Funds";
+        case "ITEM":
+            return "Physical Items";
+        case "BOTH":
+            return "Funds and Items";
+        default:
+            return "Unknown";
+    }
+}
+
+function getCampaignGoal(campaign: Campaign): string[] {
+    const goals: string[] = [];
+
+    if (
+        (campaign.donation_type === "FUND" ||
+            campaign.donation_type === "BOTH") &&
+        campaign.goal_amount !== null
+    ) {
+        goals.push(
+            formatAmount(campaign.goal_amount, campaign.currency)
+        );
+    }
+
+    if (
+        (campaign.donation_type === "ITEM" ||
+            campaign.donation_type === "BOTH") &&
+        campaign.goal_quantity !== null
+    ) {
+        const itemName = campaign.goal_item_name?.trim();
+
+        goals.push(
+            `${campaign.goal_quantity.toLocaleString("en-NP")} ${itemName || "items"}`
+        );
+    }
+
+    return goals;
+}
+
+function getCampaignProgress(campaign: Campaign): number {
+    const progress: number[] = [];
+
+    if (
+        (campaign.donation_type === "FUND" ||
+            campaign.donation_type === "BOTH") &&
+        campaign.goal_amount !== null
+    ) {
+        const goal = Number(campaign.goal_amount);
+        const collected = Number(campaign.collected_amount);
+
+        if (goal > 0 && Number.isFinite(collected)) {
+            progress.push((collected / goal) * 100);
+        }
+    }
+
+    if (
+        (campaign.donation_type === "ITEM" ||
+            campaign.donation_type === "BOTH") &&
+        campaign.goal_quantity !== null &&
+        campaign.goal_quantity > 0
+    ) {
+        progress.push(
+            (campaign.collected_quantity / campaign.goal_quantity) * 100
+        );
+    }
+
+    if (progress.length === 0) return 0;
+
+    return Math.min(
+        100,
+        Math.max(
+            0,
             Math.round(
-                (campaign.raised_amount / campaign.goal_amount) * 100
+                progress.reduce((sum, value) => sum + value, 0) /
+                progress.length
             )
         )
-        : 0;
+    );
+}
 
-    const itemProgress = campaign.goal_quantity
-        ? Math.min(
-            100,
-            Math.round(
-                (campaign.donated_quantity / campaign.goal_quantity) * 100
-            )
-        )
-        : 0;
+function CampaignCard({ campaign }: { campaign: Campaign }) {
+    const [imageFailed, setImageFailed] = useState(false);
+
+    const imageUrl = getCampaignImageUrl(campaign.campaign_image);
+    const goals = getCampaignGoal(campaign);
+    const progress = getCampaignProgress(campaign);
+
+    useEffect(() => {
+        setImageFailed(false);
+    }, [campaign.campaign_image]);
 
     return (
-        <article className="group flex h-full flex-col overflow-hidden rounded-3xl border border-[#E6EDE4] bg-white transition duration-300 hover:-translate-y-1 hover:border-[#BCD8BE] hover:shadow-xl hover:shadow-[#1D5731]/8">
-            <a
-                href={`/campaigns/${campaign.id}`}
-                className="relative block h-56 overflow-hidden bg-[#E8F0E5]"
-            >
-                <img
-                    src={campaign.image}
-                    alt={campaign.title}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                />
-
-                <span className="absolute left-4 top-4 rounded-full border border-white/60 bg-white/95 px-3 py-1.5 text-xs font-semibold text-[#24623A] shadow-sm">
-                    {campaign.category}
-                </span>
-
-                <span className="absolute right-4 top-4 rounded-full bg-[#14532D]/90 px-3 py-1.5 text-xs font-semibold text-white">
-                    {isBoth
-                        ? "Funds + Items"
-                        : isItem
-                            ? "Items needed"
-                            : "Fundraising"}
-                </span>
-            </a>
-
-            <div className="flex flex-1 flex-col p-5 sm:p-6">
-                <div className="mb-3 flex items-center gap-2 text-xs font-medium text-[#738074]">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#E6F2E6] text-[#277443]">
-                        <Icon name="shield" className="h-3.5 w-3.5" />
-                    </span>
-
-                    <span className="line-clamp-1">{campaign.ngo}</span>
-
-                    <Icon
-                        name="check"
-                        className="h-4 w-4 shrink-0 text-[#27824B]"
+        <Link
+            href={`/campaigns/${campaign.id}/`}
+            aria-label={`View campaign: ${campaign.title}`}
+            className="group flex min-w-0 flex-col overflow-hidden rounded-3xl border border-[#E5EDE3] bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#C9DFC4] hover:shadow-xl focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#35A45C]/30"
+        >
+            <div className="relative h-56 w-full overflow-hidden bg-[#E5F2E1] sm:h-64">
+                {imageUrl && !imageFailed ? (
+                    <img
+                        src={imageUrl}
+                        alt={campaign.title}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        onError={() => setImageFailed(true)}
                     />
+                ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#E5F2E1] via-[#F0F7ED] to-[#D8EBD3]">
+                        <ImageIcon
+                            size={64}
+                            strokeWidth={1.2}
+                            className="text-[#166534]/50"
+                        />
+                    </div>
+                )}
+
+                <div className="absolute inset-0 bg-gradient-to-t from-[#183B2A]/50 via-transparent to-black/5" />
+
+                <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full border border-white/60 bg-white/95 px-3 py-1.5 text-xs font-bold text-[#166534] shadow-sm backdrop-blur-sm">
+                    <CheckCircle2 size={13} />
+                    Active Campaign
+                </span>
+
+                <span className="absolute bottom-4 left-4 rounded-full bg-[#183B2A]/80 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-sm">
+                    {campaign.category || "General"}
+                </span>
+            </div>
+
+            <div className="flex flex-1 flex-col p-5 sm:p-7">
+                <div className="min-w-0">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-[#29904C]">
+                        {campaign.donation_type === "FUND" ? (
+                            <Coins size={15} />
+                        ) : campaign.donation_type === "ITEM" ? (
+                            <Package size={15} />
+                        ) : (
+                            <Layers3 size={15} />
+                        )}
+
+                        {getDonationTypeLabel(campaign.donation_type)}
+                    </div>
+
+                    <h2 className="mt-3 break-words text-xl font-bold leading-7 text-[#183B2A] transition-colors group-hover:text-[#166534] sm:text-2xl">
+                        {campaign.title}
+                    </h2>
                 </div>
 
-                <h3 className="text-lg font-bold leading-7 tracking-tight text-[#183B2A] transition group-hover:text-[#247640]">
-                    <a href={`/campaigns/${campaign.id}`}>
-                        {campaign.title}
-                    </a>
-                </h3>
+                <div className="mt-5 rounded-xl border border-[#DDE8D7] bg-[#F4F8F0] p-4 sm:p-5">
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#647568]">
+                        <Target size={15} className="text-[#27824B]" />
+                        Campaign Goal
+                    </div>
 
-                <p className="mt-2 text-sm leading-6 text-[#748074]">
-                    {isItem
-                        ? `Help provide ${campaign.goal_item_name.toLowerCase()} for people who need them.`
-                        : isBoth
-                            ? `Support this community with funds or ${campaign.goal_item_name.toLowerCase()}.`
-                            : "Every contribution helps this community move closer to its goal."}
-                </p>
-
-                <div className="mt-auto pt-6">
-                    {!isItem && campaign.goal_amount !== null && (
-                        <div className="mb-4">
-                            <div className="mb-2 flex items-end justify-between gap-2">
-                                <div>
-                                    <p className="text-xs text-[#849084]">
-                                        Raised so far
-                                    </p>
-                                    <p className="mt-1 text-xl font-extrabold tracking-tight text-[#14532D]">
-                                        Rs.{" "}
-                                        {campaign.raised_amount.toLocaleString(
-                                            "en-IN"
-                                        )}
-                                    </p>
-                                </div>
-
-                                <p className="text-sm font-bold text-[#27824B]">
-                                    {moneyProgress}%
+                    {goals.length > 0 ? (
+                        <div className="mt-2 space-y-1">
+                            {goals.map((goal, index) => (
+                                <p
+                                    key={index}
+                                    className="break-words text-sm font-bold leading-6 text-[#183B2A]"
+                                >
+                                    {goal}
                                 </p>
-                            </div>
-
-                            <div className="h-2 overflow-hidden rounded-full bg-[#E9F0E6]">
-                                <div
-                                    className="h-full rounded-full bg-[#35A45C] transition-all"
-                                    style={{ width: `${moneyProgress}%` }}
-                                />
-                            </div>
-
-                            <p className="mt-2 text-xs text-[#849084]">
-                                Goal: Rs.{" "}
-                                {campaign.goal_amount.toLocaleString("en-IN")}
-                            </p>
+                            ))}
                         </div>
+                    ) : (
+                        <p className="mt-2 text-sm font-semibold text-[#183B2A]">
+                            No specific goal provided
+                        </p>
+                    )}
+                </div>
+
+                <div className="mt-4">
+                    <div className="flex items-center justify-between gap-3 text-xs">
+                        <span className="font-semibold text-[#526B56]">
+                            Collection progress
+                        </span>
+                        <span className="font-bold text-[#166534]">
+                            {progress}%
+                        </span>
+                    </div>
+
+                    <div
+                        className="mt-2 h-2 overflow-hidden rounded-full bg-[#E5EDE3]"
+                        role="progressbar"
+                        aria-label="Campaign collection progress"
+                        aria-valuenow={progress}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                    >
+                        <div
+                            className="h-full rounded-full bg-[#29904C] transition-all duration-500"
+                            style={{ width: `${progress}%` }}
+                        />
+                    </div>
+
+                    {campaign.donation_type !== "ITEM" && (
+                        <p className="mt-2 text-xs text-[#829184]">
+                            {formatAmount(
+                                campaign.collected_amount,
+                                campaign.currency
+                            )}{" "}
+                            collected
+                        </p>
                     )}
 
-                    {(isItem || isBoth) && (
-                        <div className="mb-4">
-                            <div className="mb-2 flex items-center justify-between gap-2">
-                                <span className="text-sm font-semibold text-[#31523C]">
-                                    {campaign.goal_item_name}
-                                </span>
+                    {campaign.donation_type === "ITEM" && (
+                        <p className="mt-2 text-xs text-[#829184]">
+                            {campaign.collected_quantity.toLocaleString(
+                                "en-NP"
+                            )}{" "}
+                            items collected
+                        </p>
+                    )}
+                </div>
 
-                                <span className="text-sm font-bold text-[#27824B]">
-                                    {itemProgress}%
-                                </span>
-                            </div>
+                <div className="mt-5 grid grid-cols-2 gap-3 border-t border-[#EDF2E9] pt-4">
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 text-[#29904C]">
+                            <CalendarDays size={14} />
+                            <span className="text-xs font-semibold text-[#526B56]">
+                                Starts
+                            </span>
+                        </div>
 
-                            <div className="h-2 overflow-hidden rounded-full bg-[#E9F0E6]">
-                                <div
-                                    className="h-full rounded-full bg-[#35A45C]"
-                                    style={{ width: `${itemProgress}%` }}
-                                />
-                            </div>
+                        <p className="mt-1.5 break-words text-sm font-medium text-[#526B56]">
+                            {formatDate(campaign.start_date)}
+                        </p>
+                    </div>
 
-                            <p className="mt-2 text-xs text-[#849084]">
-                                {campaign.donated_quantity} of{" "}
-                                {campaign.goal_quantity} needed
+                    <div className="min-w-0 border-l border-[#EDF2E9] pl-3">
+                        <div className="flex items-center gap-1.5 text-[#29904C]">
+                            <CalendarDays size={14} />
+                            <span className="text-xs font-semibold text-[#526B56]">
+                                Ends
+                            </span>
+                        </div>
+
+                        <p className="mt-1.5 break-words text-sm font-medium text-[#526B56]">
+                            {formatDate(campaign.end_date)}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="mt-auto pt-5">
+                    <div className="flex items-center gap-2 border-t border-[#EDF2E9] pt-4">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E5F2E1] text-[#166534]">
+                            <Layers3 size={16} />
+                        </div>
+
+                        <div className="min-w-0">
+                            <p className="text-[11px] text-[#829184]">
+                                Organized by
+                            </p>
+                            <p className="truncate text-sm font-semibold text-[#35543B]">
+                                {campaign.ngo?.name || "ShareHope Partner"}
                             </p>
                         </div>
-                    )}
-
-                    <div className="flex items-center justify-between gap-3 border-t border-[#EEF1EB] pt-4">
-                        <div className="flex items-center gap-1.5 text-xs text-[#778477]">
-                            <Icon name="users" className="h-4 w-4" />
-                            {campaign.donors} supporters
-                        </div>
-
-                        <a
-                            href={`/campaigns/${campaign.id}`}
-                            className="inline-flex items-center gap-2 rounded-xl bg-[#166534] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14532D]"
-                        >
-                            Support <Icon name="arrow" className="h-4 w-4" />
-                        </a>
                     </div>
                 </div>
             </div>
-        </article>
+        </Link>
     );
 }
 
 export default function Home() {
     const [user, setUser] = useState<ProfileUser | null>(null);
+    const [isUserLoading, setIsUserLoading] = useState(true);
+
+    const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+    const [campaignsLoading, setCampaignsLoading] = useState(true);
+    const [campaignsError, setCampaignsError] = useState("");
+
     const { showToast } = useToast();
+
+    const loadCampaigns = useCallback(async () => {
+        setCampaignsLoading(true);
+        setCampaignsError("");
+
+        try {
+            const response = await getCampaigns();
+
+            if (!Array.isArray(response)) {
+                throw new Error(
+                    "The campaign API returned an unexpected response."
+                );
+            }
+
+            setCampaigns(
+                response.filter(
+                    (campaign) =>
+                        campaign.status?.toUpperCase() === "ACTIVE"
+                )
+            );
+        } catch (error: unknown) {
+            console.error(
+                "Failed to load landing page campaigns:",
+                error
+            );
+
+            setCampaignsError(
+                error instanceof Error
+                    ? error.message
+                    : "We couldn't load the campaigns. Please try again."
+            );
+        } finally {
+            setCampaignsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        void loadCampaigns();
+    }, [loadCampaigns]);
 
     useEffect(() => {
         let active = true;
         let requestId = 0;
 
         async function loadUser() {
+            const currentRequestId = ++requestId;
+
             if (!getAuthStatus()) {
-                setUser(null);
+                if (active && currentRequestId === requestId) {
+                    setUser(null);
+                    setIsUserLoading(false);
+                }
+
                 return;
             }
 
-            const currentRequestId = ++requestId;
+            setIsUserLoading(true);
 
             try {
                 const response = await getProfile();
 
-                if (
-                    active &&
-                    currentRequestId === requestId
-                ) {
+                if (active && currentRequestId === requestId) {
                     setUser(response.user);
                 }
             } catch (error: unknown) {
-                if (
-                    !active ||
-                    currentRequestId !== requestId
-                ) {
+                if (!active || currentRequestId !== requestId) {
                     return;
                 }
 
@@ -392,6 +555,10 @@ export default function Home() {
                         : "Unable to load your account information.";
 
                 showToast(message, "error");
+            } finally {
+                if (active && currentRequestId === requestId) {
+                    setIsUserLoading(false);
+                }
             }
         }
 
@@ -400,9 +567,12 @@ export default function Home() {
                 authenticated?: boolean;
             }>;
 
+            // Invalidate any profile request already in progress.
+            requestId++;
+
             if (customEvent.detail?.authenticated === false) {
-                requestId++;
                 setUser(null);
+                setIsUserLoading(false);
                 return;
             }
 
@@ -410,16 +580,16 @@ export default function Home() {
                 customEvent.detail?.authenticated === true ||
                 getAuthStatus()
             ) {
+                setIsUserLoading(true);
                 void loadUser();
             } else {
-                requestId++;
                 setUser(null);
+                setIsUserLoading(false);
             }
         }
 
-        if (getAuthStatus()) {
-            void loadUser();
-        }
+        // Check authentication before displaying either account CTA.
+        void loadUser();
 
         window.addEventListener("auth-change", handleAuthChange);
 
@@ -434,8 +604,14 @@ export default function Home() {
         };
     }, [showToast]);
 
+    const featuredCampaigns = useMemo(
+        () => campaigns.slice(0, 3),
+        [campaigns]
+    );
+
     return (
         <main className="overflow-hidden bg-[#FFFCF6] text-[#183B2A]">
+            {/* Hero section */}
             <section className="relative">
                 <div className="absolute -left-40 top-10 h-96 w-96 rounded-full bg-[#E5F2E1] opacity-70 blur-3xl" />
                 <div className="absolute -right-40 bottom-0 h-96 w-96 rounded-full bg-[#F4EBD8] opacity-60 blur-3xl" />
@@ -444,7 +620,10 @@ export default function Home() {
                     <div className="relative z-10">
                         <div className="inline-flex items-center gap-2 rounded-full border border-[#D9E8D5] bg-white/80 px-3.5 py-2 text-xs font-semibold text-[#34734A] shadow-sm sm:text-sm">
                             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#DFF2DD]">
-                                <Icon name="heart" className="h-3 w-3" />
+                                <Icon
+                                    name="heart"
+                                    className="h-3 w-3"
+                                />
                             </span>
                             {user
                                 ? "Your kindness can make a difference"
@@ -473,26 +652,41 @@ export default function Home() {
 
                         <p className="mt-7 max-w-xl text-base leading-8 text-[#6A796B] sm:text-lg">
                             ShareHope connects generous people with trusted
-                            NGOs and meaningful campaigns. Give funds, donate
-                            essential items, and help turn compassion into
-                            real-world impact.
+                            NGOs and meaningful campaigns. Give funds,
+                            donate essential items, and help turn compassion
+                            into real-world impact.
                         </p>
 
                         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                            <a
+                            <Link
                                 href="/campaigns"
                                 className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl bg-[#166534] px-6 text-sm font-bold text-white shadow-lg shadow-[#166534]/15 transition hover:-translate-y-0.5 hover:bg-[#14532D]"
                             >
-                                Explore campaigns <Icon name="arrow" />
-                            </a>
+                                Explore campaigns
+                                <Icon name="arrow" />
+                            </Link>
 
-                            <a
-                                href={user ? "/donations" : "/register"}
-                                className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl border border-[#D8E4D5] bg-white/80 px-6 text-sm font-bold text-[#245335] transition hover:border-[#A9CCAA] hover:bg-[#F1F8EF]"
-                            >
-                                {user ? "View my donations" : "Join Us"}{" "}
-                                <Icon name={user ? "heart" : "arrow"} />
-                            </a>
+                            {isUserLoading ? (
+                                <HomeButtonSkeleton />
+                            ) : (
+                                <Link
+                                    href={
+                                        user
+                                            ? "/donations"
+                                            : "/register"
+                                    }
+                                    className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl border border-[#D8E4D5] bg-white/80 px-6 text-sm font-bold text-[#245335] transition hover:border-[#A9CCAA] hover:bg-[#F1F8EF]"
+                                >
+                                    {user
+                                        ? "View my donations"
+                                        : "Join Us"}{" "}
+                                    <Icon
+                                        name={
+                                            user ? "heart" : "arrow"
+                                        }
+                                    />
+                                </Link>
+                            )}
                         </div>
 
                         <div className="mt-10 flex flex-wrap items-center gap-x-5 gap-y-3 border-t border-[#E5EBDD] pt-6">
@@ -506,7 +700,9 @@ export default function Home() {
                                     <span
                                         key={color}
                                         className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#FFFCF6] text-xs font-bold text-white"
-                                        style={{ backgroundColor: color }}
+                                        style={{
+                                            backgroundColor: color,
+                                        }}
                                     >
                                         {["S", "A", "R", "M"][index]}
                                     </span>
@@ -535,6 +731,7 @@ export default function Home() {
                                     alt="Volunteers coming together to support their community"
                                     className="h-full w-full object-cover"
                                 />
+
                                 <div className="absolute inset-0 bg-gradient-to-t from-[#102F1C]/65 via-transparent to-[#102F1C]/5" />
 
                                 <div className="absolute bottom-5 left-5 right-5 text-white sm:bottom-8 sm:left-8 sm:right-8">
@@ -554,7 +751,10 @@ export default function Home() {
                         <div className="absolute -left-3 top-10 max-w-[190px] rounded-2xl border border-[#E7EDE2] bg-white p-3.5 shadow-xl shadow-[#183B2A]/10 sm:-left-12 sm:top-16 sm:p-4">
                             <div className="flex items-center gap-3">
                                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E5F4E4] text-[#287747]">
-                                    <Icon name="hands" className="h-5 w-5" />
+                                    <Icon
+                                        name="hands"
+                                        className="h-5 w-5"
+                                    />
                                 </span>
                                 <div>
                                     <p className="text-sm font-extrabold text-[#204A30]">
@@ -570,7 +770,10 @@ export default function Home() {
                         <div className="absolute -right-2 bottom-10 rounded-2xl border border-[#E7EDE2] bg-white p-3.5 shadow-xl shadow-[#183B2A]/10 sm:-right-6 sm:bottom-16 sm:p-4">
                             <div className="flex items-center gap-3">
                                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E5F4E4] text-[#287747]">
-                                    <Icon name="shield" className="h-5 w-5" />
+                                    <Icon
+                                        name="shield"
+                                        className="h-5 w-5"
+                                    />
                                 </span>
                                 <div>
                                     <p className="text-sm font-extrabold text-[#204A30]">
@@ -586,6 +789,7 @@ export default function Home() {
                 </div>
             </section>
 
+            {/* Platform highlights */}
             <section className="border-y border-[#E6EDE2] bg-white">
                 <div className="mx-auto grid max-w-7xl grid-cols-2 gap-y-7 px-5 py-8 sm:px-8 sm:py-10 lg:grid-cols-4 lg:px-12">
                     {[
@@ -615,8 +819,12 @@ export default function Home() {
                             className="flex items-center gap-3 border-[#E9EEE6] px-2 sm:px-5 lg:border-r lg:last:border-r-0"
                         >
                             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#EDF6E9] text-[#2B7743]">
-                                <Icon name={stat.icon} className="h-5 w-5" />
+                                <Icon
+                                    name={stat.icon}
+                                    className="h-5 w-5"
+                                />
                             </span>
+
                             <div>
                                 <p className="text-base font-extrabold tracking-tight text-[#234A30] sm:text-lg">
                                     {stat.value}
@@ -630,31 +838,36 @@ export default function Home() {
                 </div>
             </section>
 
+            {/* Categories */}
             <section className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-24 lg:px-12">
                 <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
                     <div className="max-w-xl">
                         <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#3C8B51]">
                             Find your cause
                         </span>
+
                         <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-[#183B2A] sm:text-4xl">
                             Where would you like to make a difference?
                         </h2>
+
                         <p className="mt-4 text-sm leading-7 text-[#778477] sm:text-base">
-                            Choose a cause that speaks to you and find a way
-                            to help.
+                            Choose a cause that speaks to you and find a
+                            way to help.
                         </p>
                     </div>
-                    <a
+
+                    <Link
                         href="/campaigns"
                         className="inline-flex items-center gap-2 text-sm font-bold text-[#267341] transition hover:text-[#14532D]"
                     >
-                        Explore all causes <Icon name="arrow" />
-                    </a>
+                        Explore all causes
+                        <Icon name="arrow" />
+                    </Link>
                 </div>
 
                 <div className="mt-9 grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4">
                     {categories.map((category) => (
-                        <a
+                        <Link
                             key={category.name}
                             href={`/campaigns?category=${encodeURIComponent(category.name)}`}
                             className="group rounded-3xl border border-[#E6EDE4] bg-white p-4 transition hover:-translate-y-1 hover:border-[#C4DCC0] hover:shadow-lg hover:shadow-[#183B2A]/5 sm:p-6"
@@ -666,30 +879,39 @@ export default function Home() {
                                     name={
                                         category.icon === "book-open"
                                             ? "book"
-                                            : category.icon === "heart-handshake"
+                                            : category.icon ===
+                                                "heart-handshake"
                                                 ? "hands"
-                                                : category.icon === "heart-pulse"
+                                                : category.icon ===
+                                                    "heart-pulse"
                                                     ? "health"
                                                     : "sprout"
                                     }
                                     className="h-6 w-6"
                                 />
                             </span>
+
                             <h3 className="mt-5 text-sm font-bold text-[#244830] sm:text-base">
                                 {category.name}
                             </h3>
+
                             <p className="mt-2 text-xs leading-5 text-[#849084] sm:text-sm">
                                 {category.description}
                             </p>
+
                             <span className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[#32804A] transition group-hover:gap-2">
-                                Explore{" "}
-                                <Icon name="arrow" className="h-3.5 w-3.5" />
+                                Explore
+                                <Icon
+                                    name="arrow"
+                                    className="h-3.5 w-3.5"
+                                />
                             </span>
-                        </a>
+                        </Link>
                     ))}
                 </div>
             </section>
 
+            {/* Featured campaigns */}
             <section className="bg-[#F1F6ED] py-16 sm:py-24">
                 <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
                     <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
@@ -697,58 +919,117 @@ export default function Home() {
                             <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#3C8B51]">
                                 Make an impact
                             </span>
+
                             <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-[#183B2A] sm:text-4xl">
                                 Campaigns that need you
                             </h2>
+
                             <p className="mt-4 text-sm leading-7 text-[#718071] sm:text-base">
                                 Discover opportunities to help through
                                 financial contributions or essential items.
                             </p>
                         </div>
-                        <a
+
+                        <Link
                             href="/campaigns"
                             className="inline-flex items-center gap-2 text-sm font-bold text-[#267341] transition hover:text-[#14532D]"
                         >
-                            View all campaigns <Icon name="arrow" />
-                        </a>
+                            View all campaigns
+                            <Icon name="arrow" />
+                        </Link>
                     </div>
 
-                    <div className="mt-9 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        {campaigns
-                            .filter((campaign) => campaign.status === "ACTIVE")
-                            .map((campaign) => (
-                                <CampaignCard
-                                    key={campaign.id}
-                                    campaign={campaign}
+                    <div className="mt-9">
+                        {campaignsLoading ? (
+                            <HomeCampaignDataFetchSkeleton />
+                        ) : campaignsError ? (
+                            <div
+                                role="alert"
+                                className="mx-auto max-w-xl rounded-2xl border border-red-200 bg-red-50 p-6 text-center"
+                            >
+                                <AlertCircle
+                                    size={28}
+                                    className="mx-auto text-red-600"
                                 />
-                            ))}
+
+                                <h3 className="mt-3 font-bold text-red-800">
+                                    Unable to load campaigns
+                                </h3>
+
+                                <p className="mt-2 text-sm leading-6 text-red-700">
+                                    {campaignsError}
+                                </p>
+
+                                <button
+                                    type="button"
+                                    onClick={() => void loadCampaigns()}
+                                    className="mt-5 inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700"
+                                >
+                                    <RefreshCw size={15} />
+                                    Try again
+                                </button>
+                            </div>
+                        ) : featuredCampaigns.length === 0 ? (
+                            <div className="rounded-3xl border border-dashed border-[#D5E3D0] bg-white px-6 py-14 text-center">
+                                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
+                                    <Target size={28} />
+                                </div>
+
+                                <h3 className="mt-5 text-xl font-bold text-[#183B2A]">
+                                    No active campaigns yet
+                                </h3>
+
+                                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#647568]">
+                                    There are currently no active campaigns.
+                                    Please check back later to discover new
+                                    causes.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                {featuredCampaigns.map((campaign) => (
+                                    <CampaignCard
+                                        key={campaign.id}
+                                        campaign={campaign}
+                                    />
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     <div className="mt-10 text-center">
-                        <a
+                        <Link
                             href="/campaigns"
                             className="inline-flex min-h-12 items-center justify-center gap-3 rounded-2xl border border-[#CBDCC7] bg-white px-6 text-sm font-bold text-[#28573A] transition hover:border-[#93BD91] hover:bg-[#F8FCF5]"
                         >
-                            Discover more campaigns <Icon name="arrow" />
-                        </a>
+                            Discover more campaigns
+                            <Icon name="arrow" />
+                        </Link>
                     </div>
                 </div>
             </section>
 
+            {/* How ShareHope works */}
             <section className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-24 lg:px-12">
                 <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
                     <div className="relative">
                         <div className="absolute -left-4 -top-4 h-28 w-28 rounded-tl-[2.5rem] border-l-2 border-t-2 border-[#BBD8B5]" />
+
                         <img
                             src="https://images.unsplash.com/photo-1559027615-cd4628902d4a?auto=format&fit=crop&w=1200&q=85"
                             alt="Volunteers working together on a community initiative"
                             className="relative h-[330px] w-full rounded-[2rem] object-cover sm:h-[440px]"
                         />
+
                         <div className="absolute -bottom-5 right-4 max-w-[250px] rounded-2xl border border-[#E5EDE1] bg-white p-4 shadow-xl sm:right-7 sm:p-5">
                             <div className="flex items-center gap-3">
                                 <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E6F4E4] text-[#2A7845]">
-                                    <Icon name="heart" className="h-5 w-5" />
+                                    <Icon
+                                        name="heart"
+                                        className="h-5 w-5"
+                                    />
                                 </span>
+
                                 <div>
                                     <p className="text-sm font-extrabold text-[#244830]">
                                         Every act counts
@@ -765,13 +1046,15 @@ export default function Home() {
                         <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#3C8B51]">
                             How ShareHope works
                         </span>
+
                         <h2 className="mt-3 text-3xl font-extrabold leading-tight tracking-tight text-[#183B2A] sm:text-4xl">
                             Giving should feel simple. And meaningful.
                         </h2>
+
                         <p className="mt-4 text-sm leading-7 text-[#778477] sm:text-base">
-                            A straightforward way to connect people who want
-                            to help with organizations working to make a
-                            difference.
+                            A straightforward way to connect people who
+                            want to help with organizations working to make
+                            a difference.
                         </p>
 
                         <div className="mt-8 space-y-6">
@@ -795,14 +1078,19 @@ export default function Home() {
                                         "Donations can be tracked through receipt, verification, and approval.",
                                 },
                             ].map((step) => (
-                                <div key={step.number} className="flex gap-4">
+                                <div
+                                    key={step.number}
+                                    className="flex gap-4"
+                                >
                                     <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#D6E6D1] bg-[#EFF7EC] text-sm font-extrabold text-[#32804A]">
                                         {step.number}
                                     </span>
+
                                     <div>
                                         <h3 className="text-base font-bold text-[#244830]">
                                             {step.title}
                                         </h3>
+
                                         <p className="mt-2 text-sm leading-6 text-[#7A887A]">
                                             {step.description}
                                         </p>
@@ -811,16 +1099,18 @@ export default function Home() {
                             ))}
                         </div>
 
-                        <a
+                        <Link
                             href="/about"
                             className="mt-8 inline-flex items-center gap-2 text-sm font-bold text-[#267341] transition hover:gap-3"
                         >
-                            Learn more about ShareHope <Icon name="arrow" />
-                        </a>
+                            Learn more about ShareHope
+                            <Icon name="arrow" />
+                        </Link>
                     </div>
                 </div>
             </section>
 
+            {/* Final CTA */}
             <section className="px-5 pb-16 sm:px-8 sm:pb-24 lg:px-12">
                 <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-[#14532D] px-6 py-12 sm:px-12 sm:py-16 lg:px-16">
                     <div className="absolute -right-20 -top-28 h-80 w-80 rounded-full border border-white/10" />
@@ -830,13 +1120,18 @@ export default function Home() {
                     <div className="relative flex flex-col justify-between gap-8 lg:flex-row lg:items-center">
                         <div className="max-w-2xl">
                             <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-[#D7F1D5]">
-                                <Icon name="heart" className="h-3.5 w-3.5" />
+                                <Icon
+                                    name="heart"
+                                    className="h-3.5 w-3.5"
+                                />
                                 Be part of the change
                             </span>
+
                             <h2 className="mt-5 text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl lg:text-5xl">
-                                Your kindness could be someone&apos;s turning
-                                point.
+                                Your kindness could be someone&apos;s
+                                turning point.
                             </h2>
+
                             <p className="mt-4 max-w-xl text-sm leading-7 text-emerald-50/75 sm:text-base">
                                 Join a community that believes every person
                                 can make a difference. Start by finding a
@@ -846,19 +1141,31 @@ export default function Home() {
                         </div>
 
                         <div className="flex shrink-0 flex-col gap-3 sm:flex-row lg:flex-col">
-                            <a
+                            <Link
                                 href="/campaigns"
                                 className="inline-flex min-h-13 items-center justify-center gap-3 rounded-2xl bg-white px-6 py-4 text-sm font-bold text-[#14532D] transition hover:bg-[#EAF6E7]"
                             >
-                                Find a campaign <Icon name="arrow" />
-                            </a>
-                            <a
-                                href={user ? "/donations" : "/register"}
-                                className="inline-flex min-h-13 items-center justify-center gap-3 rounded-2xl border border-white/25 px-6 py-4 text-sm font-bold text-white transition hover:bg-white/10"
-                            >
-                                {user ? "View my donations" : "Register Now"}{" "}
+                                Find a campaign
                                 <Icon name="arrow" />
-                            </a>
+                            </Link>
+
+                            {isUserLoading ? (
+                                <HomeButtonSkeleton />
+                            ) : (
+                                <Link
+                                    href={
+                                        user
+                                            ? "/donations"
+                                            : "/register"
+                                    }
+                                    className="inline-flex min-h-13 items-center justify-center gap-3 rounded-2xl border border-white/25 px-6 py-4 text-sm font-bold text-white transition hover:bg-white/10"
+                                >
+                                    {user
+                                        ? "View my donations"
+                                        : "Register Now"}{" "}
+                                    <Icon name="arrow" />
+                                </Link>
+                            )}
                         </div>
                     </div>
                 </div>
