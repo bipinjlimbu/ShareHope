@@ -40,26 +40,17 @@ export default function RegisterPage() {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     useEffect(() => {
-        const checkAuthStatus = () => {
-            if (getAuthStatus()) {
-                showToast(
-                    "You are already logged in, so you are not allowed to access this page.",
-                    "error"
-                );
-                router.replace("/");
-                return;
-            }
+        if (getAuthStatus()) {
+            showToast(
+                "You are already logged in, so you are not allowed to access this page.",
+                "error"
+            );
 
-            setPageReady(true);
-        };
+            router.replace("/");
+            return;
+        }
 
-        checkAuthStatus();
-
-        window.addEventListener("auth-change", checkAuthStatus);
-
-        return () => {
-            window.removeEventListener("auth-change", checkAuthStatus);
-        };
+        setPageReady(true);
     }, [router, showToast]);
 
     const inputClass =
@@ -218,11 +209,13 @@ export default function RegisterPage() {
                             <p className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-green-200">
                                 Make a difference
                             </p>
+
                             <h1 className="max-w-md text-4xl font-bold leading-tight sm:text-5xl">
                                 Small acts.
                                 <br />
                                 Big changes.
                             </h1>
+
                             <p className="mt-6 max-w-md leading-7 text-green-100">
                                 Join a community connecting people who want to
                                 help with campaigns making a real difference.
@@ -234,6 +227,7 @@ export default function RegisterPage() {
                         <p className="text-lg font-semibold">
                             Every contribution matters.
                         </p>
+
                         <p className="mt-2 text-sm leading-6 text-green-100">
                             Create an account to support campaigns, contribute
                             to your community, and follow your impact.
@@ -247,9 +241,11 @@ export default function RegisterPage() {
                             <p className="text-sm font-semibold text-green-700">
                                 GET STARTED
                             </p>
+
                             <h2 className="mt-2 text-3xl font-bold tracking-tight text-gray-900">
                                 Create your account
                             </h2>
+
                             <p className="mt-3 text-sm leading-6 text-gray-500">
                                 Fill in your details to join ShareHope.
                             </p>
@@ -268,6 +264,7 @@ export default function RegisterPage() {
                                     >
                                         First name
                                     </label>
+
                                     <input
                                         id="first_name"
                                         name="first_name"
@@ -278,6 +275,7 @@ export default function RegisterPage() {
                                         className={inputClass}
                                         placeholder="First name"
                                     />
+
                                     {fieldError("first_name")}
                                 </div>
 
@@ -288,6 +286,7 @@ export default function RegisterPage() {
                                     >
                                         Last name
                                     </label>
+
                                     <input
                                         id="last_name"
                                         name="last_name"
@@ -298,6 +297,7 @@ export default function RegisterPage() {
                                         className={inputClass}
                                         placeholder="Last name"
                                     />
+
                                     {fieldError("last_name")}
                                 </div>
                             </div>
@@ -309,6 +309,7 @@ export default function RegisterPage() {
                                 >
                                     Username
                                 </label>
+
                                 <input
                                     id="username"
                                     name="username"
@@ -319,6 +320,7 @@ export default function RegisterPage() {
                                     className={inputClass}
                                     placeholder="Choose a username"
                                 />
+
                                 {fieldError("username")}
                             </div>
 
@@ -326,6 +328,7 @@ export default function RegisterPage() {
                                 <label htmlFor="email" className={labelClass}>
                                     Email address
                                 </label>
+
                                 <input
                                     id="email"
                                     name="email"
@@ -336,6 +339,7 @@ export default function RegisterPage() {
                                     className={inputClass}
                                     placeholder="you@example.com"
                                 />
+
                                 {fieldError("email")}
                             </div>
 
@@ -343,6 +347,7 @@ export default function RegisterPage() {
                                 <label htmlFor="phone" className={labelClass}>
                                     Phone number
                                 </label>
+
                                 <input
                                     id="phone"
                                     name="phone"
@@ -353,6 +358,7 @@ export default function RegisterPage() {
                                     className={inputClass}
                                     placeholder="Enter your phone number"
                                 />
+
                                 {fieldError("phone")}
                             </div>
 
@@ -360,6 +366,7 @@ export default function RegisterPage() {
                                 <label htmlFor="role" className={labelClass}>
                                     Account type
                                 </label>
+
                                 <select
                                     id="role"
                                     name="role"
@@ -370,6 +377,7 @@ export default function RegisterPage() {
                                     <option value="DONOR">Donor</option>
                                     <option value="NGO_ADMIN">NGO Admin</option>
                                 </select>
+
                                 {fieldError("role")}
                             </div>
 
@@ -383,6 +391,7 @@ export default function RegisterPage() {
                                         (optional)
                                     </span>
                                 </label>
+
                                 <input
                                     id="profile_picture"
                                     name="profile_picture"
@@ -391,11 +400,13 @@ export default function RegisterPage() {
                                     onChange={handleFileChange}
                                     className="block w-full rounded-xl border border-gray-200 bg-white text-sm text-gray-600 file:mr-4 file:border-0 file:bg-green-50 file:px-4 file:py-3 file:font-medium file:text-green-800 hover:file:bg-green-100"
                                 />
+
                                 {form.profile_picture && (
                                     <p className="mt-2 text-xs text-gray-500">
                                         Selected: {form.profile_picture.name}
                                     </p>
                                 )}
+
                                 {fieldError("profile_picture")}
                             </div>
 
@@ -406,31 +417,30 @@ export default function RegisterPage() {
                                 >
                                     Password
                                 </label>
+
                                 <div className="relative">
                                     <input
                                         id="password"
                                         name="password"
-                                        type={
-                                            showPassword ? "text" : "password"
-                                        }
+                                        type={showPassword ? "text" : "password"}
                                         autoComplete="new-password"
                                         value={form.password}
                                         onChange={handleChange}
                                         className={`${inputClass} pr-20`}
                                         placeholder="Create a password"
                                     />
+
                                     <button
                                         type="button"
                                         onClick={() =>
-                                            setShowPassword(
-                                                (previous) => !previous
-                                            )
+                                            setShowPassword((previous) => !previous)
                                         }
                                         className="absolute inset-y-0 right-3 text-xs font-semibold text-green-700"
                                     >
                                         {showPassword ? "Hide" : "Show"}
                                     </button>
                                 </div>
+
                                 {fieldError("password")}
                             </div>
 
@@ -441,6 +451,7 @@ export default function RegisterPage() {
                                 >
                                     Confirm password
                                 </label>
+
                                 <div className="relative">
                                     <input
                                         id="confirm_password"
@@ -456,6 +467,7 @@ export default function RegisterPage() {
                                         className={`${inputClass} pr-20`}
                                         placeholder="Enter your password again"
                                     />
+
                                     <button
                                         type="button"
                                         onClick={() =>
@@ -468,6 +480,7 @@ export default function RegisterPage() {
                                         {showConfirmPassword ? "Hide" : "Show"}
                                     </button>
                                 </div>
+
                                 {fieldError("confirm_password")}
                             </div>
 
