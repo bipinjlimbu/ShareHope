@@ -266,6 +266,8 @@ export default function VerifyEmailPage() {
     async function handleVerify(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
+        if (isLoading || isResending) return;
+
         const otp = digits.join("");
 
         setFieldError("");
@@ -310,6 +312,8 @@ export default function VerifyEmailPage() {
     }
 
     async function handleResend() {
+        if (isResending || isLoading) return;
+
         setFieldError("");
         setIsResending(true);
 
@@ -351,6 +355,8 @@ export default function VerifyEmailPage() {
     }
 
     async function handleInitialSend() {
+        if (isResending || isLoading) return;
+
         setFieldError("");
         setIsResending(true);
 
