@@ -1,4 +1,4 @@
-export default function Loading() {
+export default function CampaignsLoading() {
     return (
         <main className="min-h-screen bg-[#FFFCF6] px-5 py-12 sm:px-8 sm:py-16">
             <div className="mx-auto max-w-7xl">
