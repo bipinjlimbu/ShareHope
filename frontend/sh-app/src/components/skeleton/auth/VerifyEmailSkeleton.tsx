@@ -1,6 +1,10 @@
 export default function VerifyEmailSkeleton() {
     return (
-        <main className="flex min-h-[75vh] animate-pulse items-center justify-center bg-[#FFFCF6] px-5 py-12">
+        <main
+            className="flex min-h-[75vh] animate-pulse items-center justify-center bg-[#FFFCF6] px-5 py-12"
+            aria-label="Loading email verification"
+            aria-busy="true"
+        >
             <div className="w-full max-w-md rounded-3xl border border-[#E6EDE4] bg-white p-7 shadow-sm sm:p-9">
                 <div className="mx-auto h-16 w-16 rounded-2xl bg-[#E4F1E4]" />
 
