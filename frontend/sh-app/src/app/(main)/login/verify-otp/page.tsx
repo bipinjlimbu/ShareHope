@@ -12,6 +12,7 @@ import {
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import {
     verifyPasswordResetOtp,
     resendPasswordResetOtp,
@@ -19,7 +20,6 @@ import {
 import { useToast } from "@/components/toast/ToastProvider";
 import VerifyOtpSkeleton from "@/components/skeleton/auth/VerifyOtpSkeleton";
 import FooterLogo from "@/images/FooterLogo.png";
-import Image from "next/image";
 import { getAuthStatus } from "@/lib/authStatus";
 
 const OTP_LENGTH = 6;
@@ -303,7 +303,11 @@ function VerifyOtpContent() {
                         </p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+                    <form
+                        onSubmit={handleSubmit}
+                        className="space-y-5"
+                        noValidate
+                    >
                         <div>
                             <label
                                 htmlFor="otp-0"
@@ -325,7 +329,7 @@ function VerifyOtpContent() {
                                         autoComplete={
                                             index === 0 ? "one-time-code" : "off"
                                         }
-                                        maxLength={6}
+                                        maxLength={1}
                                         value={digit}
                                         disabled={submitting || resending}
                                         aria-label={`OTP digit ${index + 1}`}
