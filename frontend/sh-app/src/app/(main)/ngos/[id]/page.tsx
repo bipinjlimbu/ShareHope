@@ -20,6 +20,8 @@ import {
     Users,
 } from "lucide-react";
 
+import NGODetailsPageSkeleton from "@/components/skeleton/main/NGODetailsPageSkeleton";
+
 import { getNGOById } from "@/services/ngoService";
 import { getProfile } from "@/services/profileService";
 import { getAuthStatus } from "@/lib/authStatus";
@@ -159,47 +161,26 @@ export default function NGODetailsPage() {
     );
 
     if (isNGOLoading) {
-        return (
-            <main className="min-h-screen bg-[#FFFCF6] pb-20">
-                <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
-                    <div className="h-10 w-44 animate-pulse rounded-full bg-[#E5F2E1]" />
-
-                    <div className="mt-10 grid items-start gap-8 lg:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.8fr)]">
-                        <section>
-                            <div className="h-48 animate-pulse rounded-3xl bg-[#E5F2E1] sm:h-56" />
-
-                            <div className="mt-8 h-9 w-3/4 animate-pulse rounded-xl bg-[#E5F2E1]" />
-                            <div className="mt-5 h-4 w-full animate-pulse rounded bg-[#E5F2E1]" />
-                            <div className="mt-3 h-4 w-5/6 animate-pulse rounded bg-[#E5F2E1]" />
-
-                            <div className="mt-10 h-64 animate-pulse rounded-3xl border border-[#E5EBDD] bg-white" />
-                            <div className="mt-8 h-72 animate-pulse rounded-3xl border border-[#E5EBDD] bg-white" />
-                        </section>
-
-                        <aside className="space-y-6">
-                            <div className="h-72 animate-pulse rounded-3xl border border-[#E5EBDD] bg-white" />
-                            <div className="h-56 animate-pulse rounded-3xl border border-[#E5EBDD] bg-white" />
-                        </aside>
-                    </div>
-                </div>
-            </main>
-        );
+        return <NGODetailsPageSkeleton />;
     }
 
     if (ngoError || !ngo) {
         return (
-            <main className="min-h-screen bg-[#FFFCF6] px-4 py-16">
-                <div className="mx-auto w-full max-w-lg rounded-3xl border border-[#E5EBDD] bg-white p-8 text-center shadow-sm">
+            <main className="flex min-h-screen items-center justify-center bg-[#FFFCF6] px-4 py-16">
+                <div className="w-full max-w-lg rounded-3xl border border-[#E5EBDD] bg-white p-8 text-center shadow-sm">
                     <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#EDF6E9] text-[#166534]">
                         <Building2 size={30} />
                     </div>
 
                     <h1 className="mt-6 text-2xl font-bold text-[#183B2A]">
-                        Organization unavailable
+                        {ngoError === "The organization link is invalid."
+                            ? "Invalid organization link"
+                            : "Organization unavailable"}
                     </h1>
 
                     <p className="mt-3 text-sm leading-6 text-gray-600">
-                        {ngoError || "This organization could not be found."}
+                        {ngoError ||
+                            "This organization could not be found."}
                     </p>
 
                     <Link
