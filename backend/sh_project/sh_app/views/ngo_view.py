@@ -161,7 +161,7 @@ def ngo_view(request):
         return Response({'message': 'NGO registered successfully.'}, status=status.HTTP_201_CREATED)
     
 @api_view(['GET', 'PATCH', 'DELETE'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def ngo_detail_view(request, pk):
     try:
         ngo = NGO.objects.get(id=pk)
