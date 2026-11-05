@@ -21,7 +21,7 @@ import { getCampaignById } from "@/services/campaignService";
 import { getProfile } from "@/services/profileService";
 import { getAuthStatus } from "@/lib/authStatus";
 
-import NGODetailsPageSkeleton from "@/components/skeleton/main/NGODetailsPageSkeleton";
+import CampaignDetailsPageSkeleton from "@/components/skeleton/main/CampaignDetailsPageSkeleton";
 
 import type { Campaign } from "@/types/campaign";
 
@@ -189,7 +189,7 @@ export default function CampaignDetailsPage() {
     );
 
     if (isCampaignLoading) {
-        return <NGODetailsPageSkeleton />;
+        return <CampaignDetailsPageSkeleton />;
     }
 
     if (campaignError || !campaign) {
