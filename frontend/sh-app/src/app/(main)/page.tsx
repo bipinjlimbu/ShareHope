@@ -31,6 +31,8 @@ import {
     Package,
     RefreshCw,
     Target,
+    Quote,
+    Star,
 } from "lucide-react";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "")
@@ -65,6 +67,33 @@ const categories = [
         icon: "sprout",
         color: "bg-[#E3F0E9]",
         iconColor: "text-[#267653]",
+    },
+];
+
+const testimonials = [
+    {
+        name: "Aarav Sharma",
+        role: "Donor",
+        initials: "AS",
+        color: "bg-[#E5F3E6] text-[#287747]",
+        quote:
+            "ShareHope made it easier for me to discover meaningful causes and understand how my contributions could help. I love having everything organized in one place.",
+    },
+    {
+        name: "Sita Rai",
+        role: "NGO Representative",
+        initials: "SR",
+        color: "bg-[#FBEBDD] text-[#B76A32]",
+        quote:
+            "Managing campaigns and keeping donation records organized is an important part of our work. A platform like ShareHope can make that process more structured.",
+    },
+    {
+        name: "Nischal Karki",
+        role: "Community Supporter",
+        initials: "NK",
+        color: "bg-[#E8EAF8] text-[#5A62A4]",
+        quote:
+            "I believe small contributions can create meaningful change. ShareHope brings people and causes together in a way that makes getting involved feel approachable.",
     },
 ];
 
@@ -567,7 +596,6 @@ export default function Home() {
                 authenticated?: boolean;
             }>;
 
-            // Invalidate any profile request already in progress.
             requestId++;
 
             if (customEvent.detail?.authenticated === false) {
@@ -588,7 +616,6 @@ export default function Home() {
             }
         }
 
-        // Check authentication before displaying either account CTA.
         void loadUser();
 
         window.addEventListener("auth-change", handleAuthChange);
@@ -620,10 +647,7 @@ export default function Home() {
                     <div className="relative z-10">
                         <div className="inline-flex items-center gap-2 rounded-full border border-[#D9E8D5] bg-white/80 px-3.5 py-2 text-xs font-semibold text-[#34734A] shadow-sm sm:text-sm">
                             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#DFF2DD]">
-                                <Icon
-                                    name="heart"
-                                    className="h-3 w-3"
-                                />
+                                <Icon name="heart" className="h-3 w-3" />
                             </span>
                             {user
                                 ? "Your kindness can make a difference"
@@ -670,21 +694,11 @@ export default function Home() {
                                 <HomeButtonSkeleton />
                             ) : (
                                 <Link
-                                    href={
-                                        user
-                                            ? "/donations"
-                                            : "/register"
-                                    }
+                                    href={user ? "/donations" : "/register"}
                                     className="inline-flex min-h-14 items-center justify-center gap-3 rounded-2xl border border-[#D8E4D5] bg-white/80 px-6 text-sm font-bold text-[#245335] transition hover:border-[#A9CCAA] hover:bg-[#F1F8EF]"
                                 >
-                                    {user
-                                        ? "View my donations"
-                                        : "Join Us"}{" "}
-                                    <Icon
-                                        name={
-                                            user ? "heart" : "arrow"
-                                        }
-                                    />
+                                    {user ? "View my donations" : "Join Us"}{" "}
+                                    <Icon name={user ? "heart" : "arrow"} />
                                 </Link>
                             )}
                         </div>
@@ -700,9 +714,7 @@ export default function Home() {
                                     <span
                                         key={color}
                                         className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#FFFCF6] text-xs font-bold text-white"
-                                        style={{
-                                            backgroundColor: color,
-                                        }}
+                                        style={{ backgroundColor: color }}
                                     >
                                         {["S", "A", "R", "M"][index]}
                                     </span>
@@ -751,10 +763,7 @@ export default function Home() {
                         <div className="absolute -left-3 top-10 max-w-[190px] rounded-2xl border border-[#E7EDE2] bg-white p-3.5 shadow-xl shadow-[#183B2A]/10 sm:-left-12 sm:top-16 sm:p-4">
                             <div className="flex items-center gap-3">
                                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E5F4E4] text-[#287747]">
-                                    <Icon
-                                        name="hands"
-                                        className="h-5 w-5"
-                                    />
+                                    <Icon name="hands" className="h-5 w-5" />
                                 </span>
                                 <div>
                                     <p className="text-sm font-extrabold text-[#204A30]">
@@ -770,10 +779,7 @@ export default function Home() {
                         <div className="absolute -right-2 bottom-10 rounded-2xl border border-[#E7EDE2] bg-white p-3.5 shadow-xl shadow-[#183B2A]/10 sm:-right-6 sm:bottom-16 sm:p-4">
                             <div className="flex items-center gap-3">
                                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E5F4E4] text-[#287747]">
-                                    <Icon
-                                        name="shield"
-                                        className="h-5 w-5"
-                                    />
+                                    <Icon name="shield" className="h-5 w-5" />
                                 </span>
                                 <div>
                                     <p className="text-sm font-extrabold text-[#204A30]">
@@ -819,10 +825,7 @@ export default function Home() {
                             className="flex items-center gap-3 border-[#E9EEE6] px-2 sm:px-5 lg:border-r lg:last:border-r-0"
                         >
                             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#EDF6E9] text-[#2B7743]">
-                                <Icon
-                                    name={stat.icon}
-                                    className="h-5 w-5"
-                                />
+                                <Icon name={stat.icon} className="h-5 w-5" />
                             </span>
 
                             <div>
@@ -879,11 +882,9 @@ export default function Home() {
                                     name={
                                         category.icon === "book-open"
                                             ? "book"
-                                            : category.icon ===
-                                                "heart-handshake"
+                                            : category.icon === "heart-handshake"
                                                 ? "hands"
-                                                : category.icon ===
-                                                    "heart-pulse"
+                                                : category.icon === "heart-pulse"
                                                     ? "health"
                                                     : "sprout"
                                     }
@@ -901,10 +902,7 @@ export default function Home() {
 
                             <span className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[#32804A] transition group-hover:gap-2">
                                 Explore
-                                <Icon
-                                    name="arrow"
-                                    className="h-3.5 w-3.5"
-                                />
+                                <Icon name="arrow" className="h-3.5 w-3.5" />
                             </span>
                         </Link>
                     ))}
@@ -1024,10 +1022,7 @@ export default function Home() {
                         <div className="absolute -bottom-5 right-4 max-w-[250px] rounded-2xl border border-[#E5EDE1] bg-white p-4 shadow-xl sm:right-7 sm:p-5">
                             <div className="flex items-center gap-3">
                                 <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#E6F4E4] text-[#2A7845]">
-                                    <Icon
-                                        name="heart"
-                                        className="h-5 w-5"
-                                    />
+                                    <Icon name="heart" className="h-5 w-5" />
                                 </span>
 
                                 <div>
@@ -1110,8 +1105,91 @@ export default function Home() {
                 </div>
             </section>
 
+            {/* Testimonials */}
+            <section className="border-y border-[#E5EDE3] bg-white py-16 sm:py-24">
+                <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-12">
+                    <div className="mx-auto max-w-2xl text-center">
+                        <span className="text-xs font-bold uppercase tracking-[0.2em] text-[#3C8B51]">
+                            Voices of our community
+                        </span>
+
+                        <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-[#183B2A] sm:text-4xl">
+                            Every act of kindness has a story.
+                        </h2>
+
+                        <p className="mt-4 text-sm leading-7 text-[#718071] sm:text-base">
+                            Giving is about more than contributions. It is
+                            about the people, communities, and connections
+                            that make positive change possible.
+                        </p>
+                    </div>
+
+                    <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+                        {testimonials.map((testimonial) => (
+                            <article
+                                key={testimonial.name}
+                                className="flex flex-col rounded-[1.75rem] border border-[#E5EDE3] bg-[#FFFCF6] p-6 transition duration-300 hover:-translate-y-1 hover:border-[#C9DFC4] hover:shadow-xl hover:shadow-[#183B2A]/5 sm:p-8"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#287747]">
+                                        <Quote size={23} />
+                                    </span>
+
+                                    <div className="flex items-center gap-1 text-[#D9A441]">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <Star
+                                                key={star}
+                                                size={14}
+                                                fill="currentColor"
+                                                strokeWidth={1.5}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <p className="mt-7 flex-1 text-sm leading-7 text-[#647568]">
+                                    &ldquo;{testimonial.quote}&rdquo;
+                                </p>
+
+                                <div className="mt-8 flex items-center gap-3 border-t border-[#E5EDE3] pt-5">
+                                    <div
+                                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-extrabold ${testimonial.color}`}
+                                    >
+                                        {testimonial.initials}
+                                    </div>
+
+                                    <div className="min-w-0">
+                                        <h3 className="truncate text-sm font-bold text-[#183B2A]">
+                                            {testimonial.name}
+                                        </h3>
+                                        <p className="mt-1 text-xs font-medium text-[#829082]">
+                                            {testimonial.role}
+                                        </p>
+                                    </div>
+                                </div>
+                            </article>
+                        ))}
+                    </div>
+
+                    <div className="mt-10 flex justify-center">
+                        <Link
+                            href="/testimonials"
+                            className="inline-flex min-h-12 items-center justify-center gap-3 rounded-2xl bg-[#166534] px-6 text-sm font-bold text-white shadow-lg shadow-[#166534]/10 transition hover:-translate-y-0.5 hover:bg-[#14532D]"
+                        >
+                            Read all testimonials
+                            <Icon name="arrow" />
+                        </Link>
+                    </div>
+
+                    <p className="mt-5 text-center text-xs text-[#9AA69A]">
+                        Sample testimonials for demonstration. Replace with
+                        genuine, permission-approved feedback before launch.
+                    </p>
+                </div>
+            </section>
+
             {/* Final CTA */}
-            <section className="px-5 pb-16 sm:px-8 sm:pb-24 lg:px-12">
+            <section className="px-5 pb-16 pt-16 sm:px-8 sm:pb-24 lg:px-12">
                 <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[2rem] bg-[#14532D] px-6 py-12 sm:px-12 sm:py-16 lg:px-16">
                     <div className="absolute -right-20 -top-28 h-80 w-80 rounded-full border border-white/10" />
                     <div className="absolute -right-5 -top-12 h-56 w-56 rounded-full border border-white/10" />
@@ -1120,10 +1198,7 @@ export default function Home() {
                     <div className="relative flex flex-col justify-between gap-8 lg:flex-row lg:items-center">
                         <div className="max-w-2xl">
                             <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold text-[#D7F1D5]">
-                                <Icon
-                                    name="heart"
-                                    className="h-3.5 w-3.5"
-                                />
+                                <Icon name="heart" className="h-3.5 w-3.5" />
                                 Be part of the change
                             </span>
 
@@ -1153,16 +1228,10 @@ export default function Home() {
                                 <HomeButtonSkeleton />
                             ) : (
                                 <Link
-                                    href={
-                                        user
-                                            ? "/donations"
-                                            : "/register"
-                                    }
+                                    href={user ? "/donations" : "/register"}
                                     className="inline-flex min-h-13 items-center justify-center gap-3 rounded-2xl border border-white/25 px-6 py-4 text-sm font-bold text-white transition hover:bg-white/10"
                                 >
-                                    {user
-                                        ? "View my donations"
-                                        : "Register Now"}{" "}
+                                    {user ? "View my donations" : "Register Now"}{" "}
                                     <Icon name="arrow" />
                                 </Link>
                             )}
