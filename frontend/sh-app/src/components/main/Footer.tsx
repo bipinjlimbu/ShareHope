@@ -20,6 +20,7 @@ const footerLinks = {
         { label: "How it works", href: "/about" },
     ],
     Community: [
+        { label: "Testimonials", href: "/testimonials" },
         { label: "Contact us", href: "/contact" },
         { label: "About us", href: "/about" },
     ],
