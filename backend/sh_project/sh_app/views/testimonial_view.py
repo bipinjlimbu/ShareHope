@@ -87,3 +87,18 @@ def testimonial_detail_view(request, pk):
         send_email(subject, message, [request.user.email])
         
         return Response({'message': 'Your testimonial has been updated successfully.'}, status=status.HTTP_200_OK)
+    
+    if request.method == 'DELETE':
+        if not request.user.is_authenticated:
+            return Response({'error': 'You must be logged in to delete a testimonial.'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        if testimonial.user != request.user and not request.user.is_staff:
+            return Response({'error': 'You do not have permission to delete this testimonial.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        testimonial.delete()
+        
+        subject = "Testimonial Deleted"
+        message = f"User: {request.user.username} has deleted their testimonial."
+        send_email(subject, message, [request.user.email])
+        
+        return Response({'message': 'Your testimonial has been deleted successfully.'}, status=status.HTTP_200_OK)
