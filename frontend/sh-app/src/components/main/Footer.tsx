@@ -10,7 +10,7 @@ import { getProfile } from "@/services/profileService";
 import { getAuthStatus } from "@/lib/authStatus";
 
 import LogoutButton from "@/components/main/LogoutButton";
-import FooterSkeleton from "@/components/skeleton/main/FooterSkeleton";
+import FooterSkeleton from "@/components/skeleton/main/FooterDataFetchSkeleton";
 
 import FooterLogo from "@/images/FooterLogo.png";
 
