@@ -9,8 +9,7 @@ import type { AuthUser } from "@/types/auth";
 import { getProfile } from "@/services/profileService";
 import { getAuthStatus } from "@/lib/authStatus";
 
-import LogoutButton from "@/components/main/LogoutButton";
-import FooterSkeleton from "@/components/skeleton/main/FooterDataFetchSkeleton";
+import FooterDataFetchSkeleton from "@/components/skeleton/main/FooterDataFetchSkeleton";
 
 import FooterLogo from "@/images/FooterLogo.png";
 
@@ -21,7 +20,6 @@ const footerLinks = {
         { label: "How it works", href: "/about" },
     ],
     Community: [
-        { label: "Register", href: "/register" },
         { label: "Contact us", href: "/contact" },
         { label: "About us", href: "/about" },
     ],
@@ -123,9 +121,7 @@ export default function Footer() {
         };
     }, []);
 
-    if (isCheckingAuth) {
-        return <FooterSkeleton />;
-    }
+    const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "");
 
     const accountLinks = user
         ? [
@@ -200,68 +196,62 @@ export default function Footer() {
                             Account
                         </h2>
 
-                        {user && (
-                            <div className="mt-5 flex items-center gap-3">
-                                {user.profile_picture ? (
-                                    <img
-                                        src={
-                                            user.profile_picture.startsWith(
-                                                "http://"
-                                            ) ||
-                                                user.profile_picture.startsWith(
-                                                    "https://"
-                                                )
-                                                ? user.profile_picture
-                                                : `${process.env.NEXT_PUBLIC_API_URL?.replace(
-                                                    /\/api\/?$/,
-                                                    ""
-                                                ) ?? ""
-                                                }${user.profile_picture.startsWith(
-                                                    "/"
-                                                )
-                                                    ? ""
-                                                    : "/"
-                                                }${user.profile_picture}`
-                                        }
-                                        alt=""
-                                        className="h-10 w-10 rounded-full border border-white/20 object-cover"
-                                    />
-                                ) : (
-                                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E4F1E4] text-sm font-bold uppercase text-[#166534]">
-                                        {user.username.charAt(0) || "U"}
-                                    </span>
+                        {isCheckingAuth ? (
+                            <FooterDataFetchSkeleton />
+                        ) : (
+                            <>
+                                {user && (
+                                    <div className="mt-5 flex items-center gap-3">
+                                        {user.profile_picture ? (
+                                            <img
+                                                src={
+                                                    user.profile_picture.startsWith(
+                                                        "http://"
+                                                    ) ||
+                                                        user.profile_picture.startsWith(
+                                                            "https://"
+                                                        )
+                                                        ? user.profile_picture
+                                                        : `${API_URL ?? ""}${user.profile_picture.startsWith(
+                                                            "/"
+                                                        )
+                                                            ? ""
+                                                            : "/"
+                                                        }${user.profile_picture}`
+                                                }
+                                                alt=""
+                                                className="h-10 w-10 rounded-full border border-white/20 object-cover"
+                                            />
+                                        ) : (
+                                            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E4F1E4] text-sm font-bold uppercase text-[#166534]">
+                                                {user.username.charAt(0) || "U"}
+                                            </span>
+                                        )}
+
+                                        <div className="min-w-0">
+                                            <p className="text-xs text-emerald-50/60">
+                                                Signed in as
+                                            </p>
+                                            <p className="truncate text-sm font-semibold text-white">
+                                                {user.username}
+                                            </p>
+                                        </div>
+                                    </div>
                                 )}
 
-                                <div className="min-w-0">
-                                    <p className="text-xs text-emerald-50/60">
-                                        Signed in as
-                                    </p>
-                                    <p className="truncate text-sm font-semibold text-white">
-                                        {user.username}
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-
-                        <ul className={`${user ? "mt-5" : "mt-5"} space-y-4`}>
-                            {accountLinks.map((item) => (
-                                <li key={item.label}>
-                                    <Link
-                                        href={item.href}
-                                        className="text-sm text-emerald-50/70 transition hover:text-white"
-                                    >
-                                        {item.label}
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
-
-                        {user && (
-                            <div className="mt-5">
-                                <LogoutButton
-                                    className="rounded-xl border border-white/20 px-4 py-2.5 text-sm font-semibold text-emerald-50/80 transition hover:border-red-300/50 hover:bg-red-500/10 hover:text-white"
-                                />
-                            </div>
+                                <ul className="mt-5 space-y-4">
+                                    {accountLinks.map((item) => (
+                                        <li key={item.label}>
+                                            <Link
+                                                href={item.href}
+                                                className="text-sm text-emerald-50/70 transition hover:text-white"
+                                            >
+                                                {item.label}
+                                            </Link>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </>
                         )}
                     </div>
                 </div>
