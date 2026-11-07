@@ -15,12 +15,14 @@ def testimonial_view(request):
         return Response(serializer.data, status=status.HTTP_200_OK)
         
     if request.method == 'POST':
-        errors = {}
-        
         if not request.user.is_authenticated:
-            errors['authentication'] = 'You must be logged in to submit a testimonial.'
-            return Response(errors, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'error': 'You must be logged in to submit a testimonial.'}, status=status.HTTP_401_UNAUTHORIZED)
         
+        if Testimonial.objects.filter(user=request.user).exists():
+            return Response({'error': 'You have already submitted a testimonial.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        errors = {}
+
         rating = request.data.get('rating')
         comment = request.data.get('comment')
 
@@ -40,6 +42,7 @@ def testimonial_view(request):
             rating=rating,
             comment=comment
         )
+        testimonial.save()
         
         subject = "New Testimonial Submission"
         message = f"User: {request.user.username}\nRating: {rating}\nComment: {comment}"
