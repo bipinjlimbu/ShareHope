@@ -227,7 +227,18 @@ class Testimonial(models.Model):
         return f"Testimonial by {self.user.username if self.user else 'Anonymous'} - {self.rating} stars"
 
 class Notification(models.Model):
+    class NotificationType(models.TextChoices):
+        DONOR = "DONOR", "Donor"
+        NGO = "NGO", "NGO"
+        PROFILE = "PROFILE", "Profile"
+        CAMPAIGN = "CAMPAIGN", "Campaign"
+        DONATION = "DONATION", "Donation"
+        TESTIMONIAL = "TESTIMONIAL", "Testimonial"
+        REPORT = "REPORT", "Report"
+        AUDIT = "AUDIT", "Audit"
+        
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
+    type = models.CharField(max_length=20, choices=NotificationType.choices)
     title = models.CharField(max_length=200)
     message = models.TextField()
     is_read = models.BooleanField(default=False)
