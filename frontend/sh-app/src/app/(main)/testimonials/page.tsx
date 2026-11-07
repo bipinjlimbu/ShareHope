@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -18,7 +19,10 @@ import {
 } from "lucide-react";
 
 import { getProfile } from "@/services/profileService";
-import { getTestimonials } from "@/services/testimonialService";
+import {
+    getTestimonials,
+    deleteTestimonial,
+} from "@/services/testimonialService";
 import { getAuthStatus } from "@/lib/authStatus";
 
 import type { AuthUser } from "@/types/auth";
@@ -26,6 +30,8 @@ import type { Testimonial as TestimonialData } from "@/types/testimonial";
 
 import TestimonialDataFetchSkeleton from "@/components/skeleton/main/TestimonialDataFetchSkeleton";
 import CreateTestimonialForm from "@/components/form/CreateTestimonialForm";
+import ConfirmationModal from "@/components/common/ConfirmationModal";
+import { useToast } from "@/components/toast/ToastProvider";
 
 type TestimonialCategory =
     | "ALL"
@@ -144,6 +150,8 @@ function mapTestimonial(
 }
 
 export default function TestimonialsPage() {
+    const { showToast } = useToast();
+
     const [user, setUser] = useState<AuthUser | null>(null);
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
@@ -159,6 +167,12 @@ export default function TestimonialsPage() {
         useState<TestimonialCategory>("ALL");
 
     const [isFormOpen, setIsFormOpen] = useState(false);
+
+    // Delete confirmation state
+    const [selectedTestimonial, setSelectedTestimonial] =
+        useState<DisplayTestimonial | null>(null);
+
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(
         /\/api\/?$/,
@@ -256,7 +270,7 @@ export default function TestimonialsPage() {
     const query = search.trim().toLowerCase();
 
     const filteredTestimonials = useMemo(() => {
-        return testimonials.filter((testimonial) => {
+        const filtered = testimonials.filter((testimonial) => {
             const matchesCategory =
                 category === "ALL" ||
                 testimonial.category === category;
@@ -273,6 +287,17 @@ export default function TestimonialsPage() {
 
             return matchesCategory && searchableText.includes(query);
         });
+
+        // Keep ADMIN testimonials first while preserving the
+        // original relative order of all testimonials within each group.
+        return [
+            ...filtered.filter(
+                (testimonial) => testimonial.category === "ADMIN"
+            ),
+            ...filtered.filter(
+                (testimonial) => testimonial.category !== "ADMIN"
+            ),
+        ];
     }, [testimonials, category, query]);
 
     const clearFilters = () => {
@@ -286,6 +311,58 @@ export default function TestimonialsPage() {
     const handleTestimonialSuccess = () => {
         setIsFormOpen(false);
         void fetchTestimonials();
+    };
+
+    // Close delete confirmation modal
+    const handleDeleteCancel = () => {
+        if (isDeleting) {
+            return;
+        }
+
+        setSelectedTestimonial(null);
+    };
+
+    // Delete testimonial after confirmation
+    const handleDeleteConfirm = async () => {
+        if (!selectedTestimonial || isDeleting) {
+            return;
+        }
+
+        setIsDeleting(true);
+
+        try {
+            await deleteTestimonial(selectedTestimonial.id);
+
+            setTestimonials((previousTestimonials) =>
+                previousTestimonials.filter(
+                    (testimonial) =>
+                        testimonial.id !== selectedTestimonial.id
+                )
+            );
+
+            setSelectedTestimonial(null);
+
+            showToast(
+                "Testimonial deleted successfully.",
+                "success"
+            );
+        } catch (error) {
+            console.error("Failed to delete testimonial:", error);
+
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : typeof error === "object" &&
+                        error !== null &&
+                        "error" in error &&
+                        typeof error.error === "string"
+                        ? error.error
+                        : "Unable to delete testimonial. Please try again.";
+
+            showToast(errorMessage, "error");
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     return (
@@ -536,41 +613,51 @@ export default function TestimonialsPage() {
                                                 </div>
                                             </div>
 
-                                            {/* Card Actions and Admin Badge */}
-                                            <div className="flex shrink-0 flex-col items-end gap-2">
-                                                {testimonial.category === "ADMIN" && (
-                                                    <span className="rounded-full border border-[#D8E8D4] bg-[#F0F7ED] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#166534]">
-                                                        Admin
-                                                    </span>
-                                                )}
+                                            {/* Own Testimonial Actions */}
+                                            {isOwnTestimonial && (
+                                                <div className="flex shrink-0 items-center gap-1.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+                                                    {/* Edit remains UI-only */}
+                                                    <button
+                                                        type="button"
+                                                        title="Edit testimonial"
+                                                        aria-label="Edit your testimonial"
+                                                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DDE7D9] bg-white text-[#526B56] shadow-sm transition hover:border-[#B8D7B5] hover:bg-[#E5F2E1] hover:text-[#166534]"
+                                                    >
+                                                        <Pencil size={15} />
+                                                    </button>
 
-                                                {/* UI-only buttons for own testimonial */}
-                                                {isOwnTestimonial && (
-                                                    <div className="flex items-center gap-1.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
-                                                        <button
-                                                            type="button"
-                                                            title="Edit testimonial"
-                                                            aria-label="Edit your testimonial (UI only)"
-                                                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DDE7D9] bg-white text-[#526B56] shadow-sm transition hover:border-[#B8D7B5] hover:bg-[#E5F2E1] hover:text-[#166534]"
-                                                        >
-                                                            <Pencil size={15} />
-                                                        </button>
-
-                                                        <button
-                                                            type="button"
-                                                            title="Delete testimonial"
-                                                            aria-label="Delete your testimonial (UI only)"
-                                                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#F0D6D2] bg-white text-[#B45349] shadow-sm transition hover:border-red-300 hover:bg-red-50 hover:text-red-700"
-                                                        >
-                                                            <Trash2 size={15} />
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
+                                                    {/* Delete */}
+                                                    <button
+                                                        type="button"
+                                                        title="Delete testimonial"
+                                                        aria-label="Delete your testimonial"
+                                                        onClick={() =>
+                                                            setSelectedTestimonial(
+                                                                testimonial
+                                                            )
+                                                        }
+                                                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#F0D6D2] bg-white text-[#B45349] shadow-sm transition hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+                                                    >
+                                                        <Trash2 size={15} />
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
 
-                                        {/* Rating - Hidden for Admin Testimonials */}
-                                        {testimonial.category !== "ADMIN" && (
+                                        {/* Admin Voice / User Rating */}
+                                        {testimonial.category === "ADMIN" ? (
+                                            <div className="mt-6">
+                                                <div className="inline-flex items-center gap-2 rounded-full border border-[#D8E8D4] bg-gradient-to-r from-[#F0F7ED] to-[#E5F2E1] px-3.5 py-2">
+                                                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#166534] text-white">
+                                                        <ShieldCheck size={14} />
+                                                    </span>
+
+                                                    <span className="text-[11px] font-extrabold tracking-[0.14em] text-[#166534]">
+                                                        ADMIN VOICE
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ) : (
                                             <div
                                                 className="mt-6 flex items-center gap-1 text-[#D5A64C]"
                                                 aria-label={`${testimonial.rating} out of 5 stars`}
@@ -596,12 +683,7 @@ export default function TestimonialsPage() {
                                         )}
 
                                         {/* Quote */}
-                                        <div
-                                            className={`flex-1 ${testimonial.category === "ADMIN"
-                                                ? "mt-6"
-                                                : "mt-4"
-                                                }`}
-                                        >
+                                        <div className="mt-4 flex-1">
                                             <span
                                                 aria-hidden="true"
                                                 className="block h-8 font-serif text-5xl leading-none text-[#B8D7B5]"
@@ -778,6 +860,18 @@ export default function TestimonialsPage() {
                     onSuccess={handleTestimonialSuccess}
                 />
             )}
+
+            {/* Delete Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={selectedTestimonial !== null}
+                title="Delete Testimonial?"
+                description="Are you sure you want to permanently delete this testimonial? This action cannot be undone."
+                itemName={selectedTestimonial?.name}
+                confirmText="Delete Testimonial"
+                isDeleting={isDeleting}
+                onConfirm={handleDeleteConfirm}
+                onCancel={handleDeleteCancel}
+            />
         </main>
     );
 }
