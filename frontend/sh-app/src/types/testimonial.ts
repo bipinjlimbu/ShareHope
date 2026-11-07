@@ -25,3 +25,20 @@ export interface CreateTestimonialErrors {
     comment?: string;
     [key: string]: string | undefined;
 }
+
+export interface UpdateTestimonialRequest {
+    rating: number;
+    comment: string;
+}
+
+export interface UpdateTestimonialResponse {
+    message: string;
+}
+
+export interface UpdateTestimonialErrors {
+    error?: string;
+    authentication?: string;
+    rating?: string;
+    comment?: string;
+    [key: string]: string | undefined;
+}
