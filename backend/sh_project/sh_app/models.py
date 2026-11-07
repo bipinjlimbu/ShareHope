@@ -228,7 +228,7 @@ class Testimonial(models.Model):
 
 class Notification(models.Model):
     class NotificationType(models.TextChoices):
-        DONOR = "DONOR", "Donor"
+        USER = "USER", "User"
         NGO = "NGO", "NGO"
         PROFILE = "PROFILE", "Profile"
         CAMPAIGN = "CAMPAIGN", "Campaign"
