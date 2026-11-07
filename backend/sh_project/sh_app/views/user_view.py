@@ -2,7 +2,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from ..models import User
+from ..models import Notification, User
 from ..serializers import UserSerializer
 from ..email_service import send_email
 
@@ -36,6 +36,14 @@ def user_detail_view(request, pk):
             message = 'Your account has been deactivated. If you believe this is a mistake, please contact support.'
             send_email(subject, message, user.email)
             
+            notification = Notification.objects.create(
+                user=User.objects.filter(role=User.Role.ADMIN).first(),
+                type=Notification.NotificationType.USER,
+                title='Account Deactivated',
+                message=f'The account of user {user.username} has been deactivated.'
+            )
+            notification.save()
+            
             return Response({'message': 'User account deactivated and email sent.'}, status=status.HTTP_200_OK)
         
         else:
@@ -43,11 +51,27 @@ def user_detail_view(request, pk):
             message = 'Your account has been reactivated. Welcome back!'
             send_email(subject, message, user.email)
             
+            notification = Notification.objects.create(
+                user=User.objects.filter(role=User.Role.ADMIN).first(),
+                type=Notification.NotificationType.USER,
+                title='Account Reactivated',
+                message=f'The account of user {user.username} has been reactivated.'
+            )
+            notification.save()
+            
             return Response({'message': 'User account reactivated and email sent.'}, status=status.HTTP_200_OK)
         
     if request.method == 'DELETE':
         email = user.email
         user.delete()
+        
+        notification = Notification.objects.create(
+            user=User.objects.filter(role=User.Role.ADMIN).first(),
+            type=Notification.NotificationType.USER,
+            title='Account Deleted',
+            message=f'The account of user {user.username} has been deleted.'
+        )
+        notification.save()
         
         subject = 'Account Deletion'
         message = 'Your account has been deleted. We are sorry to see you go.'
