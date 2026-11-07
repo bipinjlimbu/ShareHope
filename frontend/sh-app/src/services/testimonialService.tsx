@@ -7,16 +7,16 @@ import type {
     UpdateTestimonialRequest,
     UpdateTestimonialResponse,
     UpdateTestimonialErrors,
+    DeleteTestimonialResponse,
+    DeleteTestimonialErrors,
 } from "@/types/testimonial";
 
-// Get all testimonials
 export const getTestimonials = async (): Promise<TestimonialListResponse> => {
     return (await authFetch("/testimonial/", {
         method: "GET",
     })) as TestimonialListResponse;
 };
 
-// Create a testimonial
 export const createTestimonial = async (
     data: CreateTestimonialRequest
 ): Promise<CreateTestimonialResponse> => {
@@ -30,7 +30,6 @@ export const createTestimonial = async (
     }
 };
 
-// Update a testimonial
 export const updateTestimonial = async (
     id: number,
     data: UpdateTestimonialRequest
@@ -42,5 +41,17 @@ export const updateTestimonial = async (
         })) as UpdateTestimonialResponse;
     } catch (error) {
         throw error as UpdateTestimonialErrors;
+    }
+};
+
+export const deleteTestimonial = async (
+    id: number
+): Promise<DeleteTestimonialResponse> => {
+    try {
+        return (await authFetch(`/testimonial/${id}/`, {
+            method: "DELETE",
+        })) as DeleteTestimonialResponse;
+    } catch (error) {
+        throw error as DeleteTestimonialErrors;
     }
 };
