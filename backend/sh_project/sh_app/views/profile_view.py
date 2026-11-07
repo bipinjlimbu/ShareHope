@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.contrib.auth.hashers import make_password, check_password
 from PIL import Image
-from ..models import User
+from ..models import Notification, User
 from ..serializers import UserSerializer
 from ..email_service import send_email
 import secrets
@@ -94,6 +94,22 @@ def profile_view(request):
             user.profile_picture = profile_picture
         user.save()
         
+        notification = Notification.objects.create(
+            user=user,
+            type=Notification.NotificationType.PROFILE,
+            title='Profile Updated',
+            message='Your profile has been successfully updated.'
+        )
+        notification.save()
+        
+        notification_admin = Notification.objects.create(
+            user=User.objects.filter(role=User.Role.ADMIN).first(),
+            type=Notification.NotificationType.PROFILE,
+            title='User Profile Updated',
+            message=f'User {user.username} has updated their profile.'
+        )
+        notification_admin.save()
+        
         subject = "Profile Updated - ShareHope"
         message = (
             f"Hello {user.first_name or user.username},\n\n"
@@ -134,6 +150,14 @@ def profile_view(request):
         
         user.delete()
         
+        notification = Notification.objects.create(
+            user=User.objects.filter(role=User.Role.ADMIN).first(),
+            type=Notification.NotificationType.PROFILE,
+            title='User Profile Deleted',
+            message=f'The profile of user {name} has been deleted.'
+        )
+        notification.save()
+        
         subject = "Profile Deleted - ShareHope"
         message = (
             f"Hello {name},\n\n"
@@ -166,6 +190,14 @@ def verify_email_view(request):
         user.hashed_otp = None
         user.otp_expires_at = None
         user.save()
+        
+        notification = Notification.objects.create(
+            user=user,
+            type=Notification.NotificationType.PROFILE,
+            title='Email Verified',
+            message='Your email has been successfully verified.'
+        )
+        notification.save()
         
         subject = "Email Verified - ShareHope"
         message = "Your email has been successfully verified. Thank you for confirming your email address."
