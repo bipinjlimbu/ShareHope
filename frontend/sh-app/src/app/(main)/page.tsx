@@ -13,13 +13,17 @@ import type {
     Campaign,
     CampaignDonationType,
 } from "@/types/campaign";
+import type { Testimonial } from "@/types/testimonial";
+
 import { getProfile } from "@/services/profileService";
 import { getCampaigns } from "@/services/campaignService";
+import { getTestimonials } from "@/services/testimonialService";
 import { useToast } from "@/components/toast/ToastProvider";
 import { getAuthStatus } from "@/lib/authStatus";
 
 import HomeButtonSkeleton from "@/components/skeleton/main/HomeButtonSkeleton";
 import HomeCampaignsDataFetchSkeleton from "@/components/skeleton/main/HomeCampaignsDataFetchSkeleton";
+import HomeTestimonialDataFetchSkeleton from "@/components/skeleton/main/HomeTestimonialDataFetchSkeleton";
 
 import {
     AlertCircle,
@@ -31,8 +35,9 @@ import {
     Package,
     RefreshCw,
     Target,
-    Quote,
     Star,
+    ShieldCheck,
+    MessageSquareQuote,
 } from "lucide-react";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "")
@@ -67,33 +72,6 @@ const categories = [
         icon: "sprout",
         color: "bg-[#E3F0E9]",
         iconColor: "text-[#267653]",
-    },
-];
-
-const testimonials = [
-    {
-        name: "Aarav Sharma",
-        role: "Donor",
-        initials: "AS",
-        color: "bg-[#E5F3E6] text-[#287747]",
-        quote:
-            "ShareHope made it easier for me to discover meaningful causes and understand how my contributions could help. I love having everything organized in one place.",
-    },
-    {
-        name: "Sita Rai",
-        role: "NGO Representative",
-        initials: "SR",
-        color: "bg-[#FBEBDD] text-[#B76A32]",
-        quote:
-            "Managing campaigns and keeping donation records organized is an important part of our work. A platform like ShareHope can make that process more structured.",
-    },
-    {
-        name: "Nischal Karki",
-        role: "Community Supporter",
-        initials: "NK",
-        color: "bg-[#E8EAF8] text-[#5A62A4]",
-        quote:
-            "I believe small contributions can create meaningful change. ShareHope brings people and causes together in a way that makes getting involved feel approachable.",
     },
 ];
 
@@ -181,6 +159,14 @@ function Icon({
 }
 
 function getCampaignImageUrl(path: string | null): string | null {
+    if (!path) return null;
+
+    if (/^https?:\/\//i.test(path)) return path;
+
+    return `${API_URL}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+function getProfilePictureUrl(path: string | null): string | null {
     if (!path) return null;
 
     if (/^https?:\/\//i.test(path)) return path;
@@ -299,6 +285,86 @@ function getCampaignProgress(campaign: Campaign): number {
             )
         )
     );
+}
+
+function getTestimonialName(testimonial: Testimonial): string {
+    const testimonialUser = testimonial.user;
+
+    if (!testimonialUser) {
+        return "Community Member";
+    }
+
+    const fullName = [
+        testimonialUser.first_name,
+        testimonialUser.last_name,
+    ]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+
+    return (
+        fullName ||
+        testimonialUser.username ||
+        "Community Member"
+    );
+}
+
+function getTestimonialRole(testimonial: Testimonial): string {
+    const role = testimonial.user?.role?.toUpperCase();
+
+    switch (role) {
+        case "ADMIN":
+            return "ShareHope Administrator";
+        case "DONOR":
+            return "Donor";
+        case "NGO_ADMIN":
+            return "NGO Administrator";
+        case "NGO_STAFF":
+            return "NGO Staff";
+        default:
+            return "Community Supporter";
+    }
+}
+
+function getTestimonialCategory(
+    testimonial: Testimonial
+): string {
+    switch (testimonial.user?.role?.toUpperCase()) {
+        case "ADMIN":
+            return "Admin";
+        case "DONOR":
+            return "Donor";
+        case "NGO_ADMIN":
+            return "NGO Admin";
+        case "NGO_STAFF":
+            return "NGO Staff";
+        default:
+            return "Community";
+    }
+}
+
+function isSupportedTestimonial(
+    testimonial: Testimonial
+): boolean {
+    const role = testimonial.user?.role?.toUpperCase();
+
+    return (
+        role === "ADMIN" ||
+        role === "DONOR" ||
+        role === "NGO_ADMIN" ||
+        role === "NGO_STAFF"
+    );
+}
+
+function getInitials(name: string): string {
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+
+    if (parts.length === 0) return "CM";
+
+    return parts
+        .slice(0, 2)
+        .map((part) => part.charAt(0).toUpperCase())
+        .join("");
 }
 
 function CampaignCard({ campaign }: { campaign: Campaign }) {
@@ -484,6 +550,135 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
     );
 }
 
+/**
+ * Homepage testimonial card.
+ * Its layout follows the testimonial cards used on the full
+ * Testimonials page: profile header, rating/admin label,
+ * quotation, and date/category footer.
+ */
+function HomeTestimonialCard({
+    testimonial,
+}: {
+    testimonial: Testimonial;
+}) {
+    const [imageFailed, setImageFailed] = useState(false);
+
+    const name = getTestimonialName(testimonial);
+    const role = getTestimonialRole(testimonial);
+    const category = getTestimonialCategory(testimonial);
+    const date = formatDate(testimonial.created_at);
+    const isAdmin =
+        testimonial.user?.role?.toUpperCase() === "ADMIN";
+
+    const profilePicture = getProfilePictureUrl(
+        testimonial.user?.profile_picture ?? null
+    );
+
+    useEffect(() => {
+        setImageFailed(false);
+    }, [profilePicture]);
+
+    return (
+        <article className="group flex min-w-0 flex-col rounded-3xl border border-[#E5EDE3] bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#C9DFC4] hover:shadow-xl sm:p-7">
+            {/* Card Header */}
+            <div className="flex min-w-0 items-center gap-3">
+                {profilePicture && !imageFailed ? (
+                    <img
+                        src={profilePicture}
+                        alt={`${name}'s profile`}
+                        onError={() => setImageFailed(true)}
+                        className="h-12 w-12 shrink-0 rounded-full border border-[#DDE7DC] object-cover"
+                    />
+                ) : (
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#E5F2E1] text-sm font-extrabold text-[#166534]">
+                        {getInitials(name)}
+                    </div>
+                )}
+
+                <div className="min-w-0">
+                    <h3 className="truncate text-sm font-bold text-[#183B2A]">
+                        {name}
+                    </h3>
+
+                    <p className="mt-1 truncate text-xs font-medium text-[#29904C]">
+                        {role}
+                    </p>
+                </div>
+            </div>
+
+            {/* Admin Voice / User Rating */}
+            {isAdmin ? (
+                <div className="mt-6">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-[#D8E8D4] bg-gradient-to-r from-[#F0F7ED] to-[#E5F2E1] px-3.5 py-2">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#166534] text-white">
+                            <ShieldCheck size={14} />
+                        </span>
+
+                        <span className="text-[11px] font-extrabold tracking-[0.14em] text-[#166534]">
+                            ADMIN VOICE
+                        </span>
+                    </div>
+                </div>
+            ) : (
+                <div
+                    className="mt-6 flex items-center gap-1 text-[#D5A64C]"
+                    aria-label={`${testimonial.rating} out of 5 stars`}
+                >
+                    {[1, 2, 3, 4, 5].map((star) => (
+                        <Star
+                            key={star}
+                            size={14}
+                            fill={
+                                star <= testimonial.rating
+                                    ? "currentColor"
+                                    : "none"
+                            }
+                            strokeWidth={1.5}
+                            className={
+                                star <= testimonial.rating
+                                    ? ""
+                                    : "text-[#DDE7D9]"
+                            }
+                        />
+                    ))}
+                </div>
+            )}
+
+            {/* Quote */}
+            <div className="mt-4 flex-1">
+                <span
+                    aria-hidden="true"
+                    className="block h-8 font-serif text-5xl leading-none text-[#B8D7B5]"
+                >
+                    “
+                </span>
+
+                <blockquote className="mt-2 break-words text-sm leading-7 text-[#647568]">
+                    {testimonial.comment}
+                </blockquote>
+            </div>
+
+            {/* Card Footer */}
+            <div className="mt-6 border-t border-[#EDF2E9] pt-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-1.5 text-xs text-[#829184]">
+                        <CalendarDays
+                            size={13}
+                            className="shrink-0 text-[#29904C]"
+                        />
+
+                        <span>{date}</span>
+                    </div>
+
+                    <span className="shrink-0 rounded-full bg-[#F0F7ED] px-3 py-1.5 text-[10px] font-bold text-[#166534]">
+                        {category}
+                    </span>
+                </div>
+            </div>
+        </article>
+    );
+}
+
 export default function Home() {
     const [user, setUser] = useState<ProfileUser | null>(null);
     const [isUserLoading, setIsUserLoading] = useState(true);
@@ -491,6 +686,10 @@ export default function Home() {
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);
     const [campaignsLoading, setCampaignsLoading] = useState(true);
     const [campaignsError, setCampaignsError] = useState("");
+
+    const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+    const [testimonialsLoading, setTestimonialsLoading] = useState(true);
+    const [testimonialsError, setTestimonialsError] = useState("");
 
     const { showToast } = useToast();
 
@@ -529,9 +728,58 @@ export default function Home() {
         }
     }, []);
 
+    const loadTestimonials = useCallback(async () => {
+        setTestimonialsLoading(true);
+        setTestimonialsError("");
+
+        try {
+            const response = await getTestimonials();
+
+            if (!Array.isArray(response)) {
+                throw new Error(
+                    "The testimonial API returned an unexpected response."
+                );
+            }
+
+            // Match the full Testimonials page by excluding
+            // testimonials whose users have unsupported roles.
+            const supportedTestimonials =
+                response.filter(isSupportedTestimonial);
+
+            // Display ADMIN testimonials first while preserving
+            // the original order within each group.
+            const sortedTestimonials = [
+                ...supportedTestimonials.filter(
+                    (testimonial) =>
+                        testimonial.user?.role?.toUpperCase() === "ADMIN"
+                ),
+                ...supportedTestimonials.filter(
+                    (testimonial) =>
+                        testimonial.user?.role?.toUpperCase() !== "ADMIN"
+                ),
+            ];
+
+            setTestimonials(sortedTestimonials);
+        } catch (error: unknown) {
+            console.error(
+                "Failed to load homepage testimonials:",
+                error
+            );
+
+            setTestimonialsError(
+                error instanceof Error
+                    ? error.message
+                    : "We couldn't load the testimonials. Please try again."
+            );
+        } finally {
+            setTestimonialsLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         void loadCampaigns();
-    }, [loadCampaigns]);
+        void loadTestimonials();
+    }, [loadCampaigns, loadTestimonials]);
 
     useEffect(() => {
         let active = true;
@@ -634,6 +882,11 @@ export default function Home() {
     const featuredCampaigns = useMemo(
         () => campaigns.slice(0, 3),
         [campaigns]
+    );
+
+    const featuredTestimonials = useMemo(
+        () => testimonials.slice(0, 3),
+        [testimonials]
     );
 
     return (
@@ -1124,51 +1377,61 @@ export default function Home() {
                         </p>
                     </div>
 
-                    <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-                        {testimonials.map((testimonial) => (
-                            <article
-                                key={testimonial.name}
-                                className="flex flex-col rounded-[1.75rem] border border-[#E5EDE3] bg-[#FFFCF6] p-6 transition duration-300 hover:-translate-y-1 hover:border-[#C9DFC4] hover:shadow-xl hover:shadow-[#183B2A]/5 sm:p-8"
+                    <div className="mt-12">
+                        {testimonialsLoading ? (
+                            <HomeTestimonialDataFetchSkeleton />
+                        ) : testimonialsError ? (
+                            <div
+                                role="alert"
+                                className="mx-auto max-w-xl rounded-2xl border border-red-200 bg-red-50 p-6 text-center"
                             >
-                                <div className="flex items-center justify-between">
-                                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#287747]">
-                                        <Quote size={23} />
-                                    </span>
+                                <AlertCircle
+                                    size={28}
+                                    className="mx-auto text-red-600"
+                                />
 
-                                    <div className="flex items-center gap-1 text-[#D9A441]">
-                                        {[1, 2, 3, 4, 5].map((star) => (
-                                            <Star
-                                                key={star}
-                                                size={14}
-                                                fill="currentColor"
-                                                strokeWidth={1.5}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
+                                <h3 className="mt-3 font-bold text-red-800">
+                                    Unable to load testimonials
+                                </h3>
 
-                                <p className="mt-7 flex-1 text-sm leading-7 text-[#647568]">
-                                    &ldquo;{testimonial.quote}&rdquo;
+                                <p className="mt-2 text-sm leading-6 text-red-700">
+                                    {testimonialsError}
                                 </p>
 
-                                <div className="mt-8 flex items-center gap-3 border-t border-[#E5EDE3] pt-5">
-                                    <div
-                                        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-extrabold ${testimonial.color}`}
-                                    >
-                                        {testimonial.initials}
-                                    </div>
-
-                                    <div className="min-w-0">
-                                        <h3 className="truncate text-sm font-bold text-[#183B2A]">
-                                            {testimonial.name}
-                                        </h3>
-                                        <p className="mt-1 text-xs font-medium text-[#829082]">
-                                            {testimonial.role}
-                                        </p>
-                                    </div>
+                                <button
+                                    type="button"
+                                    onClick={() => void loadTestimonials()}
+                                    className="mt-5 inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700"
+                                >
+                                    <RefreshCw size={15} />
+                                    Try again
+                                </button>
+                            </div>
+                        ) : featuredTestimonials.length === 0 ? (
+                            <div className="rounded-3xl border border-dashed border-[#D5E3D0] bg-[#FFFCF6] px-6 py-14 text-center">
+                                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
+                                    <MessageSquareQuote size={28} />
                                 </div>
-                            </article>
-                        ))}
+
+                                <h3 className="mt-5 text-xl font-bold text-[#183B2A]">
+                                    No testimonials yet
+                                </h3>
+
+                                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#647568]">
+                                    Be among the first to share your
+                                    experience with the ShareHope community.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                {featuredTestimonials.map((testimonial) => (
+                                    <HomeTestimonialCard
+                                        key={testimonial.id}
+                                        testimonial={testimonial}
+                                    />
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     <div className="mt-10 flex justify-center">
@@ -1180,11 +1443,6 @@ export default function Home() {
                             <Icon name="arrow" />
                         </Link>
                     </div>
-
-                    <p className="mt-5 text-center text-xs text-[#9AA69A]">
-                        Sample testimonials for demonstration. Replace with
-                        genuine, permission-approved feedback before launch.
-                    </p>
                 </div>
             </section>
 
