@@ -8,9 +8,11 @@ import {
     CheckCircle2,
     Heart,
     MessageSquareQuote,
+    Pencil,
     Search,
     ShieldCheck,
     Star,
+    Trash2,
     Users,
     X,
 } from "lucide-react";
@@ -492,118 +494,150 @@ export default function TestimonialsPage() {
                     ) : filteredTestimonials.length > 0 ? (
                         /* Testimonial Cards */
                         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-                            {filteredTestimonials.map((testimonial) => (
-                                <article
-                                    key={testimonial.id}
-                                    className="group flex min-w-0 flex-col rounded-3xl border border-[#E5EDE3] bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#C9DFC4] hover:shadow-xl sm:p-7"
-                                >
-                                    {/* Card Header */}
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div className="flex min-w-0 items-center gap-3">
-                                            {testimonial.profilePicture ? (
-                                                <img
-                                                    src={
-                                                        testimonial.profilePicture.startsWith(
-                                                            "http"
-                                                        )
-                                                            ? testimonial.profilePicture
-                                                            : `${API_URL}${testimonial.profilePicture}`
-                                                    }
-                                                    alt={`${testimonial.name}'s profile`}
-                                                    className="h-12 w-12 shrink-0 rounded-full border border-[#DDE7DC] object-cover"
-                                                />
-                                            ) : (
-                                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#E5F2E1] text-sm font-extrabold text-[#166534]">
-                                                    {testimonial.initials}
+                            {filteredTestimonials.map((testimonial) => {
+                                const isOwnTestimonial =
+                                    user !== null &&
+                                    testimonial.userId === user.id;
+
+                                return (
+                                    <article
+                                        key={testimonial.id}
+                                        className="group flex min-w-0 flex-col rounded-3xl border border-[#E5EDE3] bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#C9DFC4] hover:shadow-xl sm:p-7"
+                                    >
+                                        {/* Card Header */}
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex min-w-0 items-center gap-3">
+                                                {testimonial.profilePicture ? (
+                                                    <img
+                                                        src={
+                                                            testimonial.profilePicture.startsWith(
+                                                                "http"
+                                                            )
+                                                                ? testimonial.profilePicture
+                                                                : `${API_URL}${testimonial.profilePicture}`
+                                                        }
+                                                        alt={`${testimonial.name}'s profile`}
+                                                        className="h-12 w-12 shrink-0 rounded-full border border-[#DDE7DC] object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#E5F2E1] text-sm font-extrabold text-[#166534]">
+                                                        {testimonial.initials}
+                                                    </div>
+                                                )}
+
+                                                <div className="min-w-0">
+                                                    <h3 className="truncate text-sm font-bold text-[#183B2A]">
+                                                        {testimonial.name}
+                                                    </h3>
+
+                                                    <p className="mt-1 truncate text-xs font-medium text-[#29904C]">
+                                                        {testimonial.role}
+                                                    </p>
                                                 </div>
-                                            )}
+                                            </div>
 
-                                            <div className="min-w-0">
-                                                <h3 className="truncate text-sm font-bold text-[#183B2A]">
-                                                    {testimonial.name}
-                                                </h3>
+                                            {/* Card Actions and Admin Badge */}
+                                            <div className="flex shrink-0 flex-col items-end gap-2">
+                                                {testimonial.category === "ADMIN" && (
+                                                    <span className="rounded-full border border-[#D8E8D4] bg-[#F0F7ED] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#166534]">
+                                                        Admin
+                                                    </span>
+                                                )}
 
-                                                <p className="mt-1 truncate text-xs font-medium text-[#29904C]">
-                                                    {testimonial.role}
-                                                </p>
+                                                {/* UI-only buttons for own testimonial */}
+                                                {isOwnTestimonial && (
+                                                    <div className="flex items-center gap-1.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+                                                        <button
+                                                            type="button"
+                                                            title="Edit testimonial"
+                                                            aria-label="Edit your testimonial (UI only)"
+                                                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DDE7D9] bg-white text-[#526B56] shadow-sm transition hover:border-[#B8D7B5] hover:bg-[#E5F2E1] hover:text-[#166534]"
+                                                        >
+                                                            <Pencil size={15} />
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            title="Delete testimonial"
+                                                            aria-label="Delete your testimonial (UI only)"
+                                                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#F0D6D2] bg-white text-[#B45349] shadow-sm transition hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+                                                        >
+                                                            <Trash2 size={15} />
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
 
-                                        {testimonial.category === "ADMIN" && (
-                                            <span className="shrink-0 rounded-full border border-[#D8E8D4] bg-[#F0F7ED] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#166534]">
-                                                Admin
-                                            </span>
+                                        {/* Rating - Hidden for Admin Testimonials */}
+                                        {testimonial.category !== "ADMIN" && (
+                                            <div
+                                                className="mt-6 flex items-center gap-1 text-[#D5A64C]"
+                                                aria-label={`${testimonial.rating} out of 5 stars`}
+                                            >
+                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                    <Star
+                                                        key={star}
+                                                        size={14}
+                                                        fill={
+                                                            star <= testimonial.rating
+                                                                ? "currentColor"
+                                                                : "none"
+                                                        }
+                                                        strokeWidth={1.5}
+                                                        className={
+                                                            star <= testimonial.rating
+                                                                ? ""
+                                                                : "text-[#DDE7D9]"
+                                                        }
+                                                    />
+                                                ))}
+                                            </div>
                                         )}
-                                    </div>
 
-                                    {/* Rating - Hidden for Admin Testimonials */}
-                                    {testimonial.category !== "ADMIN" && (
+                                        {/* Quote */}
                                         <div
-                                            className="mt-6 flex items-center gap-1 text-[#D5A64C]"
-                                            aria-label={`${testimonial.rating} out of 5 stars`}
+                                            className={`flex-1 ${testimonial.category === "ADMIN"
+                                                ? "mt-6"
+                                                : "mt-4"
+                                                }`}
                                         >
-                                            {[1, 2, 3, 4, 5].map((star) => (
-                                                <Star
-                                                    key={star}
-                                                    size={14}
-                                                    fill={
-                                                        star <= testimonial.rating
-                                                            ? "currentColor"
-                                                            : "none"
-                                                    }
-                                                    strokeWidth={1.5}
-                                                    className={
-                                                        star <= testimonial.rating
-                                                            ? ""
-                                                            : "text-[#DDE7D9]"
-                                                    }
-                                                />
-                                            ))}
+                                            <span
+                                                aria-hidden="true"
+                                                className="block h-8 font-serif text-5xl leading-none text-[#B8D7B5]"
+                                            >
+                                                “
+                                            </span>
+
+                                            <blockquote className="mt-2 break-words text-sm leading-7 text-[#647568]">
+                                                {testimonial.quote}
+                                            </blockquote>
                                         </div>
-                                    )}
 
-                                    {/* Quote */}
-                                    <div
-                                        className={`flex-1 ${testimonial.category === "ADMIN"
-                                            ? "mt-6"
-                                            : "mt-4"
-                                            }`}
-                                    >
-                                        <span
-                                            aria-hidden="true"
-                                            className="block h-8 font-serif text-5xl leading-none text-[#B8D7B5]"
-                                        >
-                                            “
-                                        </span>
+                                        {/* Card Footer */}
+                                        <div className="mt-6 border-t border-[#EDF2E9] pt-4">
+                                            <div className="flex flex-wrap items-center justify-between gap-3">
+                                                <div className="flex min-w-0 items-center gap-1.5 text-xs text-[#829184]">
+                                                    <CalendarDays
+                                                        size={13}
+                                                        className="shrink-0 text-[#29904C]"
+                                                    />
 
-                                        <blockquote className="mt-2 break-words text-sm leading-7 text-[#647568]">
-                                            {testimonial.quote}
-                                        </blockquote>
-                                    </div>
+                                                    <span>
+                                                        {testimonial.date}
+                                                    </span>
+                                                </div>
 
-                                    {/* Card Footer */}
-                                    <div className="mt-6 border-t border-[#EDF2E9] pt-4">
-                                        <div className="flex flex-wrap items-center justify-between gap-3">
-                                            <div className="flex min-w-0 items-center gap-1.5 text-xs text-[#829184]">
-                                                <CalendarDays
-                                                    size={13}
-                                                    className="shrink-0 text-[#29904C]"
-                                                />
-
-                                                <span>
-                                                    {testimonial.date}
+                                                <span className="shrink-0 rounded-full bg-[#F0F7ED] px-3 py-1.5 text-[10px] font-bold text-[#166534]">
+                                                    {formatCategory(
+                                                        testimonial.category
+                                                    )}
                                                 </span>
                                             </div>
-
-                                            <span className="shrink-0 rounded-full bg-[#F0F7ED] px-3 py-1.5 text-[10px] font-bold text-[#166534]">
-                                                {formatCategory(
-                                                    testimonial.category
-                                                )}
-                                            </span>
                                         </div>
-                                    </div>
-                                </article>
-                            ))}
+                                    </article>
+                                );
+                            })}
                         </div>
                     ) : (
                         /* Empty State */
