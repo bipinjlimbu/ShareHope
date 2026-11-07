@@ -234,6 +234,8 @@ class Notification(models.Model):
         CAMPAIGN = "CAMPAIGN", "Campaign"
         DONATION = "DONATION", "Donation"
         TESTIMONIAL = "TESTIMONIAL", "Testimonial"
+        CONTACT = "CONTACT", "Contact"
+        PAYMENT = "PAYMENT", "Payment"
         REPORT = "REPORT", "Report"
         AUDIT = "AUDIT", "Audit"
         
