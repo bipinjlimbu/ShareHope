@@ -18,23 +18,35 @@ import {
 import { getProfile } from "@/services/profileService";
 import { getTestimonials } from "@/services/testimonialService";
 import { getAuthStatus } from "@/lib/authStatus";
+
 import type { AuthUser } from "@/types/auth";
 import type { Testimonial as TestimonialData } from "@/types/testimonial";
+
 import TestimonialDataFetchSkeleton from "@/components/skeleton/main/TestimonialDataFetchSkeleton";
+import CreateTestimonialForm from "@/components/form/CreateTestimonialForm";
 
 type TestimonialCategory =
     | "ALL"
+    | "ADMIN"
+    | "DONOR"
+    | "NGO_ADMIN"
+    | "NGO_STAFF";
+
+type TestimonialRole =
+    | "ADMIN"
     | "DONOR"
     | "NGO_ADMIN"
     | "NGO_STAFF";
 
 interface DisplayTestimonial {
     id: number;
+    userId: number | null;
     name: string;
     role: string;
-    category: Exclude<TestimonialCategory, "ALL">;
+    category: TestimonialRole;
     date: string;
     initials: string;
+    profilePicture: string | null;
     quote: string;
     rating: number;
 }
@@ -44,21 +56,22 @@ const categoryOptions: {
     value: TestimonialCategory;
 }[] = [
         { label: "All Stories", value: "ALL" },
+        { label: "Admins", value: "ADMIN" },
         { label: "Donors", value: "DONOR" },
         { label: "NGO Admins", value: "NGO_ADMIN" },
         { label: "NGO Staff", value: "NGO_STAFF" },
     ];
 
-function formatCategory(category: TestimonialCategory): string {
+function formatCategory(category: TestimonialRole): string {
     switch (category) {
+        case "ADMIN":
+            return "Admin";
         case "DONOR":
             return "Donor";
         case "NGO_ADMIN":
             return "NGO Admin";
         case "NGO_STAFF":
             return "NGO Staff";
-        default:
-            return "All";
     }
 }
 
@@ -90,10 +103,11 @@ function getInitials(name: string): string {
 function mapTestimonial(
     testimonial: TestimonialData
 ): DisplayTestimonial | null {
-    const role = testimonial.user?.role;
+    const testimonialUser = testimonial.user;
+    const role = testimonialUser?.role;
 
-    // Only display testimonials from DONOR, NGO_ADMIN and NGO_STAFF.
     if (
+        role !== "ADMIN" &&
         role !== "DONOR" &&
         role !== "NGO_ADMIN" &&
         role !== "NGO_STAFF"
@@ -101,23 +115,27 @@ function mapTestimonial(
         return null;
     }
 
-    const name = testimonial.user
-        ? `${testimonial.user.first_name || ""} ${testimonial.user.last_name || ""}`.trim() ||
-        testimonial.user.username
+    const name = testimonialUser
+        ? `${testimonialUser.first_name || ""} ${testimonialUser.last_name || ""}`.trim() ||
+        testimonialUser.username
         : "Anonymous User";
+
+    const roleLabels: Record<TestimonialRole, string> = {
+        ADMIN: "ShareHope Administrator",
+        DONOR: "Donor",
+        NGO_ADMIN: "NGO Administrator",
+        NGO_STAFF: "NGO Staff",
+    };
 
     return {
         id: testimonial.id,
+        userId: testimonialUser?.id ?? null,
         name,
-        role:
-            role === "DONOR"
-                ? "Donor"
-                : role === "NGO_ADMIN"
-                    ? "NGO Administrator"
-                    : "NGO Staff",
+        role: roleLabels[role],
         category: role,
         date: formatDate(testimonial.created_at),
         initials: getInitials(name),
+        profilePicture: testimonialUser?.profile_picture ?? null,
         quote: testimonial.comment,
         rating: testimonial.rating,
     };
@@ -127,7 +145,10 @@ export default function TestimonialsPage() {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-    const [testimonials, setTestimonials] = useState<DisplayTestimonial[]>([]);
+    const [testimonials, setTestimonials] = useState<DisplayTestimonial[]>(
+        []
+    );
+
     const [isLoading, setIsLoading] = useState(true);
     const [fetchError, setFetchError] = useState("");
 
@@ -135,6 +156,14 @@ export default function TestimonialsPage() {
     const [category, setCategory] =
         useState<TestimonialCategory>("ALL");
 
+    const [isFormOpen, setIsFormOpen] = useState(false);
+
+    const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(
+        /\/api\/?$/,
+        ""
+    );
+
+    // Fetch testimonials
     const fetchTestimonials = useCallback(async () => {
         setIsLoading(true);
         setFetchError("");
@@ -152,7 +181,9 @@ export default function TestimonialsPage() {
             setTestimonials(mappedTestimonials);
         } catch (error) {
             console.error("Failed to fetch testimonials:", error);
+
             setTestimonials([]);
+
             setFetchError(
                 "Unable to load testimonials. Please try again later."
             );
@@ -161,6 +192,7 @@ export default function TestimonialsPage() {
         }
     }, []);
 
+    // Check authentication
     const checkAuthentication = useCallback(async () => {
         if (!getAuthStatus()) {
             setUser(null);
@@ -172,7 +204,11 @@ export default function TestimonialsPage() {
             const response = await getProfile();
             setUser(response.user);
         } catch (error) {
-            console.error("Failed to check testimonial page auth:", error);
+            console.error(
+                "Failed to check testimonial page auth:",
+                error
+            );
+
             setUser(null);
         } finally {
             setIsCheckingAuth(false);
@@ -196,6 +232,25 @@ export default function TestimonialsPage() {
         };
     }, [fetchTestimonials, checkAuthentication]);
 
+    // Check whether the authenticated user can submit testimonials
+    const canSubmitTestimonial =
+        user?.role === "ADMIN" ||
+        user?.role === "DONOR" ||
+        user?.role === "NGO_ADMIN" ||
+        user?.role === "NGO_STAFF";
+
+    // Check whether the current user has already submitted a testimonial
+    const hasAlreadySubmitted = useMemo(() => {
+        if (!user) {
+            return false;
+        }
+
+        return testimonials.some(
+            (testimonial) => testimonial.userId === user.id
+        );
+    }, [testimonials, user]);
+
+    // Search and category filtering
     const query = search.trim().toLowerCase();
 
     const filteredTestimonials = useMemo(() => {
@@ -224,6 +279,12 @@ export default function TestimonialsPage() {
     };
 
     const hasFilters = Boolean(search) || category !== "ALL";
+
+    // Called after successful testimonial submission
+    const handleTestimonialSuccess = () => {
+        setIsFormOpen(false);
+        void fetchTestimonials();
+    };
 
     return (
         <main className="min-h-screen bg-[#FFFCF6] px-5 py-12 text-[#183B2A] sm:px-8 sm:py-16">
@@ -276,9 +337,11 @@ export default function TestimonialsPage() {
                         <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-[#E5F2E1] text-[#166534]">
                             <Heart size={21} />
                         </div>
+
                         <h2 className="mt-3 text-sm font-bold text-[#183B2A]">
                             Shared Kindness
                         </h2>
+
                         <p className="mt-1 text-xs leading-5 text-[#829184]">
                             Every contribution matters.
                         </p>
@@ -288,9 +351,11 @@ export default function TestimonialsPage() {
                         <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-[#E5F2E1] text-[#166534]">
                             <ShieldCheck size={21} />
                         </div>
+
                         <h2 className="mt-3 text-sm font-bold text-[#183B2A]">
                             Transparency
                         </h2>
+
                         <p className="mt-1 text-xs leading-5 text-[#829184]">
                             Trust through accountability.
                         </p>
@@ -300,9 +365,11 @@ export default function TestimonialsPage() {
                         <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-xl bg-[#E5F2E1] text-[#166534]">
                             <Users size={21} />
                         </div>
+
                         <h2 className="mt-3 text-sm font-bold text-[#183B2A]">
                             Stronger Together
                         </h2>
+
                         <p className="mt-1 text-xs leading-5 text-[#829184]">
                             Communities creating change.
                         </p>
@@ -333,6 +400,7 @@ export default function TestimonialsPage() {
                         {!isLoading && !fetchError && (
                             <span className="inline-flex w-fit shrink-0 items-center gap-2 rounded-full border border-[#D8E8D4] bg-[#F0F7ED] px-3.5 py-2 text-xs font-semibold text-[#166534]">
                                 <MessageSquareQuote size={14} />
+
                                 {filteredTestimonials.length}{" "}
                                 {filteredTestimonials.length === 1
                                     ? "Story"
@@ -373,6 +441,7 @@ export default function TestimonialsPage() {
                                 )}
                             </div>
 
+                            {/* Category Filters */}
                             <div className="flex flex-wrap gap-2">
                                 {categoryOptions.map((item) => (
                                     <button
@@ -431,47 +500,75 @@ export default function TestimonialsPage() {
                                     {/* Card Header */}
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="flex min-w-0 items-center gap-3">
-                                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#E5F2E1] text-sm font-extrabold text-[#166534]">
-                                                {testimonial.initials}
-                                            </div>
+                                            {testimonial.profilePicture ? (
+                                                <img
+                                                    src={
+                                                        testimonial.profilePicture.startsWith(
+                                                            "http"
+                                                        )
+                                                            ? testimonial.profilePicture
+                                                            : `${API_URL}${testimonial.profilePicture}`
+                                                    }
+                                                    alt={`${testimonial.name}'s profile`}
+                                                    className="h-12 w-12 shrink-0 rounded-full border border-[#DDE7DC] object-cover"
+                                                />
+                                            ) : (
+                                                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#E5F2E1] text-sm font-extrabold text-[#166534]">
+                                                    {testimonial.initials}
+                                                </div>
+                                            )}
 
                                             <div className="min-w-0">
                                                 <h3 className="truncate text-sm font-bold text-[#183B2A]">
                                                     {testimonial.name}
                                                 </h3>
+
                                                 <p className="mt-1 truncate text-xs font-medium text-[#29904C]">
                                                     {testimonial.role}
                                                 </p>
                                             </div>
                                         </div>
+
+                                        {testimonial.category === "ADMIN" && (
+                                            <span className="shrink-0 rounded-full border border-[#D8E8D4] bg-[#F0F7ED] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-[#166534]">
+                                                Admin
+                                            </span>
+                                        )}
                                     </div>
 
-                                    {/* Actual Rating */}
-                                    <div
-                                        className="mt-6 flex items-center gap-1 text-[#D5A64C]"
-                                        aria-label={`${testimonial.rating} out of 5 stars`}
-                                    >
-                                        {[1, 2, 3, 4, 5].map((star) => (
-                                            <Star
-                                                key={star}
-                                                size={14}
-                                                fill={
-                                                    star <= testimonial.rating
-                                                        ? "currentColor"
-                                                        : "none"
-                                                }
-                                                strokeWidth={1.5}
-                                                className={
-                                                    star <= testimonial.rating
-                                                        ? ""
-                                                        : "text-[#DDE7D9]"
-                                                }
-                                            />
-                                        ))}
-                                    </div>
+                                    {/* Rating - Hidden for Admin Testimonials */}
+                                    {testimonial.category !== "ADMIN" && (
+                                        <div
+                                            className="mt-6 flex items-center gap-1 text-[#D5A64C]"
+                                            aria-label={`${testimonial.rating} out of 5 stars`}
+                                        >
+                                            {[1, 2, 3, 4, 5].map((star) => (
+                                                <Star
+                                                    key={star}
+                                                    size={14}
+                                                    fill={
+                                                        star <= testimonial.rating
+                                                            ? "currentColor"
+                                                            : "none"
+                                                    }
+                                                    strokeWidth={1.5}
+                                                    className={
+                                                        star <= testimonial.rating
+                                                            ? ""
+                                                            : "text-[#DDE7D9]"
+                                                    }
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
 
                                     {/* Quote */}
-                                    <div className="mt-4 flex-1">
+                                    <div
+                                        className={`flex-1 ${testimonial.category === "ADMIN"
+                                            ? "mt-6"
+                                            : "mt-4"
+                                            }`}
+                                    >
                                         <span
                                             aria-hidden="true"
                                             className="block h-8 font-serif text-5xl leading-none text-[#B8D7B5]"
@@ -492,6 +589,7 @@ export default function TestimonialsPage() {
                                                     size={13}
                                                     className="shrink-0 text-[#29904C]"
                                                 />
+
                                                 <span>
                                                     {testimonial.date}
                                                 </span>
@@ -540,45 +638,76 @@ export default function TestimonialsPage() {
                     )}
                 </section>
 
-                {/* Authenticated User: Add Testimonial UI */}
-                {!isCheckingAuth && user && (
-                    <section className="mt-12 overflow-hidden rounded-3xl border border-[#CFE2C9] bg-[#F0F7ED] p-6 sm:p-8 lg:p-10">
-                        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-                            <div className="max-w-2xl">
-                                <span className="inline-flex items-center gap-2 rounded-full border border-[#D8E8D4] bg-white px-3 py-1.5 text-xs font-bold text-[#166534]">
-                                    <CheckCircle2 size={14} />
-                                    Community Contribution
-                                </span>
+                {/* Add Testimonial CTA */}
+                {!isCheckingAuth &&
+                    !isLoading &&
+                    !fetchError &&
+                    canSubmitTestimonial &&
+                    !hasAlreadySubmitted && (
+                        <section className="mt-12 overflow-hidden rounded-3xl border border-[#CFE2C9] bg-[#F0F7ED] p-6 sm:p-8 lg:p-10">
+                            <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                                <div className="max-w-2xl">
+                                    <span className="inline-flex items-center gap-2 rounded-full border border-[#D8E8D4] bg-white px-3 py-1.5 text-xs font-bold text-[#166534]">
+                                        <CheckCircle2 size={14} />
+                                        Community Contribution
+                                    </span>
 
-                                <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-[#183B2A] sm:text-3xl">
-                                    Have a story to share?
-                                </h2>
+                                    <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-[#183B2A] sm:text-3xl">
+                                        Have a story to share?
+                                    </h2>
 
-                                <p className="mt-3 text-sm leading-7 text-[#647568]">
-                                    Your experience can encourage others to
-                                    support meaningful causes. Share what
-                                    being part of a giving community means
-                                    to you.
-                                </p>
+                                    <p className="mt-3 text-sm leading-7 text-[#647568]">
+                                        Your experience can encourage others
+                                        to support meaningful causes. Share
+                                        what being part of a giving community
+                                        means to you.
+                                    </p>
+                                </div>
+
+                                <div className="shrink-0">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsFormOpen(true)}
+                                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#166534] px-6 py-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#14532D] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
+                                    >
+                                        <MessageSquareQuote size={17} />
+                                        Add Testimonial
+                                    </button>
+
+                                    <p className="mt-2 text-center text-[11px] text-[#829184]">
+                                        Share your experience with ShareHope
+                                    </p>
+                                </div>
                             </div>
+                        </section>
+                    )}
 
-                            <div className="shrink-0">
-                                <button
-                                    type="button"
-                                    className="inline-flex cursor-default items-center justify-center gap-2 rounded-xl bg-[#166534] px-6 py-3.5 text-sm font-bold text-white shadow-sm"
-                                    aria-label="Add testimonial, interface preview only"
-                                >
-                                    <MessageSquareQuote size={17} />
-                                    Add Testimonial
-                                </button>
+                {/* Already Submitted Message */}
+                {!isCheckingAuth &&
+                    !isLoading &&
+                    !fetchError &&
+                    canSubmitTestimonial &&
+                    hasAlreadySubmitted && (
+                        <section className="mt-12 rounded-2xl border border-[#D8E8D4] bg-[#F0F7ED] p-5">
+                            <div className="flex items-start gap-3">
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-[#166534]">
+                                    <CheckCircle2 size={21} />
+                                </div>
 
-                                <p className="mt-2 text-center text-[11px] text-[#829184]">
-                                    Submission feature coming soon
-                                </p>
+                                <div>
+                                    <h2 className="text-sm font-bold text-[#183B2A]">
+                                        Thank you for sharing your story!
+                                    </h2>
+
+                                    <p className="mt-1 text-sm leading-6 text-[#647568]">
+                                        You have already submitted a
+                                        testimonial. Your experience is part
+                                        of the ShareHope community stories.
+                                    </p>
+                                </div>
                             </div>
-                        </div>
-                    </section>
-                )}
+                        </section>
+                    )}
 
                 {/* Bottom CTA */}
                 <section className="mt-12 rounded-3xl bg-[#183B2A] px-6 py-12 text-center sm:px-10 sm:py-14">
@@ -607,6 +736,14 @@ export default function TestimonialsPage() {
                     </Link>
                 </section>
             </div>
+
+            {/* Create Testimonial Modal */}
+            {isFormOpen && (
+                <CreateTestimonialForm
+                    onClose={() => setIsFormOpen(false)}
+                    onSuccess={handleTestimonialSuccess}
+                />
+            )}
         </main>
     );
 }
