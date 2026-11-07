@@ -16,7 +16,7 @@ from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from PIL import Image
 from ..email_service import send_email, welcome_email
-from ..models import User
+from ..models import User, Notification
 from ..serializers import UserSerializer
 import hashlib
 import secrets
@@ -130,6 +130,15 @@ def register_view(request):
         profile_picture=profile_picture
     )
     user.save()
+    
+    notification = Notification.objects.create(
+        user=User.objects.get(role=User.Role.ADMIN),
+        type=Notification.NotificationType.USER,
+        title='New User Registered',
+        message=f'A new user has registered: {user.username}'
+    )
+    notification.save()
+    
     welcome_email(user)
     return Response({'message': 'User registered successfully.'}, status=status.HTTP_201_CREATED)
 
