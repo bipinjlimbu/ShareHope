@@ -42,3 +42,12 @@ export interface UpdateTestimonialErrors {
     comment?: string;
     [key: string]: string | undefined;
 }
+
+export interface DeleteTestimonialResponse {
+    message: string;
+}
+
+export interface DeleteTestimonialErrors {
+    error?: string;
+    [key: string]: string | undefined;
+}
