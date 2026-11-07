@@ -2,7 +2,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from ..models import User
+from ..models import Notification, User
 from ..serializers import UserSerializer
 from django.core.mail import send_mail
 from dotenv import load_dotenv
@@ -52,5 +52,13 @@ def contact_view(request):
             recipient_list=[os.getenv('EMAIL_HOST_USER')],
             fail_silently=False,
         )
+        
+        notification = Notification.objects.create(
+            user=User.objects.filter(is_superuser=True).first(),
+            type=Notification.NotificationType.CONTACT,
+            title='New Contact Form Submission',
+            message=f'You have received a new message from {name} ({email}):\n\n{message}'
+        )
+        notification.save()
         
         return Response({'message': 'Your message has been sent successfully.'}, status=status.HTTP_200_OK)
