@@ -3,7 +3,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from PIL import Image
-from ..models import User, NGO, NGODocument, NGOMembership
+from ..models import User, NGO, NGODocument, NGOMembership, Notification
 from ..serializers import NGOSerializer
 from ..email_service import send_email
 import re
@@ -25,6 +25,22 @@ def ngo_by_user_view(request):
         ngo_name = ngo.name
         ngo_created_by = ngo.created_by.first_name
         ngo.delete()
+        
+        notification = Notification.objects.create(
+            user=ngo.created_by,
+            type=Notification.NotificationType.NGO,
+            title='NGO Deleted',
+            message=f'Your NGO "{ngo_name}" has been deleted by you. Please contact the admin for more information.'
+        )
+        notification.save()
+        
+        notification_admin = Notification.objects.create(
+            user=User.objects.filter(role=User.Role.ADMIN).first(),
+            type=Notification.NotificationType.NGO,
+            title='NGO Deleted',
+            message=f'The NGO "{ngo_name}" created by {ngo_created_by} has been deleted. Please review the deletion.'
+        )
+        notification_admin.save()
         
         subject = 'NGO Deleted'
         message = f'Dear {ngo_created_by},\n\nYour Rejected NGO "{ngo_name}" Application has been deleted. Please contact the admin for more information.\n\nBest regards,\nShareHope Team'
@@ -154,6 +170,22 @@ def ngo_view(request):
         ngo_document.save()
         ngo_membership.save()
         
+        notification = Notification.objects.create(
+            user=request.user,
+            type=Notification.NotificationType.NGO,
+            title='NGO Registration Request',
+            message=f'Your NGO registration request for "{ngo.name}" has been received and is pending approval. We will notify you once the review process is complete.'
+        )
+        notification.save()
+        
+        notification_admin = Notification.objects.create(
+            user=User.objects.filter(role=User.Role.ADMIN).first(),
+            type=Notification.NotificationType.NGO,
+            title='New NGO Registration Request',
+            message=f'User {request.user.username} has submitted a new NGO registration request for "{ngo.name}". Please review and approve or reject the request.'
+        )
+        notification_admin.save()
+        
         subject = 'NGO Registration Request'
         message = f'Dear {request.user.first_name},\n\nYour NGO registration request for "{ngo.name}" has been received and is pending approval. We will notify you once the review process is complete.\n\nThank you for your contribution to our community.\n\nBest regards,\nShareHope Team'
         send_email(subject, message, [ngo.email])
@@ -185,6 +217,14 @@ def ngo_detail_view(request, pk):
             message = f'Dear {ngo.created_by.first_name},\n\nYour NGO "{ngo.name}" has been approved and is now active. You can now manage your NGO and its activities.\n\nThank you for your contribution to our community.\n\nBest regards,\nShareHope Team'
             send_email(subject, message, [ngo.email])
             
+            notification = Notification.objects.create(
+                user=ngo.created_by,
+                type=Notification.NotificationType.NGO,
+                title='NGO Approved',
+                message=f'Your NGO "{ngo.name}" has been approved and is now active. You can now manage your NGO and its activities.'
+            )
+            notification.save()
+            
             return Response({'message': 'NGO activated successfully.'}, status=status.HTTP_200_OK)
                    
         else:
@@ -192,17 +232,41 @@ def ngo_detail_view(request, pk):
             message = f'Dear {ngo.created_by.first_name},\n\nYour NGO "{ngo.name}" has been deactivated. Please contact the admin for more information.\n\nBest regards,\nShareHope Team'
             send_email(subject, message, [ngo.email])
             
+            notification = Notification.objects.create(
+                user=ngo.created_by,
+                type=Notification.NotificationType.NGO,
+                title='NGO Deactivated',
+                message=f'Your NGO "{ngo.name}" has been deactivated. Please contact the admin for more information.'
+            )
+            notification.save()
+            
             return Response({'message': 'NGO deactivated successfully.'}, status=status.HTTP_200_OK)
         
     if request.method == 'DELETE':
-        if request.user.role != User.Role.ADMIN:
-            return Response({'error': 'Only admin users can delete NGO details.'}, status=status.HTTP_403_FORBIDDEN)
+        if request.user.role != User.Role.ADMIN and request.user != ngo.created_by:
+            return Response({'error': 'Only admin users and the NGO creator can delete NGO details.'}, status=status.HTTP_403_FORBIDDEN)
         
         email = ngo.email 
         ngo_name = ngo.name
         ngo_created_by = ngo.created_by.first_name
         ngo.delete()
         
+        notification = Notification.objects.create(
+            user=ngo.created_by,
+            type=Notification.NotificationType.NGO,
+            title='NGO Deleted',
+            message=f'Your NGO "{ngo_name}" has been deleted by the admin. Please contact the admin for more information.'
+        )
+        notification.save()
+        
+        notification_admin = Notification.objects.create(
+            user=User.objects.filter(role=User.Role.ADMIN).first(),
+            type=Notification.NotificationType.NGO,
+            title='NGO Deleted',
+            message=f'The NGO "{ngo_name}" created by {ngo_created_by} has been deleted. Please review the deletion.'
+        )
+        notification_admin.save()
+
         subject = 'NGO Deleted'
         message = f'Dear {ngo_created_by},\n\nYour NGO "{ngo_name}" has been deleted by the admin. Please contact the admin for more information.\n\nBest regards,\nShareHope Team'
         send_email(subject, message, [email])
@@ -225,6 +289,14 @@ def approve_ngo_view(request, pk):
         ngo.reviewed_by = request.user
         ngo.save()
         
+        notification = Notification.objects.create(
+            user=ngo.created_by,
+            type=Notification.NotificationType.NGO,
+            title='NGO Approved',
+            message=f'Your NGO "{ngo.name}" has been approved and is now active. You can now manage your NGO and its activities.'
+        )
+        notification.save()
+        
         subject = 'NGO Approved'
         message = f'Dear {ngo.created_by.first_name},\n\nYour NGO "{ngo.name}" has been approved and is now active. You can now manage your NGO and its activities.\n\nThank you for your contribution to our community.\n\nBest regards,\nShareHope Team'
         send_email(subject, message, [ngo.email])
@@ -245,6 +317,14 @@ def reject_ngo_view(request, pk):
         
         ngo.status = NGO.Status.REJECTED
         ngo.save()
+        
+        notification = Notification.objects.create(
+            user=ngo.created_by,
+            type=Notification.NotificationType.NGO,
+            title='NGO Rejected',
+            message=f'Your NGO "{ngo.name}" registration has been rejected. Please contact the admin for more information.'
+        )
+        notification.save()
         
         subject = 'NGO Rejected'
         message = f'Dear {ngo.created_by.first_name},\n\nWe regret to inform you that your NGO "{ngo.name}" registration has been rejected. Please contact the admin for more information.\n\nBest regards,\nShareHope Team'
