@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -30,6 +29,7 @@ import type { Testimonial as TestimonialData } from "@/types/testimonial";
 
 import TestimonialDataFetchSkeleton from "@/components/skeleton/main/TestimonialDataFetchSkeleton";
 import CreateTestimonialForm from "@/components/form/CreateTestimonialForm";
+import EditTestimonialForm from "@/components/form/EditTestimonialForm";
 import ConfirmationModal from "@/components/common/ConfirmationModal";
 import { useToast } from "@/components/toast/ToastProvider";
 
@@ -168,6 +168,10 @@ export default function TestimonialsPage() {
 
     const [isFormOpen, setIsFormOpen] = useState(false);
 
+    // Edit testimonial state
+    const [editingTestimonial, setEditingTestimonial] =
+        useState<DisplayTestimonial | null>(null);
+
     // Delete confirmation state
     const [selectedTestimonial, setSelectedTestimonial] =
         useState<DisplayTestimonial | null>(null);
@@ -288,8 +292,8 @@ export default function TestimonialsPage() {
             return matchesCategory && searchableText.includes(query);
         });
 
-        // Keep ADMIN testimonials first while preserving the
-        // original relative order of all testimonials within each group.
+        // Keep ADMIN testimonials first while preserving
+        // the original relative order within each group.
         return [
             ...filtered.filter(
                 (testimonial) => testimonial.category === "ADMIN"
@@ -310,6 +314,12 @@ export default function TestimonialsPage() {
     // Called after successful testimonial submission
     const handleTestimonialSuccess = () => {
         setIsFormOpen(false);
+        void fetchTestimonials();
+    };
+
+    // Called after successful testimonial update
+    const handleTestimonialUpdateSuccess = () => {
+        setEditingTestimonial(null);
         void fetchTestimonials();
     };
 
@@ -616,11 +626,16 @@ export default function TestimonialsPage() {
                                             {/* Own Testimonial Actions */}
                                             {isOwnTestimonial && (
                                                 <div className="flex shrink-0 items-center gap-1.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
-                                                    {/* Edit remains UI-only */}
+                                                    {/* Edit */}
                                                     <button
                                                         type="button"
                                                         title="Edit testimonial"
                                                         aria-label="Edit your testimonial"
+                                                        onClick={() =>
+                                                            setEditingTestimonial(
+                                                                testimonial
+                                                            )
+                                                        }
                                                         className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#DDE7D9] bg-white text-[#526B56] shadow-sm transition hover:border-[#B8D7B5] hover:bg-[#E5F2E1] hover:text-[#166534]"
                                                     >
                                                         <Pencil size={15} />
@@ -858,6 +873,20 @@ export default function TestimonialsPage() {
                 <CreateTestimonialForm
                     onClose={() => setIsFormOpen(false)}
                     onSuccess={handleTestimonialSuccess}
+                />
+            )}
+
+            {/* Edit Testimonial Modal */}
+            {editingTestimonial && (
+                <EditTestimonialForm
+                    key={editingTestimonial.id}
+                    testimonial={{
+                        id: editingTestimonial.id,
+                        rating: editingTestimonial.rating,
+                        comment: editingTestimonial.quote,
+                    }}
+                    onClose={() => setEditingTestimonial(null)}
+                    onSuccess={handleTestimonialUpdateSuccess}
                 />
             )}
 
