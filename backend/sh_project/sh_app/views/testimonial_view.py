@@ -2,7 +2,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from ..models import Testimonial
+from ..models import Notification, Testimonial, User, User
 from ..serializers import TestimonialSerializer
 from ..email_service import send_email
     
@@ -43,6 +43,22 @@ def testimonial_view(request):
             comment=comment
         )
         testimonial.save()
+        
+        notification = Notification.objects.create(
+            user=request.user,
+            type=Notification.NotificationType.TESTIMONIAL,
+            title='Testimonial Submitted',
+            message='Your testimonial has been successfully submitted.'
+        )
+        notification.save()
+        
+        notification_admin = Notification.objects.create(
+            user=User.objects.filter(role=User.Role.ADMIN).first(),
+            type=Notification.NotificationType.TESTIMONIAL,
+            title='New Testimonial Submitted',
+            message=f'User {request.user.username} has submitted a new testimonial.'
+        )
+        notification_admin.save()
         
         subject = "New Testimonial Submission"
         message = f"User: {request.user.username}\nRating: {rating}\nComment: {comment}"
@@ -85,6 +101,22 @@ def testimonial_detail_view(request, pk):
         testimonial.comment = comment
         testimonial.save()
         
+        notification = Notification.objects.create(
+            user=request.user,
+            type=Notification.NotificationType.TESTIMONIAL,
+            title='Testimonial Updated',
+            message='Your testimonial has been successfully updated.'
+        )
+        notification.save()
+        
+        notification_admin = Notification.objects.create(
+            user=User.objects.filter(role=User.Role.ADMIN).first(),
+            type=Notification.NotificationType.TESTIMONIAL,
+            title='Testimonial Updated',
+            message=f'User {request.user.username} has updated their testimonial.'
+        )
+        notification_admin.save()
+        
         subject = "Testimonial Updated"
         message = f"User: {request.user.username}\nUpdated Rating: {rating}\nUpdated Comment: {comment}"
         send_email(subject, message, [request.user.email])
@@ -99,6 +131,22 @@ def testimonial_detail_view(request, pk):
             return Response({'error': 'You do not have permission to delete this testimonial.'}, status=status.HTTP_403_FORBIDDEN)
         
         testimonial.delete()
+        
+        notification = Notification.objects.create(
+            user=request.user,
+            type=Notification.NotificationType.TESTIMONIAL,
+            title='Testimonial Deleted',
+            message='Your testimonial has been successfully deleted.'
+        )
+        notification.save()
+        
+        notification_admin = Notification.objects.create(
+            user=User.objects.filter(role=User.Role.ADMIN).first(),
+            type=Notification.NotificationType.TESTIMONIAL,
+            title='Testimonial Deleted',
+            message=f'User {request.user.username} has deleted their testimonial.'
+        )   
+        notification_admin.save()
         
         subject = "Testimonial Deleted"
         message = f"User: {request.user.username} has deleted their testimonial."
