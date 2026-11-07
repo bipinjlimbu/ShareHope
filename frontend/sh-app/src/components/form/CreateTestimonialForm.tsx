@@ -305,17 +305,6 @@ export default function CreateTestimonialForm({
                         )}
                     </div>
 
-                    {/* General Error */}
-                    {(fieldError("general") ||
-                        fieldError("non_field_errors") ||
-                        fieldError("error")) && (
-                            <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs leading-5 text-red-600">
-                                {fieldError("general") ??
-                                    fieldError("non_field_errors") ??
-                                    fieldError("error")}
-                            </p>
-                        )}
-
                     {/* Form Actions */}
                     <div className="flex flex-col-reverse gap-3 border-t border-[#E5EDE3] pt-5 sm:flex-row sm:justify-end">
                         <button
