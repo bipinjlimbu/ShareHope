@@ -143,12 +143,20 @@ def campaign_view(request):
         campaign.save()
         
         notification = Notification.objects.create(
-            user=User.objects.get(role=User.Role.ADMIN),
+            user=campaign.ngo.created_by,
             type=Notification.NotificationType.CAMPAIGN,
-            title='New Campaign Created',
-            message=f'A new campaign titled "{campaign.title}" has been created by {request.user.username}.'
+            title='New Campaign Request',
+            message=f'You have submitted a new campaign titled "{campaign.title}". It is currently pending approval.'
         )
         notification.save()
+
+        notification_admin = Notification.objects.create(
+            user=User.objects.filter(role=User.Role.ADMIN).first(),
+            type=Notification.NotificationType.CAMPAIGN,
+            title='New Campaign Created',
+            message=f'A new campaign titled "{campaign.title}" has been created by {request.user.username}. Please review and approve it.'
+        )
+        notification_admin.save()
         
         ngo = campaign.ngo
         subject = 'New Campaign Created'
@@ -233,12 +241,20 @@ def campaign_detail_view(request, pk):
         pending_campaign_change.save()
         
         notifications = Notification.objects.create(
-            user=User.objects.get(role=User.Role.ADMIN),
+            user=campaign.ngo.created_by,
             type=Notification.NotificationType.CAMPAIGN,
-            title='Pending Campaign Update',
-            message=f'A pending update for the campaign titled "{campaign.title}" has been submitted by {request.user.username}.'
+            title='Campaign Update Submitted',
+            message=f'You have submitted an update for the campaign titled "{campaign.title}". It is currently pending approval.'
         )
         notifications.save()
+        
+        notification_admin = Notification.objects.create(
+            user=User.objects.filter(role=User.Role.ADMIN).first(),
+            type=Notification.NotificationType.CAMPAIGN,
+            title='Campaign Update Submitted',
+            message=f'An update for the campaign titled "{campaign.title}" has been submitted by {request.user.username}. Please review and approve it.'
+        )
+        notification_admin.save()
         
         ngo = campaign.ngo
         subject = 'Campaign Update Submitted'
@@ -352,6 +368,14 @@ def campaign_detail_view(request, pk):
             message=f'Your campaign titled "{campaign_title}" has been deleted by {request.user.username}. Please review the deletion.'
         )
         notification.save()
+        
+        notification_admin = Notification.objects.create(
+            user=User.objects.filter(role=User.Role.ADMIN).first(),
+            type=Notification.NotificationType.CAMPAIGN,
+            title='Campaign Deleted',
+            message=f'The campaign titled "{campaign_title}" has been deleted by {request.user.username}. Please review the deletion.'
+        )
+        notification_admin.save()
         
         subject = 'Campaign Deleted'
         message = f'The campaign titled "{campaign_title}" has been deleted by {request.user.username}. Please review the deletion.'
