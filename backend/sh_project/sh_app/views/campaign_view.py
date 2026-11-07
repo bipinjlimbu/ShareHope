@@ -4,7 +4,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from django.utils import timezone
 from PIL import Image
-from ..models import User, Campaign, NGO, PendingCampaignChange
+from ..models import User, Campaign, NGO, PendingCampaignChange, Notification
 from ..serializers import CampaignSerializer, PendingCampaignChangeSerializer
 from ..email_service import send_email
 import re
@@ -142,6 +142,14 @@ def campaign_view(request):
         )
         campaign.save()
         
+        notification = Notification.objects.create(
+            user=User.objects.get(role=User.Role.ADMIN),
+            type=Notification.NotificationType.CAMPAIGN,
+            title='New Campaign Created',
+            message=f'A new campaign titled "{campaign.title}" has been created by {request.user.username}.'
+        )
+        notification.save()
+        
         ngo = campaign.ngo
         subject = 'New Campaign Created'
         message = f'A new campaign titled "{campaign.title}" has been created by {request.user.username}. Please review and approve it.'
@@ -224,6 +232,14 @@ def campaign_detail_view(request, pk):
         )
         pending_campaign_change.save()
         
+        notifications = Notification.objects.create(
+            user=User.objects.get(role=User.Role.ADMIN),
+            type=Notification.NotificationType.CAMPAIGN,
+            title='Pending Campaign Update',
+            message=f'A pending update for the campaign titled "{campaign.title}" has been submitted by {request.user.username}.'
+        )
+        notifications.save()
+        
         ngo = campaign.ngo
         subject = 'Campaign Update Submitted'
         message = f'An update for the campaign titled "{campaign.title}" has been submitted by {request.user.username}. Please review and approve it.'
@@ -250,23 +266,75 @@ def campaign_detail_view(request, pk):
             if status_update == Campaign.Status.APPROVED:
                 subject = 'Campaign Approved'
                 message = f'Your campaign titled "{campaign.title}" has been approved by the admin. You can now start receiving donations.'
+                
+                notification = Notification.objects.create(
+                    user=ngo.created_by,
+                    type=Notification.NotificationType.CAMPAIGN,
+                    title='Campaign Approved',
+                    message=f'Your campaign titled "{campaign.title}" has been approved by the admin. You can now start receiving donations.'
+                )
+                notification.save()
+                
             elif status_update == Campaign.Status.REJECTED:
                 subject = 'Campaign Rejected'
                 message = f'Your campaign titled "{campaign.title}" has been rejected by the admin. Please review the feedback and make necessary changes.'
+                
+                notification = Notification.objects.create(
+                    user=ngo.created_by,
+                    type=Notification.NotificationType.CAMPAIGN,
+                    title='Campaign Rejected',
+                    message=f'Your campaign titled "{campaign.title}" has been rejected by the admin. Please review the feedback and make necessary changes.'
+                )
+                notification.save()
+                
             elif status_update == Campaign.Status.ACTIVE:
                 subject = 'Campaign Activated'
                 message = f'Your campaign titled "{campaign.title}" has been activated by the admin. It is now live and accepting donations.'
+                
+                notification = Notification.objects.create(
+                    user=ngo.created_by,
+                    type=Notification.NotificationType.CAMPAIGN,
+                    title='Campaign Activated',
+                    message=f'Your campaign titled "{campaign.title}" has been activated by the admin. It is now live and accepting donations.'
+                )
+                notification.save()
+                
             elif status_update == Campaign.Status.INACTIVE:
                 subject = 'Campaign Deactivated'
                 message = f'Your campaign titled "{campaign.title}" has been deactivated by the admin. It is no longer accepting donations.'
+                
+                notification = Notification.objects.create(
+                    user=ngo.created_by,
+                    type=Notification.NotificationType.CAMPAIGN,
+                    title='Campaign Deactivated',
+                    message=f'Your campaign titled "{campaign.title}" has been deactivated by the admin. It is no longer accepting donations.'
+                )
+                notification.save()
                 
         else:
             if status_update == Campaign.Status.CANCELLED:
                 subject = 'Campaign Cancelled'
                 message = f'Your campaign titled "{campaign.title}" has been cancelled by you. It is no longer accepting donations.'
+                
+                notification = Notification.objects.create(
+                    user=ngo.created_by,
+                    type=Notification.NotificationType.CAMPAIGN,
+                    title='Campaign Cancelled',
+                    message=f'Your campaign titled "{campaign.title}" has been cancelled by you. It is no longer accepting donations.'
+                )
+                notification.save()
+                
             elif status_update == Campaign.Status.DRAFT:
                 subject = 'Campaign Drafted'
                 message = f'Your campaign titled "{campaign.title}" has been saved as a draft. You can continue editing it before submission.'
+                
+                notification = Notification.objects.create(
+                    user=ngo.created_by,
+                    type=Notification.NotificationType.CAMPAIGN,
+                    title='Campaign Drafted',
+                    message=f'Your campaign titled "{campaign.title}" has been saved as a draft. You can continue editing it before submission.'
+                )
+                notification.save()
             
         send_email(subject, message, [ngo.email])
         
@@ -276,6 +344,14 @@ def campaign_detail_view(request, pk):
         ngo = campaign.ngo
         campaign_title = campaign.title
         campaign.delete()
+        
+        notification = Notification.objects.create(
+            user=ngo.created_by,
+            type=Notification.NotificationType.CAMPAIGN,
+            title='Campaign Deleted',
+            message=f'Your campaign titled "{campaign_title}" has been deleted by {request.user.username}. Please review the deletion.'
+        )
+        notification.save()
         
         subject = 'Campaign Deleted'
         message = f'The campaign titled "{campaign_title}" has been deleted by {request.user.username}. Please review the deletion.'
@@ -322,6 +398,14 @@ def pending_campaign_change_detail_view(request, pk):
                 campaign.campaign_image = pending_change.campaign_image
             campaign.save()
             
+            notification = Notification.objects.create(
+                user=ngo.created_by,
+                type=Notification.NotificationType.CAMPAIGN,
+                title='Campaign Update Approved',
+                message=f'Your update for the campaign titled "{campaign.title}" has been approved by the admin. The changes are now live.'
+            )
+            notification.save()
+
             ngo = campaign.ngo
             subject = 'Campaign Update Approved'
             message = f'Your update for the campaign titled "{campaign.title}" has been approved by the admin. The changes are now live.'
@@ -330,6 +414,15 @@ def pending_campaign_change_detail_view(request, pk):
         elif status_update == 'REJECTED':
             campaign = pending_change.campaign
             ngo = campaign.ngo
+            
+            notification = Notification.objects.create(
+                user=ngo.created_by,
+                type=Notification.NotificationType.CAMPAIGN,
+                title='Campaign Update Rejected',
+                message=f'Your update for the campaign titled "{campaign.title}" has been rejected by the admin. Please review the feedback and make necessary changes.'
+            )
+            notification.save()
+
             subject = 'Campaign Update Rejected'
             message = f'Your update for the campaign titled "{campaign.title}" has been rejected by the admin. Please review the feedback and make necessary changes.'
             send_email(subject, message, [ngo.email])
