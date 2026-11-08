@@ -33,10 +33,9 @@ class User(AbstractUser):
 class NGO(models.Model):
     class Status(models.TextChoices):
         PENDING = "PENDING", "Pending"
-        APPROVED = "APPROVED", "Approved"
-        REJECTED = "REJECTED", "Rejected"
         ACTIVE = "ACTIVE", "Active"
         INACTIVE = "INACTIVE", "Inactive"
+        REJECTED = "REJECTED", "Rejected"
 
     name = models.CharField(max_length=200)
     registration_number = models.CharField(max_length=100, unique=True)
