@@ -52,6 +52,29 @@ class NGO(models.Model):
     def __str__(self):
         return self.name
     
+class PendingNGOChange(models.Model):
+    ngo = models.ForeignKey(NGO, on_delete=models.CASCADE, related_name="pending_changes")
+    name = models.CharField(max_length=200, blank=True)
+    registration_number = models.CharField(max_length=100, blank=True)
+    description = models.TextField(blank=True)
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=20, blank=True)
+    address = models.CharField(max_length=255, blank=True)
+    ngo_logo = models.ImageField(upload_to="pending_ngo_logos/", blank=True, null=True)
+    submitted_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name="pending_ngo_changes")
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["ngo"],
+                name="unique_pending_ngo_change"
+            )
+        ]
+
+    def __str__(self):
+        return f"Pending Change for {self.ngo.name} by {self.submitted_by.username}"
+    
 class NGODocument(models.Model):
     class DocumentType(models.TextChoices):
         REGISTRATION = "REGISTRATION", "Registration Document"
