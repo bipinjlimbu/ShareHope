@@ -13,8 +13,8 @@ def notification_view(request):
         notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
         serializer = NotificationSerializer(notifications, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
-@api_view(['GET'])
+
+@api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def notification_detail_view(request, pk):
     try:
@@ -25,3 +25,15 @@ def notification_detail_view(request, pk):
     if request.method == 'GET':
         serializer = NotificationSerializer(notification)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    if request.method == 'PATCH':
+        if not notification.is_read:
+            notification.is_read = True
+            notification.save()
+            return Response({'message': 'Notification marked as read.'}, status=status.HTTP_200_OK)
+        
+        else:
+            notification.is_read = False
+            notification.save()
+            return Response({'message': 'Notification marked as unread.'}, status=status.HTTP_200_OK)
+        
