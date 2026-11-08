@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import {
     approveCampaign,
+    approvePendingCampaignChange,
     getCampaigns,
     getPendingCampaignChanges,
     rejectCampaign,
@@ -121,8 +122,15 @@ export default function PendingCampaignsPage() {
     const [campaignToReject, setCampaignToReject] =
         useState<Campaign | null>(null);
 
+    const [pendingChangeToApprove, setPendingChangeToApprove] =
+        useState<PendingCampaignChange | null>(null);
+
     const [isApproving, setIsApproving] = useState(false);
     const [isRejecting, setIsRejecting] = useState(false);
+
+    const [approvingPendingChangeId, setApprovingPendingChangeId] = useState<
+        number | null
+    >(null);
 
     const fetchPendingCampaigns = useCallback(async () => {
         const startedAt = Date.now();
@@ -239,6 +247,47 @@ export default function PendingCampaignsPage() {
         }
     };
 
+    const handleApprovePendingCampaignChange = async () => {
+        if (
+            !pendingChangeToApprove ||
+            approvingPendingChangeId !== null
+        ) {
+            return;
+        }
+
+        const changeId = pendingChangeToApprove.id;
+
+        setApprovingPendingChangeId(changeId);
+
+        try {
+            await approvePendingCampaignChange(changeId);
+
+            setPendingChanges((previousChanges) =>
+                previousChanges.filter((change) => change.id !== changeId)
+            );
+
+            showToast(
+                "Campaign edit request approved successfully.",
+                "success"
+            );
+
+            setPendingChangeToApprove(null);
+        } catch (err: unknown) {
+            console.error(
+                "Failed to approve campaign edit request:",
+                err
+            );
+
+            showToast(
+                getErrorMessage(err) ||
+                "Failed to approve campaign edit request.",
+                "error"
+            );
+        } finally {
+            setApprovingPendingChangeId(null);
+        }
+    };
+
     const fundCampaignCount = campaigns.filter(
         (campaign) =>
             campaign.donation_type === "FUND" ||
@@ -280,7 +329,9 @@ export default function PendingCampaignsPage() {
 
                                 <div>
                                     <p className="text-xl font-bold leading-6 text-[#183B2A]">
-                                        {campaigns.length.toLocaleString("en-NP")}
+                                        {campaigns.length.toLocaleString(
+                                            "en-NP"
+                                        )}
                                     </p>
                                     <p className="mt-0.5 whitespace-nowrap text-xs text-[#647568]">
                                         New requests
@@ -295,7 +346,9 @@ export default function PendingCampaignsPage() {
 
                                 <div>
                                     <p className="text-xl font-bold leading-6 text-[#183B2A]">
-                                        {pendingChanges.length.toLocaleString("en-NP")}
+                                        {pendingChanges.length.toLocaleString(
+                                            "en-NP"
+                                        )}
                                     </p>
                                     <p className="mt-0.5 whitespace-nowrap text-xs text-[#647568]">
                                         Edit requests
@@ -413,7 +466,9 @@ export default function PendingCampaignsPage() {
                                     searchQuery={searchQuery}
                                     donationTypeFilter={donationTypeFilter}
                                     onSearchChange={setSearchQuery}
-                                    onDonationTypeFilterChange={setDonationTypeFilter}
+                                    onDonationTypeFilterChange={
+                                        setDonationTypeFilter
+                                    }
                                     onViewDetails={setSelectedCampaignId}
                                     onApprove={setCampaignToApprove}
                                     onReject={setCampaignToReject}
@@ -426,6 +481,8 @@ export default function PendingCampaignsPage() {
                                     searchQuery={searchQuery}
                                     onSearchChange={setSearchQuery}
                                     onViewDetails={setSelectedPendingChangeId}
+                                    onApprove={setPendingChangeToApprove}
+                                    approvingId={approvingPendingChangeId}
                                 />
                             )}
 
@@ -485,6 +542,25 @@ export default function PendingCampaignsPage() {
                 onCancel={() => {
                     if (!isRejecting) {
                         setCampaignToReject(null);
+                    }
+                }}
+            />
+
+            <ConfirmationModal
+                isOpen={pendingChangeToApprove !== null}
+                title="Approve Campaign Changes?"
+                description="Are you sure you want to approve these campaign modifications? Once approved, the proposed changes will be accepted and applied to the campaign."
+                itemName={pendingChangeToApprove?.campaign?.title}
+                confirmText="Approve Changes"
+                isDeleting={approvingPendingChangeId !== null}
+                buttonColor="bg-[#166534]"
+                buttonHoverColor="hover:bg-[#124D29]"
+                iconBackgroundColor="bg-emerald-50"
+                iconColor="text-emerald-600"
+                onConfirm={handleApprovePendingCampaignChange}
+                onCancel={() => {
+                    if (approvingPendingChangeId === null) {
+                        setPendingChangeToApprove(null);
                     }
                 }}
             />
