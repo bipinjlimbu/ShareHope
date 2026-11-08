@@ -47,7 +47,13 @@ function getNGOStatus(
     status?: NGOStatus | string,
     verificationStatus?: NGOStatus | string
 ): string | undefined {
-    return status ?? verificationStatus;
+    const currentStatus = status ?? verificationStatus;
+
+    if (typeof currentStatus !== "string") {
+        return undefined;
+    }
+
+    return currentStatus.trim().toUpperCase();
 }
 
 function DashboardLayoutContent({
@@ -111,25 +117,16 @@ function DashboardLayoutContent({
                             ngo.verification_status
                         );
 
-                        if (
-                            ngoStatus === "PENDING" ||
-                            ngoStatus === "REJECTED"
-                        ) {
+                        if (ngoStatus === "ACTIVE") {
+                            setUser(currentUser);
+
+                            if (isDashboardRoot) {
+                                router.replace(allowedBaseRoute);
+                                return;
+                            }
+                        } else {
                             setUser(currentUser);
                             router.replace("/profile");
-                            return;
-                        }
-
-                        if (ngoStatus !== "APPROVED") {
-                            setUser(currentUser);
-                            router.replace("/profile");
-                            return;
-                        }
-
-                        setUser(currentUser);
-
-                        if (isDashboardRoot) {
-                            router.replace("/dashboard/ngo");
                             return;
                         }
                     } catch (error: unknown) {
