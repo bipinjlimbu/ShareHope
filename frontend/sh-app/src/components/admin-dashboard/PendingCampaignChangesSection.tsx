@@ -21,7 +21,9 @@ interface PendingCampaignChangesSectionProps {
     onSearchChange: (value: string) => void;
     onViewDetails: (id: number) => void;
     onApprove: (change: PendingCampaignChange) => void;
+    onReject: (change: PendingCampaignChange) => void;
     approvingId: number | null;
+    rejectingId: number | null;
 }
 
 const API_URL = (
@@ -95,7 +97,9 @@ function PlaceholderAction({
             ? "cursor-not-allowed opacity-60"
             : variant === "success"
                 ? "cursor-pointer"
-                : "cursor-pointer transition hover:bg-[#124D29] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
+                : variant === "danger"
+                    ? "cursor-pointer"
+                    : "cursor-pointer transition hover:bg-[#124D29] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
         : "cursor-default"
         }`;
 
@@ -123,12 +127,16 @@ function PendingEditCard({
     change,
     onViewDetails,
     onApprove,
+    onReject,
     approvingId,
+    rejectingId,
 }: {
     change: PendingCampaignChange;
     onViewDetails: (id: number) => void;
     onApprove: (change: PendingCampaignChange) => void;
+    onReject: (change: PendingCampaignChange) => void;
     approvingId: number | null;
+    rejectingId: number | null;
 }) {
     const campaign = change.campaign;
     const [imageFailed, setImageFailed] = useState(false);
@@ -136,7 +144,9 @@ function PendingEditCard({
     const imageUrl = getCampaignImageUrl(campaign?.campaign_image);
 
     const isApproving = approvingId === change.id;
-    const isApprovalInProgress = approvingId !== null;
+    const isRejecting = rejectingId === change.id;
+    const isApprovalInProgress =
+        approvingId !== null || rejectingId !== null;
 
     useEffect(() => {
         setImageFailed(false);
@@ -257,9 +267,25 @@ function PendingEditCard({
                                 )}
                             </PlaceholderAction>
 
-                            <PlaceholderAction variant="danger">
-                                <XCircle size={16} />
-                                Reject
+                            <PlaceholderAction
+                                variant="danger"
+                                onClick={() => onReject(change)}
+                                disabled={isApprovalInProgress}
+                            >
+                                {isRejecting ? (
+                                    <>
+                                        <LoaderCircle
+                                            size={16}
+                                            className="animate-spin"
+                                        />
+                                        Rejecting...
+                                    </>
+                                ) : (
+                                    <>
+                                        <XCircle size={16} />
+                                        Reject
+                                    </>
+                                )}
                             </PlaceholderAction>
                         </div>
                     </div>
@@ -275,7 +301,9 @@ export default function PendingCampaignChangesSection({
     onSearchChange,
     onViewDetails,
     onApprove,
+    onReject,
     approvingId,
+    rejectingId,
 }: PendingCampaignChangesSectionProps) {
     const filteredChanges = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
@@ -396,7 +424,9 @@ export default function PendingCampaignChangesSection({
                             change={change}
                             onViewDetails={onViewDetails}
                             onApprove={onApprove}
+                            onReject={onReject}
                             approvingId={approvingId}
+                            rejectingId={rejectingId}
                         />
                     ))}
                 </section>
