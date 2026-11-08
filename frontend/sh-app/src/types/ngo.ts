@@ -2,7 +2,14 @@ import type { User } from "@/types/user";
 
 export type NGODocumentType = "REGISTRATION" | "TAX_EXEMPTION" | "OTHER";
 
-export type NGOStatus = "PENDING" | "APPROVED" | "REJECTED";
+export type NGOStatus =
+    | "PENDING"
+    | "ACTIVE"
+    | "INACTIVE"
+    | "REJECTED"
+    | "APPROVED";
+
+export type NGOStatusUpdate = "ACTIVE" | "INACTIVE" | "REJECTED";
 
 export type NGOMembershipStatus = "ACTIVE" | "INACTIVE";
 
@@ -89,7 +96,7 @@ export interface NGOListItem {
 export type NGOListResponse = NGOListItem[];
 
 export interface UpdateNGOStatusPayload {
-    is_active: boolean;
+    status: NGOStatusUpdate;
 }
 
 export interface UpdateNGOStatusResponse {
