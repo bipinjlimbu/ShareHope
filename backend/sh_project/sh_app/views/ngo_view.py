@@ -3,8 +3,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from PIL import Image
-from ..models import User, NGO, NGODocument, NGOMembership, Notification
-from ..serializers import NGOSerializer
+from ..models import User, NGO, PendingNGOChange, NGODocument, NGOMembership, Notification
+from ..serializers import NGOSerializer, PendingNGOChangeSerializer
 from ..email_service import send_email
 import re
     
@@ -308,3 +308,10 @@ def ngo_detail_view(request, pk):
         send_email(subject, message, [email])
         
         return Response({'message': 'NGO deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def pending_ngo_change_view(request):
+    pending_changes = PendingNGOChange.objects.all()
+    serializer = PendingNGOChangeSerializer(pending_changes, many=True)
+    return Response(serializer.data)
