@@ -89,7 +89,8 @@ function normalizeNGOStatus(
 
     if (
         normalized === "PENDING" ||
-        normalized === "APPROVED" ||
+        normalized === "ACTIVE" ||
+        normalized === "INACTIVE" ||
         normalized === "REJECTED"
     ) {
         return normalized;
@@ -380,11 +381,12 @@ export default function ProfilePage() {
 
         try {
             const ngo = await getNGOByUser();
+
             const status = normalizeNGOStatus(
                 ngo.status ?? ngo.verification_status
             );
 
-            if (status === "APPROVED") {
+            if (status === "ACTIVE") {
                 router.push("/dashboard/ngo-admin");
                 return;
             }
@@ -405,8 +407,16 @@ export default function ProfilePage() {
                 return;
             }
 
+            if (status === "INACTIVE") {
+                showToast(
+                    "Your NGO account is currently inactive. Please contact the administrator for assistance.",
+                    "error"
+                );
+                return;
+            }
+
             showToast(
-                "The NGO review status could not be recognized. Please try again later.",
+                "The NGO status could not be recognized. Please try again later.",
                 "error"
             );
         } catch (error: unknown) {
