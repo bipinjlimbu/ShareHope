@@ -85,14 +85,17 @@ function PlaceholderAction({
 }) {
     const styles = {
         primary: "border-[#166534] bg-[#166534] text-white",
-        success: "border-emerald-200 bg-emerald-50 text-emerald-700",
+        success:
+            "border-emerald-200 bg-emerald-50 text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 focus:outline-none focus:ring-4 focus:ring-emerald-100",
         danger: "border-red-200 bg-red-50 text-red-600",
     };
 
     const className = `inline-flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm font-semibold ${styles[variant]} ${onClick
         ? disabled
             ? "cursor-not-allowed opacity-60"
-            : "cursor-pointer transition hover:bg-[#124D29] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
+            : variant === "success"
+                ? "cursor-pointer"
+                : "cursor-pointer transition hover:bg-[#124D29] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
         : "cursor-default"
         }`;
 
