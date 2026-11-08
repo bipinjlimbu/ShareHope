@@ -16,6 +16,7 @@ export const dashboardNavigation: Record<
         { label: "Pending Campaigns", href: "/dashboard/admin/pending-campaigns", icon: "shield-check" },
         { label: "Donations", href: "/dashboard/admin/donations", icon: "wallet" },
         { label: "Payments", href: "/dashboard/admin/payments", icon: "credit-card" },
+        { label: "Testimonials", href: "/dashboard/admin/testimonials", icon: "chat" },
         { label: "Audit Logs", href: "/dashboard/admin/audit-logs", icon: "history" },
         { label: "Reports & Analytics", href: "/dashboard/admin/reports", icon: "chart-no-axes-combined" },
     ],
