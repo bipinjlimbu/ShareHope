@@ -3,7 +3,7 @@ from .views.auth_view import register_view, login_view, refresh_token_view, logo
 from .views.main_view import contact_view
 from .views.profile_view import profile_view, verify_email_view, resend_otp_view
 from .views.user_view import user_view, user_detail_view
-from .views.ngo_view import ngo_by_user_view, ngo_view, ngo_detail_view, approve_ngo_view, reject_ngo_view
+from .views.ngo_view import ngo_by_user_view, ngo_view, ngo_detail_view
 from .views.campaign_view import campaign_view, campaign_detail_view, pending_campaign_change_detail_view, pending_campaign_change_view
 from .views.testimonial_view import testimonial_view, testimonial_detail_view
 from .views.notification_view import notification_view, notification_detail_view
@@ -26,8 +26,6 @@ urlpatterns = [
     path('ngo/', ngo_view, name='ngo_list'),
     path('ngo/user/', ngo_by_user_view, name='ngo_by_user'),
     path('ngo/<int:pk>/', ngo_detail_view, name='ngo_detail'),
-    path('ngo/<int:pk>/approve/', approve_ngo_view, name='approve_ngo'),
-    path('ngo/<int:pk>/reject/', reject_ngo_view, name='reject_ngo'),
     path('campaign/', campaign_view, name='campaign_list'),
     path('campaign/<int:pk>/', campaign_detail_view, name='campaign_detail'),
     path('campaign/pending-change/', pending_campaign_change_view, name='pending_campaign_change'),
