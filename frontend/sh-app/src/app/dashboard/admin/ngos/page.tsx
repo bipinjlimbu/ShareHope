@@ -30,10 +30,13 @@ import { useToast } from "@/components/toast/ToastProvider";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const MINIMUM_LOADING_TIME = 500;
 
-type StatusFilter = "ALL" | Extract<NGOStatus, "APPROVED" | "REJECTED">;
+type StatusFilter =
+    | "ALL"
+    | Extract<NGOStatus, "ACTIVE" | "INACTIVE" | "REJECTED">;
 
 const statusStyles: Record<string, string> = {
-    APPROVED: "bg-emerald-50 text-emerald-700",
+    ACTIVE: "bg-emerald-50 text-emerald-700",
+    INACTIVE: "bg-amber-50 text-amber-700",
     REJECTED: "bg-red-50 text-red-700",
 };
 
@@ -68,6 +71,20 @@ function getDisplayName(ngo: NGOListItem): string {
     const fullName = `${firstName} ${lastName}`.trim();
 
     return fullName || ngo.created_by?.username || "Unknown user";
+}
+
+function getNGOStatus(ngo: NGOListItem): string {
+    return ngo.status?.toUpperCase() ?? "";
+}
+
+function isNGOActive(ngo: NGOListItem): boolean {
+    return getNGOStatus(ngo) === "ACTIVE";
+}
+
+function canToggleNGOStatus(ngo: NGOListItem): boolean {
+    const status = getNGOStatus(ngo);
+
+    return status === "ACTIVE" || status === "INACTIVE";
 }
 
 function getStatusLabel(status: string): string {
@@ -181,8 +198,13 @@ export default function AdminNGOsPage() {
             setNgos(
                 Array.isArray(response)
                     ? response.filter((ngo) => {
-                        const status = ngo.status?.toUpperCase();
-                        return status === "APPROVED" || status === "REJECTED";
+                        const status = getNGOStatus(ngo);
+
+                        return (
+                            status === "ACTIVE" ||
+                            status === "INACTIVE" ||
+                            status === "REJECTED"
+                        );
                     })
                     : []
             );
@@ -212,15 +234,20 @@ export default function AdminNGOsPage() {
 
     const handleToggleNGOStatus = useCallback(
         async (ngo: NGOListItem) => {
-            if (updatingNGOIds.includes(ngo.id)) return;
+            if (
+                updatingNGOIds.includes(ngo.id) ||
+                !canToggleNGOStatus(ngo)
+            ) {
+                return;
+            }
 
-            const nextIsActive = !ngo.is_active;
+            const nextStatus = isNGOActive(ngo) ? "INACTIVE" : "ACTIVE";
 
             setUpdatingNGOIds((current) => [...current, ngo.id]);
 
             try {
                 const response = await updateNGOStatus(ngo.id, {
-                    is_active: nextIsActive,
+                    status: nextStatus,
                 });
 
                 setNgos((currentNGOs) =>
@@ -228,7 +255,8 @@ export default function AdminNGOsPage() {
                         currentNGO.id === ngo.id
                             ? {
                                 ...currentNGO,
-                                is_active: nextIsActive,
+                                status: nextStatus,
+                                is_active: nextStatus === "ACTIVE",
                             }
                             : currentNGO
                     )
@@ -236,7 +264,7 @@ export default function AdminNGOsPage() {
 
                 showToast(
                     response.message ||
-                    (nextIsActive
+                    (nextStatus === "ACTIVE"
                         ? `${ngo.name} activated successfully.`
                         : `${ngo.name} deactivated successfully.`),
                     "success"
@@ -302,9 +330,13 @@ export default function AdminNGOsPage() {
         const query = searchQuery.trim().toLowerCase();
 
         return ngos.filter((ngo) => {
-            const status = ngo.status?.toUpperCase();
+            const status = getNGOStatus(ngo);
 
-            if (status !== "APPROVED" && status !== "REJECTED") {
+            if (
+                status !== "ACTIVE" &&
+                status !== "INACTIVE" &&
+                status !== "REJECTED"
+            ) {
                 return false;
             }
 
@@ -327,15 +359,16 @@ export default function AdminNGOsPage() {
         });
     }, [ngos, searchQuery, statusFilter]);
 
-    const approvedCount = ngos.filter(
-        (ngo) => ngo.status?.toUpperCase() === "APPROVED"
-    ).length;
+    const approvedCount = ngos.filter((ngo) => {
+        const status = getNGOStatus(ngo);
+        return status === "ACTIVE" || status === "INACTIVE";
+    }).length;
 
     const rejectedCount = ngos.filter(
-        (ngo) => ngo.status?.toUpperCase() === "REJECTED"
+        (ngo) => getNGOStatus(ngo) === "REJECTED"
     ).length;
 
-    const activeCount = ngos.filter((ngo) => ngo.is_active).length;
+    const activeCount = ngos.filter(isNGOActive).length;
 
     if (isLoading) {
         return <NGOsSkeleton />;
@@ -416,7 +449,7 @@ export default function AdminNGOsPage() {
                                 <SummaryCard
                                     title="Active NGOs"
                                     value={activeCount}
-                                    description="Reviewed organizations currently active"
+                                    description="Approved organizations currently active"
                                     icon={ShieldCheck}
                                 />
                             </section>
@@ -466,8 +499,11 @@ export default function AdminNGOsPage() {
                                             <option value="ALL">
                                                 All statuses
                                             </option>
-                                            <option value="APPROVED">
-                                                Approved
+                                            <option value="ACTIVE">
+                                                Active
+                                            </option>
+                                            <option value="INACTIVE">
+                                                Inactive
                                             </option>
                                             <option value="REJECTED">
                                                 Rejected
@@ -530,6 +566,8 @@ export default function AdminNGOsPage() {
                                         const isUpdating = updatingNGOIds.includes(
                                             ngo.id
                                         );
+                                        const isActive = isNGOActive(ngo);
+                                        const canToggle = canToggleNGOStatus(ngo);
 
                                         return (
                                             <article
@@ -563,20 +601,18 @@ export default function AdminNGOsPage() {
                                                         <StatusBadge status={ngo.status} />
 
                                                         <span
-                                                            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${ngo.is_active
+                                                            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${isActive
                                                                 ? "bg-emerald-50 text-emerald-700"
                                                                 : "bg-amber-50 text-amber-700"
                                                                 }`}
                                                         >
                                                             <span
-                                                                className={`h-1.5 w-1.5 rounded-full ${ngo.is_active
+                                                                className={`h-1.5 w-1.5 rounded-full ${isActive
                                                                     ? "bg-emerald-500"
                                                                     : "bg-amber-500"
                                                                     }`}
                                                             />
-                                                            {ngo.is_active
-                                                                ? "Active"
-                                                                : "Inactive"}
+                                                            {isActive ? "Active" : "Inactive"}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -677,43 +713,52 @@ export default function AdminNGOsPage() {
                                                     <div className="grid grid-cols-2 gap-3">
                                                         <button
                                                             type="button"
-                                                            disabled={isUpdating}
+                                                            disabled={!canToggle || isUpdating}
                                                             aria-label={
-                                                                ngo.is_active
-                                                                    ? `Deactivate ${ngo.name}`
-                                                                    : `Activate ${ngo.name}`
+                                                                !canToggle
+                                                                    ? `${ngo.name} is rejected and cannot be activated or deactivated`
+                                                                    : isActive
+                                                                        ? `Deactivate ${ngo.name}`
+                                                                        : `Activate ${ngo.name}`
                                                             }
                                                             title={
-                                                                ngo.is_active
-                                                                    ? "Deactivate NGO"
-                                                                    : "Activate NGO"
+                                                                !canToggle
+                                                                    ? "Rejected NGOs cannot be activated or deactivated"
+                                                                    : isActive
+                                                                        ? "Deactivate NGO"
+                                                                        : "Activate NGO"
                                                             }
                                                             onClick={() =>
                                                                 void handleToggleNGOStatus(
                                                                     ngo
                                                                 )
                                                             }
-                                                            className="flex items-center justify-center gap-2 rounded-xl border border-[#DDE7D9] bg-[#F8FAF6] px-3 py-2.5 text-sm font-semibold text-[#526B56] transition hover:bg-[#E5F2E1] hover:text-[#166534] disabled:cursor-wait disabled:opacity-60"
+                                                            className="flex items-center justify-center gap-2 rounded-xl border border-[#DDE7D9] bg-[#F8FAF6] px-3 py-2.5 text-sm font-semibold text-[#526B56] transition hover:bg-[#E5F2E1] hover:text-[#166534] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-[#F8FAF6] disabled:hover:text-[#526B56]"
                                                         >
                                                             <span
-                                                                className={`relative h-4 w-7 shrink-0 rounded-full ${ngo.is_active
+                                                                className={`relative h-4 w-7 shrink-0 rounded-full ${isActive
                                                                     ? "bg-[#35A45C]"
                                                                     : "bg-[#C9D3C6]"
+                                                                    } ${!canToggle
+                                                                        ? "opacity-60"
+                                                                        : ""
                                                                     }`}
                                                             >
                                                                 <span
-                                                                    className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm ${ngo.is_active
+                                                                    className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm ${isActive
                                                                         ? "right-0.5"
                                                                         : "left-0.5"
                                                                         }`}
                                                                 />
                                                             </span>
 
-                                                            {isUpdating
-                                                                ? "Updating..."
-                                                                : ngo.is_active
-                                                                    ? "Deactivate"
-                                                                    : "Activate"}
+                                                            {!canToggle
+                                                                ? "Unavailable"
+                                                                : isUpdating
+                                                                    ? "Updating..."
+                                                                    : isActive
+                                                                        ? "Deactivate"
+                                                                        : "Activate"}
                                                         </button>
 
                                                         <button
