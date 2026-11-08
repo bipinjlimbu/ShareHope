@@ -210,7 +210,7 @@ def ngo_detail_view(request, pk):
         
         status_change = request.data.get('status')
         
-        if ngo.status == NGO.PENDING:
+        if ngo.status == NGO.Status.PENDING:
             ngo.status = status_change
             ngo.reviewed_by = request.user
             ngo.save()
