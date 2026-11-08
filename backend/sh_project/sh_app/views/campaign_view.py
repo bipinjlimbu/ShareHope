@@ -421,6 +421,8 @@ def pending_campaign_change_detail_view(request, pk):
             if pending_change.campaign_image:
                 campaign.campaign_image = pending_change.campaign_image
             campaign.save()
+
+            ngo = campaign.ngo
             
             notification = Notification.objects.create(
                 user=ngo.created_by,
@@ -429,8 +431,7 @@ def pending_campaign_change_detail_view(request, pk):
                 message=f'Your update for the campaign titled "{campaign.title}" has been approved by the admin. The changes are now live.'
             )
             notification.save()
-
-            ngo = campaign.ngo
+            
             subject = 'Campaign Update Approved'
             message = f'Your update for the campaign titled "{campaign.title}" has been approved by the admin. The changes are now live.'
             send_email(subject, message, [ngo.email])
