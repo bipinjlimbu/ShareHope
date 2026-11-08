@@ -6,6 +6,7 @@ from .views.user_view import user_view, user_detail_view
 from .views.ngo_view import ngo_by_user_view, ngo_view, ngo_detail_view, approve_ngo_view, reject_ngo_view
 from .views.campaign_view import campaign_view, campaign_detail_view, pending_campaign_change_detail_view, pending_campaign_change_view
 from .views.testimonial_view import testimonial_view, testimonial_detail_view
+from .views.notification_view import notification_view, notification_detail_view
 
 urlpatterns = [
     path('register/', register_view, name='register'),
@@ -33,4 +34,6 @@ urlpatterns = [
     path('campaign/pending-change/<int:pk>/', pending_campaign_change_detail_view, name='pending_campaign_change_detail'),
     path('testimonial/', testimonial_view, name='testimonial_list'),
     path('testimonial/<int:pk>/', testimonial_detail_view, name='testimonial_detail'),
+    path('notification/', notification_view, name='notification_list'),
+    path('notification/<int:pk>/', notification_detail_view, name='notification_detail'),
 ]

@@ -14,7 +14,7 @@ def notification_view(request):
         serializer = NotificationSerializer(notifications, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-@api_view(['GET', 'PATCH'])
+@api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def notification_detail_view(request, pk):
     try:
@@ -37,3 +37,6 @@ def notification_detail_view(request, pk):
             notification.save()
             return Response({'message': 'Notification marked as unread.'}, status=status.HTTP_200_OK)
         
+    if request.method == 'DELETE':
+        notification.delete()
+        return Response({'message': 'Notification deleted.'}, status=status.HTTP_200_OK)
