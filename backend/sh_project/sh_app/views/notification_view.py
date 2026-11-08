@@ -13,3 +13,15 @@ def notification_view(request):
         notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
         serializer = NotificationSerializer(notifications, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def notification_detail_view(request, pk):
+    try:
+        notification = Notification.objects.get(pk=pk, user=request.user)
+    except Notification.DoesNotExist:
+        return Response({'error': 'Notification not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        serializer = NotificationSerializer(notification)
+        return Response(serializer.data, status=status.HTTP_200_OK)
