@@ -208,39 +208,75 @@ def ngo_detail_view(request, pk):
         if request.user.role != User.Role.ADMIN:
             return Response({'error': 'Only admin users can update NGO details.'}, status=status.HTTP_403_FORBIDDEN)
         
-        is_active = request.data.get('is_active') == True
-        ngo.is_active = is_active
-        ngo.save()
+        status_change = request.data.get('status')
         
-        if is_active:
-            subject = 'NGO Approved'
-            message = f'Dear {ngo.created_by.first_name},\n\nYour NGO "{ngo.name}" has been approved and is now active. You can now manage your NGO and its activities.\n\nThank you for your contribution to our community.\n\nBest regards,\nShareHope Team'
-            send_email(subject, message, [ngo.email])
+        if ngo.status == NGO.PENDING:
+            ngo.status = status_change
+            ngo.reviewed_by = request.user
+            ngo.save()
             
-            notification = Notification.objects.create(
-                user=ngo.created_by,
-                type=Notification.NotificationType.NGO,
-                title='NGO Approved',
-                message=f'Your NGO "{ngo.name}" has been approved and is now active. You can now manage your NGO and its activities.'
-            )
-            notification.save()
-            
-            return Response({'message': 'NGO activated successfully.'}, status=status.HTTP_200_OK)
-                   
+            if status_change == NGO.Status.ACTIVE:
+                notification = Notification.objects.create(
+                    user=ngo.created_by,
+                    type=Notification.NotificationType.NGO,
+                    title='NGO Approved',
+                    message=f'Your NGO "{ngo.name}" has been approved and is now active. You can now manage your NGO and its activities.'
+                )
+                notification.save()
+                
+                subject = 'NGO Approved'
+                message = f'Dear {ngo.created_by.first_name},\n\nYour NGO "{ngo.name}" has been approved and is now active. You can now manage your NGO and its activities.\n\nThank you for your contribution to our community.\n\nBest regards,\nShareHope Team'
+                send_email(subject, message, [ngo.email])
+                
+            elif status_change == NGO.Status.REJECTED:
+                notification = Notification.objects.create(
+                    user=ngo.created_by,
+                    type=Notification.NotificationType.NGO,
+                    title='NGO Rejected',
+                    message=f'Your NGO "{ngo.name}" registration has been rejected. Please contact the admin for more information.'
+                )
+                notification.save()
+                
+                subject = 'NGO Rejected'
+                message = f'Dear {ngo.created_by.first_name},\n\nWe regret to inform you that your NGO "{ngo.name}" registration has been rejected. Please contact the admin for more information.\n\nBest regards,\nShareHope Team'
+                send_email(subject, message, [ngo.email])
+                
+            return Response({'message': f'NGO status updated to {status_change} successfully.'}, status=status.HTTP_200_OK)
+        
         else:
-            subject = 'NGO Deactivated'
-            message = f'Dear {ngo.created_by.first_name},\n\nYour NGO "{ngo.name}" has been deactivated. Please contact the admin for more information.\n\nBest regards,\nShareHope Team'
-            send_email(subject, message, [ngo.email])
+            if status_change not in [NGO.Status.ACTIVE, NGO.Status.INACTIVE]:
+                return Response({'error': 'Invalid status change. Only ACTIVE or INACTIVE status changes are allowed for approved NGOs.'}, status=status.HTTP_400_BAD_REQUEST)
             
-            notification = Notification.objects.create(
-                user=ngo.created_by,
-                type=Notification.NotificationType.NGO,
-                title='NGO Deactivated',
-                message=f'Your NGO "{ngo.name}" has been deactivated. Please contact the admin for more information.'
-            )
-            notification.save()
+            ngo.status = status_change
+            ngo.save()
             
-            return Response({'message': 'NGO deactivated successfully.'}, status=status.HTTP_200_OK)
+            if status_change == NGO.Status.ACTIVE:
+                notification = Notification.objects.create(
+                    user=ngo.created_by,
+                    type=Notification.NotificationType.NGO,
+                    title='NGO Activated',
+                    message=f'Your NGO "{ngo.name}" has been activated and is now active. You can now manage your NGO and its activities.'
+                )
+                notification.save()
+                
+                subject = 'NGO Activated'
+                message = f'Dear {ngo.created_by.first_name},\n\nYour NGO "{ngo.name}" has been activated and is now active. You can now manage your NGO and its activities.\n\nThank you for your contribution to our community.\n\nBest regards,\nShareHope Team'
+                send_email(subject, message, [ngo.email])
+                
+            elif status_change == NGO.Status.INACTIVE:
+                notification = Notification.objects.create(
+                    user=ngo.created_by,
+                    type=Notification.NotificationType.NGO,
+                    title='NGO Deactivated',
+                    message=f'Your NGO "{ngo.name}" has been deactivated and is now inactive. Please contact the admin for more information.'
+                )
+                notification.save()
+                
+                subject = 'NGO Deactivated'
+                message = f'Dear {ngo.created_by.first_name},\n\nWe regret to inform you that your NGO "{ngo.name}" has been deactivated and is now inactive. Please contact the admin for more information.\n\nBest regards,\nShareHope Team'
+                send_email(subject, message, [ngo.email])
+                
+            return Response({'message': f'NGO status updated to {status_change} successfully.'}, status=status.HTTP_200_OK)
         
     if request.method == 'DELETE':
         if request.user.role != User.Role.ADMIN and request.user != ngo.created_by:
@@ -272,62 +308,3 @@ def ngo_detail_view(request, pk):
         send_email(subject, message, [email])
         
         return Response({'message': 'NGO deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
-    
-@api_view(['PATCH'])
-@permission_classes([IsAuthenticated])
-def approve_ngo_view(request, pk):
-    if request.method == 'PATCH':
-        if request.user.role != User.Role.ADMIN:
-            return Response({'error': 'Only admin users can approve NGO registrations.'}, status=status.HTTP_403_FORBIDDEN)
-        
-        try:
-            ngo = NGO.objects.get(id=pk)
-        except NGO.DoesNotExist:
-            return Response({'error': 'NGO not found.'}, status=status.HTTP_404_NOT_FOUND)
-        
-        ngo.status = NGO.Status.APPROVED
-        ngo.reviewed_by = request.user
-        ngo.save()
-        
-        notification = Notification.objects.create(
-            user=ngo.created_by,
-            type=Notification.NotificationType.NGO,
-            title='NGO Approved',
-            message=f'Your NGO "{ngo.name}" has been approved and is now active. You can now manage your NGO and its activities.'
-        )
-        notification.save()
-        
-        subject = 'NGO Approved'
-        message = f'Dear {ngo.created_by.first_name},\n\nYour NGO "{ngo.name}" has been approved and is now active. You can now manage your NGO and its activities.\n\nThank you for your contribution to our community.\n\nBest regards,\nShareHope Team'
-        send_email(subject, message, [ngo.email])
-        
-        return Response({'message': 'NGO approved successfully.'}, status=status.HTTP_200_OK)
-    
-@api_view(['PATCH'])
-@permission_classes([IsAuthenticated])
-def reject_ngo_view(request, pk):
-    if request.method == 'PATCH':
-        if request.user.role != User.Role.ADMIN:
-            return Response({'error': 'Only admin users can reject NGO registrations.'}, status=status.HTTP_403_FORBIDDEN)
-        
-        try:
-            ngo = NGO.objects.get(id=pk)
-        except NGO.DoesNotExist:
-            return Response({'error': 'NGO not found.'}, status=status.HTTP_404_NOT_FOUND)
-        
-        ngo.status = NGO.Status.REJECTED
-        ngo.save()
-        
-        notification = Notification.objects.create(
-            user=ngo.created_by,
-            type=Notification.NotificationType.NGO,
-            title='NGO Rejected',
-            message=f'Your NGO "{ngo.name}" registration has been rejected. Please contact the admin for more information.'
-        )
-        notification.save()
-        
-        subject = 'NGO Rejected'
-        message = f'Dear {ngo.created_by.first_name},\n\nWe regret to inform you that your NGO "{ngo.name}" registration has been rejected. Please contact the admin for more information.\n\nBest regards,\nShareHope Team'
-        send_email(subject, message, [ngo.email])
-        
-        return Response({'message': 'NGO rejected successfully.'}, status=status.HTTP_200_OK)
