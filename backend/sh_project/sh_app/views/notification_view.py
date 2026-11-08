@@ -25,6 +25,10 @@ def notification_view(request):
         else:
             notifications.update(is_read=False)
             return Response({'message': 'All notifications marked as unread.'}, status=status.HTTP_200_OK)
+        
+    if request.method == 'DELETE':
+        notifications.delete()
+        return Response({'message': 'All notifications deleted.'}, status=status.HTTP_200_OK)
 
 @api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
