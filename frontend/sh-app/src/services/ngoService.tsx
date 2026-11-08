@@ -83,17 +83,33 @@ export async function updateNGOStatus(
 export async function approveNGO(
     ngoId: number
 ): Promise<ApproveNGOResponse> {
-    return (await authFetch(`/ngo/${ngoId}/approve/`, {
-        method: "PATCH",
+    return (await updateNGOStatus(ngoId, {
+        status: "ACTIVE",
     })) as ApproveNGOResponse;
 }
 
 export async function rejectNGO(
     ngoId: number
 ): Promise<RejectNGOResponse> {
-    return (await authFetch(`/ngo/${ngoId}/reject/`, {
-        method: "PATCH",
+    return (await updateNGOStatus(ngoId, {
+        status: "REJECTED",
     })) as RejectNGOResponse;
+}
+
+export async function activateNGO(
+    ngoId: number
+): Promise<UpdateNGOStatusResponse> {
+    return updateNGOStatus(ngoId, {
+        status: "ACTIVE",
+    });
+}
+
+export async function deactivateNGO(
+    ngoId: number
+): Promise<UpdateNGOStatusResponse> {
+    return updateNGOStatus(ngoId, {
+        status: "INACTIVE",
+    });
 }
 
 export async function deleteNGO(
