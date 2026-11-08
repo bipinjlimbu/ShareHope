@@ -7,6 +7,7 @@ import {
     Clock3,
     ImageIcon,
     Layers3,
+    LoaderCircle,
     PencilLine,
     Search,
     X,
@@ -19,6 +20,8 @@ interface PendingCampaignChangesSectionProps {
     searchQuery: string;
     onSearchChange: (value: string) => void;
     onViewDetails: (id: number) => void;
+    onApprove: (change: PendingCampaignChange) => void;
+    approvingId: number | null;
 }
 
 const API_URL = (
@@ -27,7 +30,9 @@ const API_URL = (
     .replace(/\/api\/?$/, "")
     .replace(/\/+$/, "");
 
-function getCampaignImageUrl(image: string | null | undefined): string | null {
+function getCampaignImageUrl(
+    image: string | null | undefined
+): string | null {
     if (!image) return null;
 
     if (image.startsWith("http://") || image.startsWith("https://")) {
@@ -54,7 +59,11 @@ function formatDate(value: string | null): string {
     }).format(date);
 }
 
-function PendingStatusBadge({ label = "Pending Approval" }: { label?: string }) {
+function PendingStatusBadge({
+    label = "Pending Approval",
+}: {
+    label?: string;
+}) {
     return (
         <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">
             <Clock3 size={13} className="shrink-0" />
@@ -67,10 +76,12 @@ function PlaceholderAction({
     children,
     variant,
     onClick,
+    disabled = false,
 }: {
     children: React.ReactNode;
     variant: "primary" | "success" | "danger";
     onClick?: () => void;
+    disabled?: boolean;
 }) {
     const styles = {
         primary: "border-[#166534] bg-[#166534] text-white",
@@ -79,7 +90,9 @@ function PlaceholderAction({
     };
 
     const className = `inline-flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm font-semibold ${styles[variant]} ${onClick
-        ? "cursor-pointer transition hover:bg-[#124D29] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
+        ? disabled
+            ? "cursor-not-allowed opacity-60"
+            : "cursor-pointer transition hover:bg-[#124D29] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
         : "cursor-default"
         }`;
 
@@ -88,6 +101,7 @@ function PlaceholderAction({
             <button
                 type="button"
                 onClick={onClick}
+                disabled={disabled}
                 className={className}
             >
                 {children}
@@ -105,14 +119,21 @@ function PlaceholderAction({
 function PendingEditCard({
     change,
     onViewDetails,
+    onApprove,
+    approvingId,
 }: {
     change: PendingCampaignChange;
     onViewDetails: (id: number) => void;
+    onApprove: (change: PendingCampaignChange) => void;
+    approvingId: number | null;
 }) {
     const campaign = change.campaign;
     const [imageFailed, setImageFailed] = useState(false);
 
     const imageUrl = getCampaignImageUrl(campaign?.campaign_image);
+
+    const isApproving = approvingId === change.id;
+    const isApprovalInProgress = approvingId !== null;
 
     useEffect(() => {
         setImageFailed(false);
@@ -212,9 +233,25 @@ function PendingEditCard({
                         </PlaceholderAction>
 
                         <div className="grid grid-cols-2 gap-3">
-                            <PlaceholderAction variant="success">
-                                <CheckCircle2 size={16} />
-                                Approve
+                            <PlaceholderAction
+                                variant="success"
+                                onClick={() => onApprove(change)}
+                                disabled={isApprovalInProgress}
+                            >
+                                {isApproving ? (
+                                    <>
+                                        <LoaderCircle
+                                            size={16}
+                                            className="animate-spin"
+                                        />
+                                        Approving...
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle2 size={16} />
+                                        Approve
+                                    </>
+                                )}
                             </PlaceholderAction>
 
                             <PlaceholderAction variant="danger">
@@ -234,6 +271,8 @@ export default function PendingCampaignChangesSection({
     searchQuery,
     onSearchChange,
     onViewDetails,
+    onApprove,
+    approvingId,
 }: PendingCampaignChangesSectionProps) {
     const filteredChanges = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
@@ -353,6 +392,8 @@ export default function PendingCampaignChangesSection({
                             key={change.id}
                             change={change}
                             onViewDetails={onViewDetails}
+                            onApprove={onApprove}
+                            approvingId={approvingId}
                         />
                     ))}
                 </section>
