@@ -15,6 +15,7 @@ import {
     getCampaigns,
     getPendingCampaignChanges,
     rejectCampaign,
+    rejectPendingCampaignChange,
 } from "@/services/campaignService";
 import type {
     Campaign,
@@ -125,10 +126,17 @@ export default function PendingCampaignsPage() {
     const [pendingChangeToApprove, setPendingChangeToApprove] =
         useState<PendingCampaignChange | null>(null);
 
+    const [pendingChangeToReject, setPendingChangeToReject] =
+        useState<PendingCampaignChange | null>(null);
+
     const [isApproving, setIsApproving] = useState(false);
     const [isRejecting, setIsRejecting] = useState(false);
 
     const [approvingPendingChangeId, setApprovingPendingChangeId] = useState<
+        number | null
+    >(null);
+
+    const [rejectingPendingChangeId, setRejectingPendingChangeId] = useState<
         number | null
     >(null);
 
@@ -250,7 +258,8 @@ export default function PendingCampaignsPage() {
     const handleApprovePendingCampaignChange = async () => {
         if (
             !pendingChangeToApprove ||
-            approvingPendingChangeId !== null
+            approvingPendingChangeId !== null ||
+            rejectingPendingChangeId !== null
         ) {
             return;
         }
@@ -285,6 +294,48 @@ export default function PendingCampaignsPage() {
             );
         } finally {
             setApprovingPendingChangeId(null);
+        }
+    };
+
+    const handleRejectPendingCampaignChange = async () => {
+        if (
+            !pendingChangeToReject ||
+            rejectingPendingChangeId !== null ||
+            approvingPendingChangeId !== null
+        ) {
+            return;
+        }
+
+        const changeId = pendingChangeToReject.id;
+
+        setRejectingPendingChangeId(changeId);
+
+        try {
+            await rejectPendingCampaignChange(changeId);
+
+            setPendingChanges((previousChanges) =>
+                previousChanges.filter((change) => change.id !== changeId)
+            );
+
+            showToast(
+                "Campaign edit request rejected successfully.",
+                "success"
+            );
+
+            setPendingChangeToReject(null);
+        } catch (err: unknown) {
+            console.error(
+                "Failed to reject campaign edit request:",
+                err
+            );
+
+            showToast(
+                getErrorMessage(err) ||
+                "Failed to reject campaign edit request.",
+                "error"
+            );
+        } finally {
+            setRejectingPendingChangeId(null);
         }
     };
 
@@ -482,7 +533,9 @@ export default function PendingCampaignsPage() {
                                     onSearchChange={setSearchQuery}
                                     onViewDetails={setSelectedPendingChangeId}
                                     onApprove={setPendingChangeToApprove}
+                                    onReject={setPendingChangeToReject}
                                     approvingId={approvingPendingChangeId}
+                                    rejectingId={rejectingPendingChangeId}
                                 />
                             )}
 
@@ -561,6 +614,25 @@ export default function PendingCampaignsPage() {
                 onCancel={() => {
                     if (approvingPendingChangeId === null) {
                         setPendingChangeToApprove(null);
+                    }
+                }}
+            />
+
+            <ConfirmationModal
+                isOpen={pendingChangeToReject !== null}
+                title="Reject Campaign Changes?"
+                description="Are you sure you want to reject these proposed campaign modifications? The existing campaign details will remain unchanged."
+                itemName={pendingChangeToReject?.campaign?.title}
+                confirmText="Reject Changes"
+                isDeleting={rejectingPendingChangeId !== null}
+                buttonColor="bg-red-600"
+                buttonHoverColor="hover:bg-red-700"
+                iconBackgroundColor="bg-red-50"
+                iconColor="text-red-600"
+                onConfirm={handleRejectPendingCampaignChange}
+                onCancel={() => {
+                    if (rejectingPendingChangeId === null) {
+                        setPendingChangeToReject(null);
                     }
                 }}
             />
