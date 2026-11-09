@@ -16,6 +16,9 @@ import type {
     NGOChangeRequestErrors,
     PendingNGOChangeResponse,
     PendingNGOChangeDetailResponse,
+    UpdateNGOChangeStatusPayload,
+    UpdateNGOChangeStatusResponse,
+    UpdateNGOChangeStatusErrors,
 } from "@/types/ngo";
 
 export async function registerNGO(
@@ -114,6 +117,23 @@ export async function getPendingNGOChangeById(
     return (await authFetch(`/ngo/pending-change/${pendingChangeId}/`, {
         method: "GET",
     })) as PendingNGOChangeDetailResponse;
+}
+
+export async function updateNGOChangeStatus(
+    pendingChangeId: number,
+    payload: UpdateNGOChangeStatusPayload
+): Promise<UpdateNGOChangeStatusResponse> {
+    try {
+        return (await authFetch(
+            `/ngo/pending-change/${pendingChangeId}/`,
+            {
+                method: "PATCH",
+                body: JSON.stringify(payload),
+            }
+        )) as UpdateNGOChangeStatusResponse;
+    } catch (error: unknown) {
+        throw error as UpdateNGOChangeStatusErrors;
+    }
 }
 
 export async function updateNGOStatus(
