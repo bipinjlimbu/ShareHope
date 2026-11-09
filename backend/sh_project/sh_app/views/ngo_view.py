@@ -68,7 +68,7 @@ def ngo_view(request):
         if NGO.objects.filter(status=NGO.Status.PENDING, created_by=request.user).exists():
             return Response({'error': 'You already have a pending NGO registration.'}, status=status.HTTP_400_BAD_REQUEST)
         
-        if NGO.objects.filter(status=NGO.Status.APPROVED, created_by=request.user).exists():
+        if NGO.objects.filter(status=NGO.Status.ACTIVE, created_by=request.user).exists():
             return Response({'error': 'You already Registered an NGO.'}, status=status.HTTP_400_BAD_REQUEST)
         
         name = request.data.get('name')
@@ -104,7 +104,7 @@ def ngo_view(request):
             
         if not email:
             errors['email'] = 'NGO email is required.'
-        elif NGO.objects.filter(status=NGO.Status.APPROVED, email=email).exists():
+        elif NGO.objects.filter(status=NGO.Status.ACTIVE, email=email).exists():
             errors['email'] = 'NGO with this email already exists.'
         elif not re.match(email_pattern, email):
             errors['email'] = 'Invalid email format.'
