@@ -411,3 +411,15 @@ def pending_ngo_change_view(request):
     pending_changes = PendingNGOChange.objects.all()
     serializer = PendingNGOChangeSerializer(pending_changes, many=True)
     return Response(serializer.data)
+
+@api_view(['GET', 'PATCH', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def pending_ngo_change_detail_view(request, pk):
+    try:
+        pending_change = PendingNGOChange.objects.get(pk=pk)
+    except PendingNGOChange.DoesNotExist:
+        return Response({'error': 'Pending NGO change not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        serializer = PendingNGOChangeSerializer(pending_change)
+        return Response(serializer.data, status=status.HTTP_200_OK)
