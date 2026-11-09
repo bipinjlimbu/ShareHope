@@ -17,6 +17,8 @@ import {
     TrendingUp,
     Users,
     Wallet,
+    Pencil,
+    Trash2,
 } from "lucide-react";
 
 const demoCampaigns = [
@@ -334,7 +336,29 @@ export default function NGODashboardPage() {
                         </p>
                     </div>
 
-                    <div className="flex flex-col gap-3 self-start sm:items-end sm:self-auto">
+                    <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                disabled
+                                title="Edit NGO functionality will be added later"
+                                className="inline-flex flex-1 cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-[#D8E8D4] bg-[#F5F9F2] px-4 py-3 text-sm font-semibold text-[#829184] opacity-60 sm:flex-none"
+                            >
+                                <Pencil size={16} />
+                                Edit NGO
+                            </button>
+
+                            <button
+                                type="button"
+                                disabled
+                                title="Delete NGO functionality will be added later"
+                                className="inline-flex flex-1 cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-400 opacity-60 sm:flex-none"
+                            >
+                                <Trash2 size={16} />
+                                Delete NGO
+                            </button>
+                        </div>
+
                         <div className="flex items-center gap-3 rounded-xl border border-[#D8E8D4] bg-[#F5F9F2] px-5 py-3.5 text-sm text-[#183B2A]">
                             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E5F2E1] text-[#166534]">
                                 <CalendarDays size={19} />
