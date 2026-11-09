@@ -136,6 +136,14 @@ export async function updateNGOChangeStatus(
     }
 }
 
+export async function approveNGOChange(
+    pendingChangeId: number
+): Promise<UpdateNGOChangeStatusResponse> {
+    return updateNGOChangeStatus(pendingChangeId, {
+        status: "APPROVED",
+    });
+}
+
 export async function updateNGOStatus(
     ngoId: number,
     payload: UpdateNGOStatusPayload
