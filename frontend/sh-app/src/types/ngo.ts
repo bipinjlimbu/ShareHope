@@ -81,6 +81,22 @@ export interface NGOChangeRequestFormErrors {
     [key: string]: string | undefined;
 }
 
+export interface PendingNGOChange {
+    id: number;
+    ngo: number;
+    submitted_by: User;
+    name: string;
+    registration_number: string;
+    description: string;
+    email: string;
+    phone: string;
+    address: string;
+    ngo_logo: string | null;
+    submitted_at: string;
+}
+
+export type PendingNGOChangeResponse = PendingNGOChange[];
+
 export interface NGOUserResponse {
     id?: number;
     name?: string;
