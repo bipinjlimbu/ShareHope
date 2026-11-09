@@ -474,5 +474,3 @@ def pending_ngo_change_detail_view(request, pk):
         
         else:
             return Response({'error': 'Invalid status change. Only APPROVED or REJECTED status changes are allowed.'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        
