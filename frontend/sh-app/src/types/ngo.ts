@@ -85,7 +85,10 @@ export interface NGOChangeRequestFormErrors {
 
 export interface PendingNGOChange {
     id: number;
-    ngo: number;
+    ngo: number | {
+        id: number;
+        name: string;
+    };
     submitted_by: User;
     name: string;
     registration_number: string;

@@ -57,6 +57,14 @@ function getRequesterName(change: PendingNGOChange): string {
     return fullName || change.submitted_by?.username || "Unknown user";
 }
 
+function getRelatedNGOId(change: PendingNGOChange): number {
+    return typeof change.ngo === "number" ? change.ngo : change.ngo.id;
+}
+
+function getRelatedNGOName(change: PendingNGOChange): string {
+    return typeof change.ngo === "number" ? "" : change.ngo.name;
+}
+
 function PendingStatusBadge() {
     return (
         <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">
@@ -129,7 +137,7 @@ function PendingNGOChangeCard({
                     </h3>
 
                     <p className="mt-1 text-xs text-[#829184]">
-                        NGO #{change.ngo} · Request #{change.id}
+                        NGO #{getRelatedNGOId(change)} · Request #{change.id}
                     </p>
                 </div>
             </div>
@@ -249,7 +257,8 @@ export default function PendingNGOChangesSection({
                 change.submitted_by?.first_name,
                 change.submitted_by?.last_name,
                 String(change.id),
-                String(change.ngo),
+                String(getRelatedNGOId(change)),
+                getRelatedNGOName(change),
             ]
                 .filter(Boolean)
                 .join(" ")

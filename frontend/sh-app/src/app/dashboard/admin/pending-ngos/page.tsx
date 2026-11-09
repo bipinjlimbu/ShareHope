@@ -1,95 +1,51 @@
+
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Building2,
-    CalendarDays,
-    CheckCircle2,
     Clock3,
-    FileText,
-    Mail,
-    MapPin,
-    Phone,
-    Search,
     ShieldCheck,
-    Users,
-    X,
 } from "lucide-react";
-import { approveNGO, getNGOs, rejectNGO } from "@/services/ngoService";
-import type { NGOListItem } from "@/types/ngo";
+
+import {
+    approveNGO,
+    getNGOs,
+    getPendingNGOChanges,
+    rejectNGO,
+} from "@/services/ngoService";
+
+import type {
+    NGOListItem,
+    PendingNGOChange,
+} from "@/types/ngo";
+
+import PendingNGOsSection from "@/components/admin-dashboard/PendingNGOsSection";
+import PendingNGOChangesSection from "@/components/admin-dashboard/PendingNGOChangesSection";
 import PendingNGOsSkeleton from "@/components/skeleton/admin-dashboard/PendingNGOsSkeleton";
 import NGODetailsModal from "@/components/dashboard/NGODetailsModal";
 import ConfirmationModal from "@/components/common/ConfirmationModal";
 import { useToast } from "@/components/toast/ToastProvider";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const MINIMUM_LOADING_TIME = 500;
 
 type ReviewAction = "APPROVE" | "REJECT";
-
-function getNGOLogoUrl(path: string | null): string | null {
-    if (!path) return null;
-
-    if (/^https?:\/\//i.test(path)) return path;
-
-    const baseUrl = API_URL.replace(/\/+$/, "").replace(/\/api$/i, "");
-
-    return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
-}
-
-function formatDate(value: string): string {
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-        return "Unknown date";
-    }
-
-    return new Intl.DateTimeFormat("en-NP", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-        timeZone: "Asia/Kathmandu",
-    }).format(date);
-}
-
-function getDisplayName(ngo: NGOListItem): string {
-    const firstName = ngo.created_by?.first_name?.trim() ?? "";
-    const lastName = ngo.created_by?.last_name?.trim() ?? "";
-    const fullName = `${firstName} ${lastName}`.trim();
-
-    return fullName || ngo.created_by?.username || "Unknown user";
-}
 
 function getErrorMessage(error: unknown, fallback: string): string {
     if (error instanceof Error && error.message) {
         return error.message;
     }
 
+    if (
+        typeof error === "object" &&
+        error !== null &&
+        "message" in error &&
+        typeof error.message === "string"
+    ) {
+        return error.message;
+    }
+
     return fallback;
-}
-
-function NGOLogo({ ngo }: { ngo: NGOListItem }) {
-    const [imageFailed, setImageFailed] = useState(false);
-    const logoUrl = getNGOLogoUrl(ngo.ngo_logo);
-
-    useEffect(() => {
-        setImageFailed(false);
-    }, [ngo.ngo_logo]);
-
-    return (
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#E5EDE3] bg-[#E5F2E1] text-[#166534]">
-            {logoUrl && !imageFailed ? (
-                <img
-                    src={logoUrl}
-                    alt={`${ngo.name} logo`}
-                    className="h-full w-full object-cover"
-                    onError={() => setImageFailed(true)}
-                />
-            ) : (
-                <Building2 size={26} />
-            )}
-        </div>
-    );
 }
 
 function SummaryCard({
@@ -132,13 +88,19 @@ export default function PendingNGOsPage() {
     const { showToast } = useToast();
 
     const [ngos, setNgos] = useState<NGOListItem[]>([]);
+    const [pendingChanges, setPendingChanges] = useState<PendingNGOChange[]>([]);
+
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState(false);
-    const [searchQuery, setSearchQuery] = useState("");
+
+    const [ngoSearchQuery, setNgoSearchQuery] = useState("");
+    const [changeSearchQuery, setChangeSearchQuery] = useState("");
+
     const [selectedNGOId, setSelectedNGOId] = useState<number | null>(null);
 
     const [selectedReviewNGO, setSelectedReviewNGO] =
         useState<NGOListItem | null>(null);
+
     const [reviewAction, setReviewAction] = useState<ReviewAction>("REJECT");
     const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
@@ -149,26 +111,32 @@ export default function PendingNGOsPage() {
         setLoadError(false);
 
         try {
-            const response = await getNGOs();
-            const allNGOs = Array.isArray(response) ? response : [];
+            const [ngoResponse, changeResponse] = await Promise.all([
+                getNGOs(),
+                getPendingNGOChanges(),
+            ]);
+
+            const allNGOs = Array.isArray(ngoResponse) ? ngoResponse : [];
+            const allChanges = Array.isArray(changeResponse)
+                ? changeResponse
+                : [];
 
             setNgos(
                 allNGOs.filter(
                     (ngo) => ngo.status?.toUpperCase() === "PENDING"
                 )
             );
+
+            setPendingChanges(allChanges);
         } catch (error: unknown) {
-            console.error(
-                "Failed to fetch pending NGO applications:",
-                error
-            );
+            console.error("Failed to fetch pending NGO records:", error);
 
             setLoadError(true);
 
             showToast(
                 getErrorMessage(
                     error,
-                    "Unable to load pending NGO applications. Please try again."
+                    "Unable to load pending NGO records. Please try again."
                 ),
                 "error"
             );
@@ -189,28 +157,6 @@ export default function PendingNGOsPage() {
     useEffect(() => {
         void fetchPendingNGOs();
     }, [fetchPendingNGOs]);
-
-    const filteredNGOs = useMemo(() => {
-        const query = searchQuery.trim().toLowerCase();
-
-        if (!query) return ngos;
-
-        return ngos.filter((ngo) => {
-            const searchableText = [
-                ngo.name,
-                ngo.registration_number,
-                ngo.email,
-                ngo.phone,
-                ngo.address,
-                getDisplayName(ngo),
-            ]
-                .filter(Boolean)
-                .join(" ")
-                .toLowerCase();
-
-            return searchableText.includes(query);
-        });
-    }, [ngos, searchQuery]);
 
     const openReviewConfirmation = (
         ngo: NGOListItem,
@@ -273,7 +219,10 @@ export default function PendingNGOsPage() {
         }
     };
 
-    const clearSearch = () => setSearchQuery("");
+    const totalPendingRecords = useMemo(
+        () => ngos.length + pendingChanges.length,
+        [ngos.length, pendingChanges.length]
+    );
 
     const isApproving = reviewAction === "APPROVE";
 
@@ -287,13 +236,13 @@ export default function PendingNGOsPage() {
                         <header className="mb-8 flex flex-col justify-between gap-5 rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:p-7 lg:p-8">
                             <div>
                                 <h1 className="text-3xl font-bold tracking-tight text-[#183B2A] sm:text-4xl">
-                                    Pending NGO Applications
+                                    NGO Approvals & Changes
                                 </h1>
 
                                 <p className="mt-2 max-w-2xl text-sm leading-6 text-[#647568] sm:text-base">
-                                    Review submitted organization applications
-                                    and decide whether each NGO should be
-                                    approved or rejected.
+                                    Review new NGO registration applications
+                                    and view submitted organization profile
+                                    change requests.
                                 </p>
                             </div>
 
@@ -304,29 +253,41 @@ export default function PendingNGOsPage() {
 
                                 <div>
                                     <p className="text-xl font-bold leading-6">
-                                        {ngos.length.toLocaleString("en-NP")}
+                                        {totalPendingRecords.toLocaleString("en-NP")}
                                     </p>
+
                                     <p className="mt-0.5 text-xs text-[#647568]">
-                                        Pending NGOs
+                                        Pending records
                                     </p>
                                 </div>
                             </div>
                         </header>
 
-                        {loadError && (
-                            <div className="mb-6 flex justify-end">
+                        {loadError ? (
+                            <section className="rounded-2xl border border-dashed border-[#D5E3D0] bg-white px-6 py-16 text-center">
+                                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
+                                    <Clock3 size={25} />
+                                </div>
+
+                                <h2 className="mt-4 text-lg font-bold text-[#183B2A]">
+                                    Unable to load NGO records
+                                </h2>
+
+                                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#647568]">
+                                    Something went wrong while retrieving NGO
+                                    applications and profile change requests.
+                                </p>
+
                                 <button
                                     type="button"
                                     onClick={() => void fetchPendingNGOs()}
-                                    className="inline-flex items-center gap-2 rounded-xl border border-[#D8E8D4] bg-white px-4 py-2.5 text-sm font-semibold text-[#166534] shadow-sm transition hover:bg-[#F1F7ED] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/15"
+                                    className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#166534] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#124D29]"
                                 >
                                     <Clock3 size={16} />
-                                    Retry loading applications
+                                    Retry loading
                                 </button>
-                            </div>
-                        )}
-
-                        {!loadError && (
+                            </section>
+                        ) : (
                             <>
                                 <section
                                     aria-label="Pending NGO statistics"
@@ -335,280 +296,82 @@ export default function PendingNGOsPage() {
                                     <SummaryCard
                                         title="Pending applications"
                                         value={ngos.length}
-                                        description="Applications awaiting an admin decision"
+                                        description="New NGO registrations awaiting an admin decision"
                                         icon={Clock3}
                                     />
 
                                     <SummaryCard
-                                        title="Applications shown"
-                                        value={filteredNGOs.length}
-                                        description="Applications matching your search"
+                                        title="Profile change requests"
+                                        value={pendingChanges.length}
+                                        description="Existing NGOs with submitted profile modifications"
                                         icon={Building2}
                                     />
 
                                     <SummaryCard
-                                        title="Review status"
-                                        value={ngos.length}
-                                        description="Each application requires an approval or rejection decision"
+                                        title="Total pending records"
+                                        value={totalPendingRecords}
+                                        description="Combined new applications and profile change requests"
                                         icon={ShieldCheck}
                                     />
                                 </section>
 
-                                <section className="mb-7 rounded-2xl border border-[#E5EDE3] bg-white p-4 shadow-sm sm:p-5">
-                                    <div className="relative min-w-0">
-                                        <Search
-                                            size={19}
-                                            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#829184]"
-                                        />
-
-                                        <input
-                                            type="search"
-                                            value={searchQuery}
-                                            onChange={(event) =>
-                                                setSearchQuery(event.target.value)
-                                            }
-                                            placeholder="Search NGO name, registration number, email or phone..."
-                                            aria-label="Search pending NGO applications"
-                                            className="h-12 w-full rounded-xl border border-[#DDE7D9] bg-[#FFFCF6] pl-11 pr-10 text-sm text-[#183B2A] outline-none transition placeholder:text-[#91A092] focus:border-[#35A45C] focus:ring-4 focus:ring-[#35A45C]/10"
-                                        />
-
-                                        {searchQuery && (
-                                            <button
-                                                type="button"
-                                                onClick={clearSearch}
-                                                aria-label="Clear search"
-                                                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#647568] transition hover:bg-[#E5F2E1]"
-                                            >
-                                                <X size={16} />
-                                            </button>
-                                        )}
-                                    </div>
-                                </section>
-
-                                <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
-                                    <div>
-                                        <h2 className="text-xl font-bold text-[#183B2A]">
-                                            Applications awaiting review
-                                        </h2>
-                                        <p className="mt-1 text-sm text-[#647568]">
-                                            Showing {filteredNGOs.length} of{" "}
-                                            {ngos.length} applications
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {filteredNGOs.length === 0 ? (
-                                    <div className="rounded-2xl border border-dashed border-[#D5E3D0] bg-white px-6 py-16 text-center">
-                                        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
-                                            {ngos.length === 0 ? (
-                                                <CheckCircle2 size={25} />
-                                            ) : (
-                                                <Search size={25} />
-                                            )}
+                                <section className="mb-12">
+                                    <div className="mb-5 flex items-center gap-3">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E5F2E1] text-[#166534]">
+                                            <Building2 size={19} />
                                         </div>
 
-                                        <h3 className="mt-4 text-lg font-bold text-[#183B2A]">
-                                            {ngos.length === 0
-                                                ? "No pending applications"
-                                                : "No matching applications"}
-                                        </h3>
+                                        <div>
+                                            <h2 className="text-lg font-bold text-[#183B2A]">
+                                                New NGO Applications
+                                            </h2>
 
-                                        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#647568]">
-                                            {ngos.length === 0
-                                                ? "There are no NGO applications waiting for review right now."
-                                                : "Try another search term to find the application you need."}
-                                        </p>
-
-                                        {searchQuery && (
-                                            <button
-                                                type="button"
-                                                onClick={clearSearch}
-                                                className="mt-5 rounded-xl bg-[#166534] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#124D29]"
-                                            >
-                                                Clear search
-                                            </button>
-                                        )}
+                                            <p className="text-sm text-[#647568]">
+                                                Review and approve or reject new
+                                                registrations.
+                                            </p>
+                                        </div>
                                     </div>
-                                ) : (
-                                    <section
-                                        aria-label="Pending NGO applications"
-                                        className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6 2xl:gap-8"
-                                    >
-                                        {filteredNGOs.map((ngo) => (
-                                            <article
-                                                key={ngo.id}
-                                                className="group rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C9DFC4] hover:shadow-md sm:p-6 lg:p-7"
-                                            >
-                                                <div className="flex items-start gap-4">
-                                                    <NGOLogo ngo={ngo} />
 
-                                                    <div className="min-w-0 flex-1 pt-0.5">
-                                                        <div className="flex flex-wrap items-center gap-2">
-                                                            <h3 className="break-words text-lg font-bold text-[#183B2A]">
-                                                                {ngo.name}
-                                                            </h3>
+                                    <PendingNGOsSection
+                                        ngos={ngos}
+                                        searchQuery={ngoSearchQuery}
+                                        onSearchChange={setNgoSearchQuery}
+                                        onViewDetails={setSelectedNGOId}
+                                        onApprove={(ngo) =>
+                                            openReviewConfirmation(ngo, "APPROVE")
+                                        }
+                                        onReject={(ngo) =>
+                                            openReviewConfirmation(ngo, "REJECT")
+                                        }
+                                        isSubmittingReview={isSubmittingReview}
+                                    />
+                                </section>
 
-                                                            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">
-                                                                <Clock3 size={13} />
-                                                                Pending
-                                                            </span>
-                                                        </div>
+                                <section className="mb-8">
+                                    <div className="mb-5 flex items-center gap-3">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E5F2E1] text-[#166534]">
+                                            <ShieldCheck size={19} />
+                                        </div>
 
-                                                        <p className="mt-1 text-sm text-[#647568]">
-                                                            Registration No.{" "}
-                                                            <span className="font-medium text-[#35543B]">
-                                                                {ngo.registration_number ||
-                                                                    "Not provided"}
-                                                            </span>
-                                                        </p>
+                                        <div>
+                                            <h2 className="text-lg font-bold text-[#183B2A]">
+                                                NGO Profile Change Requests
+                                            </h2>
 
-                                                        <p className="mt-1 text-xs text-[#829184]">
-                                                            NGO ID: #{ngo.id}
-                                                        </p>
-                                                    </div>
-                                                </div>
+                                            <p className="text-sm text-[#647568]">
+                                                View profile modification requests
+                                                submitted by existing NGOs.
+                                            </p>
+                                        </div>
+                                    </div>
 
-                                                {ngo.description && (
-                                                    <p className="mt-5 line-clamp-3 text-sm leading-6 text-[#647568]">
-                                                        {ngo.description}
-                                                    </p>
-                                                )}
-
-                                                <div className="mt-5 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-                                                    <p className="flex min-w-0 items-start gap-2 text-sm text-[#647568]">
-                                                        <Mail
-                                                            size={15}
-                                                            className="mt-0.5 shrink-0 text-[#35A45C]"
-                                                        />
-                                                        <span className="break-all">
-                                                            {ngo.email ||
-                                                                "No email provided"}
-                                                        </span>
-                                                    </p>
-
-                                                    <p className="flex min-w-0 items-start gap-2 text-sm text-[#647568]">
-                                                        <Phone
-                                                            size={15}
-                                                            className="mt-0.5 shrink-0 text-[#35A45C]"
-                                                        />
-                                                        <span className="break-words">
-                                                            {ngo.phone ||
-                                                                "No phone provided"}
-                                                        </span>
-                                                    </p>
-
-                                                    <p className="flex min-w-0 items-start gap-2 text-sm text-[#647568] sm:col-span-2">
-                                                        <MapPin
-                                                            size={15}
-                                                            className="mt-0.5 shrink-0 text-[#35A45C]"
-                                                        />
-                                                        <span className="break-words">
-                                                            {ngo.address ||
-                                                                "No address provided"}
-                                                        </span>
-                                                    </p>
-                                                </div>
-
-                                                <div className="my-5 border-t border-[#EDF2E9]" />
-
-                                                <div className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
-                                                    <p className="flex items-center gap-2 text-sm text-[#647568]">
-                                                        <FileText
-                                                            size={15}
-                                                            className="shrink-0 text-[#35A45C]"
-                                                        />
-                                                        <span>
-                                                            {ngo.document_count ??
-                                                                ngo.documents?.length ??
-                                                                0}{" "}
-                                                            documents
-                                                        </span>
-                                                    </p>
-
-                                                    <p className="flex items-center gap-2 text-sm text-[#647568]">
-                                                        <Users
-                                                            size={15}
-                                                            className="shrink-0 text-[#35A45C]"
-                                                        />
-                                                        <span>
-                                                            {ngo.membership_count ??
-                                                                ngo.members?.length ??
-                                                                0}{" "}
-                                                            members
-                                                        </span>
-                                                    </p>
-
-                                                    <p className="flex items-center gap-2 text-sm text-[#647568] sm:col-span-2">
-                                                        <CalendarDays
-                                                            size={15}
-                                                            className="shrink-0 text-[#35A45C]"
-                                                        />
-                                                        <span>
-                                                            Submitted{" "}
-                                                            {formatDate(
-                                                                ngo.created_at
-                                                            )}
-                                                        </span>
-                                                    </p>
-                                                </div>
-
-                                                <div className="my-5 border-t border-[#EDF2E9]" />
-
-                                                <p className="text-xs text-[#829184]">
-                                                    Submitted by{" "}
-                                                    <span className="font-semibold text-[#526B56]">
-                                                        {getDisplayName(ngo)}
-                                                    </span>
-                                                </p>
-
-                                                <div className="mt-5 space-y-3">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            setSelectedNGOId(
-                                                                ngo.id
-                                                            )
-                                                        }
-                                                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#166534] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#124D29] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
-                                                    >
-                                                        <Building2 size={16} />
-                                                        View Application
-                                                    </button>
-
-                                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                openReviewConfirmation(
-                                                                    ngo,
-                                                                    "APPROVE"
-                                                                )
-                                                            }
-                                                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D8E8D4] bg-[#F5F9F2] px-4 py-3 text-sm font-semibold text-[#166534] transition hover:border-[#B9D7B2] hover:bg-[#E5F2E1] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
-                                                        >
-                                                            <CheckCircle2 size={16} />
-                                                            Approve
-                                                        </button>
-
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                openReviewConfirmation(
-                                                                    ngo,
-                                                                    "REJECT"
-                                                                )
-                                                            }
-                                                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50/50 px-4 py-3 text-sm font-semibold text-red-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-4 focus:ring-red-100"
-                                                        >
-                                                            <X size={16} />
-                                                            Reject
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </article>
-                                        ))}
-                                    </section>
-                                )}
+                                    <PendingNGOChangesSection
+                                        pendingChanges={pendingChanges}
+                                        searchQuery={changeSearchQuery}
+                                        onSearchChange={setChangeSearchQuery}
+                                    />
+                                </section>
                             </>
                         )}
 
