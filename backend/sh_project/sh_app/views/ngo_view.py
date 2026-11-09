@@ -192,7 +192,7 @@ def ngo_view(request):
         
         return Response({'message': 'NGO registered successfully.'}, status=status.HTTP_201_CREATED)
     
-@api_view(['GET', 'PATCH', 'DELETE'])
+@api_view(['GET', 'PUT', 'PATCH', 'DELETE'])
 @permission_classes([AllowAny])
 def ngo_detail_view(request, pk):
     try:
@@ -203,6 +203,102 @@ def ngo_detail_view(request, pk):
     if request.method == 'GET':
         serializer = NGOSerializer(ngo)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    if request.method == 'PUT':
+        if request.user != ngo.created_by:
+            return Response({'error': 'You are not authorized to update this NGO.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        if PendingNGOChange.objects.filter(ngo=ngo, submitted_by=request.user).exists():
+            return Response({'error': 'You already have a pending change request for this NGO.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        errors = {}
+        
+        name = request.data.get('name')
+        registration_number = request.data.get('registration_number')
+        description = request.data.get('description')
+        email = request.data.get('email')
+        phone = request.data.get('phone')
+        address = request.data.get('address')
+        ngo_logo = request.data.get('ngo_logo')
+        
+        name_pattern = r'^[a-zA-Z\s]+$'
+        registration_number_pattern = r'^[a-zA-Z0-9]+$'
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        phone_pattern = r'^\+?[1-9]\d{0,15}$'
+        address_pattern = r'^[a-zA-Z0-9\s,.-]+$'
+        ngo_logo_pattern = r'^[a-zA-Z0-9\s,.-]+\.(jpg|jpeg|png)$'
+        
+        if not name:
+            errors['name'] = 'NGO name is required.'
+        elif not re.match(name_pattern, name):
+            errors['name'] = 'Name can only contain letters and spaces.'
+            
+        if not registration_number:
+            errors['registration_number'] = 'NGO registration number is required.'
+        elif not re.match(registration_number_pattern, registration_number):
+            errors['registration_number'] = 'Registration number can only contain letters and numbers.'
+        elif NGO.objects.filter(status=NGO.Status.APPROVED, registration_number=registration_number).exclude(id=ngo.id).exists():
+            errors['registration_number'] = 'NGO with this registration number already exists.'
+            
+        if not description:
+            errors['description'] = 'Description about the NGO is required.'
+            
+        if not email:
+            errors['email'] = 'NGO email is required.'
+        elif not re.match(email_pattern, email):
+            errors['email'] = 'Invalid email format.'
+        elif NGO.objects.filter(status=NGO.Status.APPROVED, email=email).exclude(id=ngo.id).exists():
+            errors['email'] = 'NGO with this email already exists.'
+            
+        if not phone:
+            errors['phone'] = 'NGO Contact number is required.'
+        elif not re.match(phone_pattern, phone):
+            errors['phone'] = 'Invalid phone number format.'
+            
+        if not address:
+            errors['address'] = 'NGO address is required.'
+        elif not re.match(address_pattern, address):
+            errors['address'] = 'Address can only contain letters, numbers, spaces, commas, periods, and hyphens.'
+            
+        if ngo_logo and not re.match(ngo_logo_pattern, ngo_logo.name):
+            errors['ngo_logo'] = 'NGO logo must be a valid image file (jpg, jpeg, png).'
+            
+        if errors:
+            return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        ngo_change = PendingNGOChange.objects.create(
+            ngo=ngo,
+            name=name,
+            registration_number=registration_number,
+            description=description,
+            email=email,
+            phone=phone,
+            address=address,
+            ngo_logo=ngo_logo if ngo_logo else ngo.ngo_logo,
+            submitted_by=request.user
+        )
+        ngo_change.save()
+        
+        notification = Notification.objects.create(
+            user=request.user,
+            type=Notification.NotificationType.NGO,
+            title='NGO Change Request Submitted',
+            message=f'Your change request for NGO "{ngo.name}" has been submitted and is pending approval. We will notify you once the review process is complete.'
+        )
+        notification.save()
+        
+        notification_admin = Notification.objects.create(
+            user=User.objects.filter(role=User.Role.ADMIN).first(),
+            type=Notification.NotificationType.NGO,
+            title='New NGO Change Request',
+            message=f'User {request.user.username} has submitted a change request for NGO "{ngo.name}". Please review and approve or reject the request.'
+        )
+        notification_admin.save()
+        
+        subject = 'NGO Change Request Submitted'
+        message = f'Dear {request.user.first_name},\n\nYour change request for NGO "{ngo.name}" has been submitted and is pending approval. We will notify you once the review process is complete.\n\nThank you for your contribution to our community.\n\nBest regards,\nShareHope Team'
+        send_email(subject, message, [ngo.email])
+        return Response({'message': 'NGO change request submitted successfully.'}, status=status.HTTP_200_OK)
     
     if request.method == 'PATCH':
         if request.user.role != User.Role.ADMIN:
