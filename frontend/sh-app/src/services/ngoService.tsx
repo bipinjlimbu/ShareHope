@@ -144,6 +144,14 @@ export async function approveNGOChange(
     });
 }
 
+export async function rejectNGOChange(
+    pendingChangeId: number
+): Promise<UpdateNGOChangeStatusResponse> {
+    return updateNGOChangeStatus(pendingChangeId, {
+        status: "REJECTED",
+    });
+}
+
 export async function updateNGOStatus(
     ngoId: number,
     payload: UpdateNGOStatusPayload
