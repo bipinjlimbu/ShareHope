@@ -2,9 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import OverviewSkeleton from "@/components/skeleton/ngo-admin-dashboard/OverviewSkeleton";
 import EditNGOForm from "@/components/form/EditNGOForm";
-import { getNGOByUser } from "@/services/ngoService";
+import ConfirmationModal from "@/components/common/ConfirmationModal";
+import {
+    getNGOByUser,
+    deleteNGOByUser,
+} from "@/services/ngoService";
 import { getProfile } from "@/services/profileService";
 import type { NGOUserResponse } from "@/types/ngo";
 import {
@@ -23,7 +28,6 @@ import {
     Wallet,
     Pencil,
     Trash2,
-    Building2,
     AlertCircle,
 } from "lucide-react";
 
@@ -206,6 +210,8 @@ function SectionHeading({
 }
 
 export default function NGODashboardPage() {
+    const router = useRouter();
+
     const [isLoading, setIsLoading] = useState(true);
     const [currentDate, setCurrentDate] = useState("");
 
@@ -216,6 +222,11 @@ export default function NGODashboardPage() {
 
     const [isEditNGOOpen, setIsEditNGOOpen] = useState(false);
     const [ngoLoadError, setNgoLoadError] = useState("");
+
+    // NGO deletion states
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isDeletingNGO, setIsDeletingNGO] = useState(false);
+    const [deleteError, setDeleteError] = useState("");
 
     useEffect(() => {
         let isMounted = true;
@@ -277,6 +288,36 @@ export default function NGODashboardPage() {
             setNgoLoadError(
                 "Your NGO information could not be refreshed."
             );
+        }
+    }
+
+    // Delete the NGO belonging to the authenticated user.
+    async function handleDeleteNGO() {
+        if (isDeletingNGO) return;
+
+        setIsDeletingNGO(true);
+        setDeleteError("");
+
+        try {
+            await deleteNGOByUser();
+
+            setIsDeleteModalOpen(false);
+            setNgo(null);
+
+            // The NGO dashboard is no longer available after deletion.
+            router.replace("/");
+        } catch (error: unknown) {
+            const message =
+                error &&
+                    typeof error === "object" &&
+                    "message" in error &&
+                    typeof error.message === "string"
+                    ? error.message
+                    : "Unable to delete your NGO. Please try again.";
+
+            setDeleteError(message);
+        } finally {
+            setIsDeletingNGO(false);
         }
     }
 
@@ -432,9 +473,17 @@ export default function NGODashboardPage() {
 
                             <button
                                 type="button"
-                                disabled
-                                title="Delete NGO functionality will be added later"
-                                className="inline-flex flex-1 cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-400 opacity-60 sm:flex-none"
+                                onClick={() => {
+                                    setDeleteError("");
+                                    setIsDeleteModalOpen(true);
+                                }}
+                                disabled={!ngo?.id || isDeletingNGO}
+                                title={
+                                    ngo?.id
+                                        ? "Permanently delete your NGO"
+                                        : "Your NGO information is not available"
+                                }
+                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-100 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
                             >
                                 <Trash2 size={16} />
                                 Delete NGO
@@ -1012,6 +1061,25 @@ export default function NGODashboardPage() {
                     }}
                 />
             )}
+
+            <ConfirmationModal
+                isOpen={isDeleteModalOpen}
+                title="Delete your NGO?"
+                description={
+                    deleteError ||
+                    "This action will permanently delete your NGO and its associated information. This operation cannot be undone."
+                }
+                itemName={ngo?.name}
+                confirmText="Delete NGO"
+                isDeleting={isDeletingNGO}
+                onConfirm={handleDeleteNGO}
+                onCancel={() => {
+                    if (isDeletingNGO) return;
+
+                    setIsDeleteModalOpen(false);
+                    setDeleteError("");
+                }}
+            />
         </main>
     );
 }
