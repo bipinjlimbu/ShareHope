@@ -117,6 +117,12 @@ export type UpdateNGOChangeStatusErrors = Record<
 export interface NGOUserResponse {
     id?: number;
     name?: string;
+    registration_number?: string;
+    description?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    ngo_logo?: string | null;
     status?: NGOStatus | string;
     verification_status?: NGOStatus | string;
     rejection_reason?: string | null;
