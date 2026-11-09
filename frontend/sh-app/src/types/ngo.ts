@@ -97,6 +97,8 @@ export interface PendingNGOChange {
 
 export type PendingNGOChangeResponse = PendingNGOChange[];
 
+export type PendingNGOChangeDetailResponse = PendingNGOChange;
+
 export interface NGOUserResponse {
     id?: number;
     name?: string;
