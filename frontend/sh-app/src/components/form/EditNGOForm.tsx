@@ -19,26 +19,16 @@ import {
 } from "lucide-react";
 import { updateNGO } from "@/services/ngoService";
 import type {
+    NGOUserResponse,
     NGOChangeRequestPayload,
     NGOChangeRequestFormErrors,
 } from "@/types/ngo";
 import { useToast } from "@/components/toast/ToastProvider";
 
-interface EditableNGO {
-    id: number;
-    name?: string;
-    registration_number?: string;
-    description?: string;
-    email?: string;
-    phone?: string;
-    address?: string;
-    ngo_logo?: string | null;
-}
-
 interface EditNGOFormProps {
-    ngo: EditableNGO;
+    ngo: NGOUserResponse;
     onClose: () => void;
-    onSuccess: () => void;
+    onSuccess: () => void | Promise<void>;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -46,14 +36,19 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const inputClassName =
     "mt-1.5 w-full rounded-xl border border-[#DDE7D9] bg-white px-3.5 py-3 text-sm text-[#183B2A] outline-none transition placeholder:text-[#9AA79A] focus:border-[#35A45C] focus:ring-4 focus:ring-[#35A45C]/10";
 
-const labelClassName = "block text-sm font-semibold text-[#35543B]";
+const labelClassName =
+    "block text-sm font-semibold text-[#35543B]";
 
-function getNGOImageUrl(path: string | null | undefined): string | null {
+function getNGOImageUrl(
+    path: string | null | undefined
+): string | null {
     if (!path) return null;
 
     if (/^https?:\/\//i.test(path)) return path;
 
-    const baseUrl = API_URL.replace(/\/+$/, "").replace(/\/api$/i, "");
+    const baseUrl = API_URL
+        .replace(/\/+$/, "")
+        .replace(/\/api$/i, "");
 
     return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
 }
@@ -63,7 +58,10 @@ function getErrorMessage(value: unknown): string | undefined {
 
     if (Array.isArray(value)) {
         return value
-            .filter((item): item is string => typeof item === "string")
+            .filter(
+                (item): item is string =>
+                    typeof item === "string"
+            )
             .join(" ");
     }
 
@@ -131,7 +129,9 @@ export default function EditNGOForm({
         ngo_logo: null,
     });
 
-    const [errors, setErrors] = useState<NGOChangeRequestFormErrors>({});
+    const [errors, setErrors] =
+        useState<NGOChangeRequestFormErrors>({});
+
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [imagePreview, setImagePreview] = useState<string | null>(
@@ -178,7 +178,7 @@ export default function EditNGOForm({
     ) => {
         event.preventDefault();
 
-        if (isSubmitting) return;
+        if (isSubmitting || !ngo.id) return;
 
         setIsSubmitting(true);
         setErrors({});
@@ -191,7 +191,7 @@ export default function EditNGOForm({
                 "success"
             );
 
-            onSuccess();
+            await onSuccess();
         } catch (error: unknown) {
             const result = getBackendErrors(error);
 
@@ -225,25 +225,24 @@ export default function EditNGOForm({
                 aria-labelledby="edit-ngo-title"
                 className="my-auto w-full max-w-3xl overflow-hidden rounded-2xl border border-[#E5EDE3] bg-[#FFFCF6] shadow-2xl"
             >
+                {/* Header */}
                 <div className="flex items-start justify-between gap-4 border-b border-[#E5EDE3] bg-white px-5 py-5 sm:px-7">
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E5F2E1] text-[#166534]">
-                                <Building2 size={21} />
-                            </div>
+                    <div className="flex items-center gap-2">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E5F2E1] text-[#166534]">
+                            <Building2 size={21} />
+                        </div>
 
-                            <div>
-                                <h2
-                                    id="edit-ngo-title"
-                                    className="text-xl font-bold text-[#183B2A] sm:text-2xl"
-                                >
-                                    Edit NGO Details
-                                </h2>
+                        <div>
+                            <h2
+                                id="edit-ngo-title"
+                                className="text-xl font-bold text-[#183B2A] sm:text-2xl"
+                            >
+                                Edit NGO Details
+                            </h2>
 
-                                <p className="mt-1 text-sm leading-5 text-[#647568]">
-                                    Update your organization's information.
-                                </p>
-                            </div>
+                            <p className="mt-1 text-sm leading-5 text-[#647568]">
+                                Update your organization's information.
+                            </p>
                         </div>
                     </div>
 
@@ -263,6 +262,7 @@ export default function EditNGOForm({
                     noValidate
                     className="max-h-[calc(100dvh-130px)] space-y-6 overflow-y-auto p-5 sm:p-7"
                 >
+                    {/* Approval notice */}
                     <div className="rounded-xl border border-[#DDE8D7] bg-[#F4F8F0] p-4">
                         <div className="flex items-start gap-3">
                             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-[#166534]">
@@ -283,6 +283,7 @@ export default function EditNGOForm({
                         </div>
                     </div>
 
+                    {/* Organization information */}
                     <section>
                         <div className="mb-4">
                             <h3 className="font-bold text-[#183B2A]">
@@ -410,6 +411,7 @@ export default function EditNGOForm({
                         </div>
                     </section>
 
+                    {/* Contact information */}
                     <section className="rounded-xl border border-[#E5EDE3] bg-white p-4 sm:p-5">
                         <div className="mb-4">
                             <h3 className="font-bold text-[#183B2A]">
@@ -544,6 +546,7 @@ export default function EditNGOForm({
                         </div>
                     </section>
 
+                    {/* NGO logo */}
                     <section>
                         <div className="mb-3">
                             <h3 className="font-bold text-[#183B2A]">
@@ -604,6 +607,7 @@ export default function EditNGOForm({
                         )}
                     </section>
 
+                    {/* General errors */}
                     {(fieldError("general") ||
                         fieldError("non_field_errors")) && (
                             <p className="text-xs leading-5 text-red-600">
@@ -612,6 +616,7 @@ export default function EditNGOForm({
                             </p>
                         )}
 
+                    {/* Form actions */}
                     <div className="flex flex-col-reverse gap-3 border-t border-[#E5EDE3] pt-5 sm:flex-row sm:justify-end">
                         <button
                             type="button"
@@ -624,7 +629,7 @@ export default function EditNGOForm({
 
                         <button
                             type="submit"
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || !ngo.id}
                             className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#166534] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#14532D] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {isSubmitting ? (
