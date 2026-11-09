@@ -13,6 +13,8 @@ export type NGOStatusUpdate = "ACTIVE" | "INACTIVE" | "REJECTED";
 
 export type NGOMembershipStatus = "ACTIVE" | "INACTIVE";
 
+export type NGOChangeRequestStatus = "APPROVED" | "REJECTED";
+
 export interface NGORegistrationPayload {
     name: string;
     registration_number: string;
@@ -98,6 +100,19 @@ export interface PendingNGOChange {
 export type PendingNGOChangeResponse = PendingNGOChange[];
 
 export type PendingNGOChangeDetailResponse = PendingNGOChange;
+
+export interface UpdateNGOChangeStatusPayload {
+    status: NGOChangeRequestStatus;
+}
+
+export interface UpdateNGOChangeStatusResponse {
+    message: string;
+}
+
+export type UpdateNGOChangeStatusErrors = Record<
+    string,
+    string | string[] | undefined
+>;
 
 export interface NGOUserResponse {
     id?: number;
