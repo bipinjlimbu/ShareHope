@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import OverviewSkeleton from "@/components/skeleton/ngo-admin-dashboard/OverviewSkeleton";
+import EditNGOForm from "@/components/form/EditNGOForm";
+import { getNGOByUser } from "@/services/ngoService";
+import { getProfile } from "@/services/profileService";
+import type { NGOUserResponse } from "@/types/ngo";
 import {
     Activity,
     ArrowRight,
@@ -19,6 +23,8 @@ import {
     Wallet,
     Pencil,
     Trash2,
+    Building2,
+    AlertCircle,
 } from "lucide-react";
 
 const demoCampaigns = [
@@ -203,22 +209,76 @@ export default function NGODashboardPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [currentDate, setCurrentDate] = useState("");
 
+    const [ngo, setNgo] = useState<NGOUserResponse | null>(null);
+    const [profile, setProfile] = useState<
+        Awaited<ReturnType<typeof getProfile>>["user"] | null
+    >(null);
+
+    const [isEditNGOOpen, setIsEditNGOOpen] = useState(false);
+    const [ngoLoadError, setNgoLoadError] = useState("");
+
     useEffect(() => {
-        const timeout = window.setTimeout(() => {
-            setCurrentDate(
-                new Intl.DateTimeFormat("en-NP", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                    timeZone: "Asia/Kathmandu",
-                }).format(new Date())
-            );
+        let isMounted = true;
 
-            setIsLoading(false);
-        }, 650);
+        async function loadDashboardData() {
+            try {
+                const [ngoResponse, profileResponse] = await Promise.all([
+                    getNGOByUser(),
+                    getProfile(),
+                ]);
 
-        return () => window.clearTimeout(timeout);
+                if (!isMounted) return;
+
+                setNgo(ngoResponse);
+                setProfile(profileResponse.user);
+                setNgoLoadError("");
+            } catch (error: unknown) {
+                if (!isMounted) return;
+
+                const message =
+                    error &&
+                        typeof error === "object" &&
+                        "message" in error &&
+                        typeof error.message === "string"
+                        ? error.message
+                        : "Unable to load your NGO information.";
+
+                setNgoLoadError(message);
+            } finally {
+                if (isMounted) {
+                    setCurrentDate(
+                        new Intl.DateTimeFormat("en-NP", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                            timeZone: "Asia/Kathmandu",
+                        }).format(new Date())
+                    );
+
+                    setIsLoading(false);
+                }
+            }
+        }
+
+        loadDashboardData();
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
+
+    async function refreshNGO() {
+        try {
+            const response = await getNGOByUser();
+
+            setNgo(response);
+            setNgoLoadError("");
+        } catch {
+            setNgoLoadError(
+                "Your NGO information could not be refreshed."
+            );
+        }
+    }
 
     if (isLoading) {
         return <OverviewSkeleton />;
@@ -321,28 +381,50 @@ export default function NGODashboardPage() {
             new Date(b.date).getTime() - new Date(a.date).getTime()
     );
 
+    const firstName =
+        profile?.first_name?.trim() || "there";
+
     return (
         <main className="min-h-screen w-full bg-[#FFFCF6] px-1.5 py-3 sm:px-2.5 sm:py-4 lg:px-3 xl:px-4 2xl:px-5">
             <div className="mx-auto w-full max-w-[1600px] space-y-7">
                 <header className="flex flex-col justify-between gap-5 rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:p-7 lg:p-8">
-                    <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-[#183B2A] sm:text-4xl">
-                            NGO Overview
+                    <div className="min-w-0">
+                        <p className="mb-2 text-sm font-semibold text-[#27824B]">
+                            Welcome back, {firstName}
+                        </p>
+
+                        <h1 className="break-words text-3xl font-bold tracking-tight text-[#183B2A] sm:text-4xl">
+                            {ngo?.name || "NGO Overview"}
                         </h1>
 
                         <p className="mt-2 max-w-2xl text-sm leading-6 text-[#647568] sm:text-base">
                             Track your campaigns, monitor donations, and manage
                             contributions received by your organization.
                         </p>
+
+                        {ngoLoadError && (
+                            <div className="mt-3 flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2 text-xs leading-5 text-red-700">
+                                <AlertCircle
+                                    size={15}
+                                    className="mt-0.5 shrink-0"
+                                />
+                                <span>{ngoLoadError}</span>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex w-full flex-col gap-3 sm:w-auto sm:items-end">
                         <div className="flex flex-wrap items-center gap-2">
                             <button
                                 type="button"
-                                disabled
-                                title="Edit NGO functionality will be added later"
-                                className="inline-flex flex-1 cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-[#D8E8D4] bg-[#F5F9F2] px-4 py-3 text-sm font-semibold text-[#829184] opacity-60 sm:flex-none"
+                                onClick={() => setIsEditNGOOpen(true)}
+                                disabled={!ngo?.id}
+                                title={
+                                    ngo?.id
+                                        ? "Edit your NGO information"
+                                        : "Your NGO information is not available"
+                                }
+                                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#D8E8D4] bg-[#F5F9F2] px-4 py-3 text-sm font-semibold text-[#166534] transition hover:border-[#BBD8B4] hover:bg-[#EAF4E6] disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
                             >
                                 <Pencil size={16} />
                                 Edit NGO
@@ -919,6 +1001,17 @@ export default function NGODashboardPage() {
                     ShareHope NGO Workspace · Demonstration data only
                 </p>
             </div>
+
+            {isEditNGOOpen && ngo && (
+                <EditNGOForm
+                    ngo={ngo}
+                    onClose={() => setIsEditNGOOpen(false)}
+                    onSuccess={async () => {
+                        setIsEditNGOOpen(false);
+                        await refreshNGO();
+                    }}
+                />
+            )}
         </main>
     );
 }
