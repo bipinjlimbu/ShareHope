@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -30,6 +29,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 const MINIMUM_LOADING_TIME = 500;
 
 type ReviewAction = "APPROVE" | "REJECT";
+type ApprovalTab = "NEW" | "EDITS";
 
 function getErrorMessage(error: unknown, fallback: string): string {
     if (error instanceof Error && error.message) {
@@ -93,8 +93,8 @@ export default function PendingNGOsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState(false);
 
-    const [ngoSearchQuery, setNgoSearchQuery] = useState("");
-    const [changeSearchQuery, setChangeSearchQuery] = useState("");
+    const [activeTab, setActiveTab] = useState<ApprovalTab>("NEW");
+    const [searchQuery, setSearchQuery] = useState("");
 
     const [selectedNGOId, setSelectedNGOId] = useState<number | null>(null);
 
@@ -315,28 +315,63 @@ export default function PendingNGOsPage() {
                                     />
                                 </section>
 
-                                <section className="mb-12">
-                                    <div className="mb-5 flex items-center gap-3">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E5F2E1] text-[#166534]">
-                                            <Building2 size={19} />
-                                        </div>
+                                {/* Approval tabs */}
+                                <section className="mb-7 rounded-2xl border border-[#E5EDE3] bg-white p-2 shadow-sm sm:p-3">
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setActiveTab("NEW");
+                                                setSearchQuery("");
+                                            }}
+                                            className={`flex min-w-0 items-center justify-center gap-2 rounded-xl px-3 py-4 text-sm font-semibold transition sm:px-5 ${activeTab === "NEW"
+                                                ? "bg-[#166534] text-white shadow-sm"
+                                                : "text-[#647568] hover:bg-[#F1F7ED] hover:text-[#183B2A]"
+                                                }`}
+                                        >
+                                            <Building2 size={17} />
+                                            <span>New NGO Applications</span>
+                                            <span
+                                                className={`rounded-full px-2 py-0.5 text-xs ${activeTab === "NEW"
+                                                    ? "bg-white/20 text-white"
+                                                    : "bg-[#E5F2E1] text-[#166534]"
+                                                    }`}
+                                            >
+                                                {ngos.length}
+                                            </span>
+                                        </button>
 
-                                        <div>
-                                            <h2 className="text-lg font-bold text-[#183B2A]">
-                                                New NGO Applications
-                                            </h2>
-
-                                            <p className="text-sm text-[#647568]">
-                                                Review and approve or reject new
-                                                registrations.
-                                            </p>
-                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setActiveTab("EDITS");
+                                                setSearchQuery("");
+                                            }}
+                                            className={`flex min-w-0 items-center justify-center gap-2 rounded-xl px-3 py-4 text-sm font-semibold transition sm:px-5 ${activeTab === "EDITS"
+                                                ? "bg-[#166534] text-white shadow-sm"
+                                                : "text-[#647568] hover:bg-[#F1F7ED] hover:text-[#183B2A]"
+                                                }`}
+                                        >
+                                            <ShieldCheck size={17} />
+                                            <span>Profile Change Requests</span>
+                                            <span
+                                                className={`rounded-full px-2 py-0.5 text-xs ${activeTab === "EDITS"
+                                                    ? "bg-white/20 text-white"
+                                                    : "bg-amber-100 text-amber-700"
+                                                    }`}
+                                            >
+                                                {pendingChanges.length}
+                                            </span>
+                                        </button>
                                     </div>
+                                </section>
 
+                                {/* Active tab content */}
+                                {activeTab === "NEW" ? (
                                     <PendingNGOsSection
                                         ngos={ngos}
-                                        searchQuery={ngoSearchQuery}
-                                        onSearchChange={setNgoSearchQuery}
+                                        searchQuery={searchQuery}
+                                        onSearchChange={setSearchQuery}
                                         onViewDetails={setSelectedNGOId}
                                         onApprove={(ngo) =>
                                             openReviewConfirmation(ngo, "APPROVE")
@@ -346,32 +381,19 @@ export default function PendingNGOsPage() {
                                         }
                                         isSubmittingReview={isSubmittingReview}
                                     />
-                                </section>
-
-                                <section className="mb-8">
-                                    <div className="mb-5 flex items-center gap-3">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E5F2E1] text-[#166534]">
-                                            <ShieldCheck size={19} />
-                                        </div>
-
-                                        <div>
-                                            <h2 className="text-lg font-bold text-[#183B2A]">
-                                                NGO Profile Change Requests
-                                            </h2>
-
-                                            <p className="text-sm text-[#647568]">
-                                                View profile modification requests
-                                                submitted by existing NGOs.
-                                            </p>
-                                        </div>
-                                    </div>
-
+                                ) : (
                                     <PendingNGOChangesSection
                                         pendingChanges={pendingChanges}
-                                        searchQuery={changeSearchQuery}
-                                        onSearchChange={setChangeSearchQuery}
+                                        searchQuery={searchQuery}
+                                        onSearchChange={setSearchQuery}
                                     />
-                                </section>
+                                )}
+
+                                <p className="mt-8 text-center text-xs leading-5 text-[#829184]">
+                                    {activeTab === "NEW"
+                                        ? "Review NGO registration details, submitted documents, and organization information before approving or rejecting an application."
+                                        : "Review submitted organization profile modification requests."}
+                                </p>
                             </>
                         )}
 
