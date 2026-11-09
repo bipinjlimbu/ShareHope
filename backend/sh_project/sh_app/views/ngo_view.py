@@ -423,3 +423,56 @@ def pending_ngo_change_detail_view(request, pk):
     if request.method == 'GET':
         serializer = PendingNGOChangeSerializer(pending_change)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    if request.method == 'PATCH':
+        if request.user.role != User.Role.ADMIN:
+            return Response({'error': 'Only admin users can update pending NGO changes.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        status_change = request.data.get('status')
+        
+        if status_change == "APPROVED":
+            ngo = pending_change.ngo
+            ngo.name = pending_change.name
+            ngo.registration_number = pending_change.registration_number
+            ngo.description = pending_change.description
+            ngo.email = pending_change.email
+            ngo.phone = pending_change.phone
+            ngo.address = pending_change.address
+            ngo.ngo_logo = pending_change.ngo_logo
+            ngo.save()
+            
+            notification = Notification.objects.create(
+                user=pending_change.submitted_by,
+                type=Notification.NotificationType.NGO,
+                title='NGO Change Request Approved',
+                message=f'Your change request for NGO "{ngo.name}" has been approved and the changes have been applied.'
+            )
+            notification.save()
+            
+            subject = 'NGO Change Request Approved'
+            message = f'Dear {pending_change.submitted_by.first_name},\n\nYour change request for NGO "{ngo.name}" has been approved and the changes have been applied.\n\nThank you for your contribution to our community.\n\nBest regards,\nShareHope Team'
+            send_email(subject, message, [ngo.email])
+            
+            pending_change.delete()
+            return Response({'message': 'Pending NGO change approved and applied successfully.'}, status=status.HTTP_200_OK)
+        
+        elif status_change == "REJECTED":
+            notification = Notification.objects.create(
+                user=pending_change.submitted_by,
+                type=Notification.NotificationType.NGO,
+                title='NGO Change Request Rejected',
+                message=f'Your change request for NGO "{pending_change.ngo.name}" has been rejected. Please contact the admin for more information.'
+            )
+            notification.save()
+            
+            subject = 'NGO Change Request Rejected'
+            message = f'Dear {pending_change.submitted_by.first_name},\n\nWe regret to inform you that your change request for NGO "{pending_change.ngo.name}" has been rejected. Please contact the admin for more information.\n\nBest regards,\nShareHope Team'
+            send_email(subject, message, [pending_change.ngo.email])
+            
+            pending_change.delete()
+            return Response({'message': 'Pending NGO change rejected successfully.'}, status=status.HTTP_200_OK)
+        
+        else:
+            return Response({'error': 'Invalid status change. Only APPROVED or REJECTED status changes are allowed.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        
