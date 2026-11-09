@@ -49,6 +49,38 @@ export interface NGORegistrationFormErrors {
     [key: string]: string | undefined;
 }
 
+export interface NGOChangeRequestPayload {
+    name: string;
+    registration_number: string;
+    description: string;
+    email: string;
+    phone: string;
+    address: string;
+    ngo_logo: File | null;
+}
+
+export interface NGOChangeRequestResponse {
+    message: string;
+}
+
+export type NGOChangeRequestErrors = Record<
+    string,
+    string | string[] | undefined
+>;
+
+export interface NGOChangeRequestFormErrors {
+    name?: string;
+    registration_number?: string;
+    description?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+    ngo_logo?: string;
+    non_field_errors?: string;
+    general?: string;
+    [key: string]: string | undefined;
+}
+
 export interface NGOUserResponse {
     id?: number;
     name?: string;
