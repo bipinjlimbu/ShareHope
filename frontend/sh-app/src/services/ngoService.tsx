@@ -11,6 +11,9 @@ import type {
     DeleteNGOResponse,
     RejectNGOResponse,
     ApproveNGOResponse,
+    NGOChangeRequestPayload,
+    NGOChangeRequestResponse,
+    NGOChangeRequestErrors,
 } from "@/types/ngo";
 
 export async function registerNGO(
@@ -68,6 +71,33 @@ export async function deleteNGOByUser(): Promise<DeleteNGOResponse> {
     return (await authFetch("/ngo/user/", {
         method: "DELETE",
     })) as DeleteNGOResponse;
+}
+
+export async function updateNGO(
+    ngoId: number,
+    payload: NGOChangeRequestPayload
+): Promise<NGOChangeRequestResponse> {
+    const formData = new FormData();
+
+    formData.append("name", payload.name);
+    formData.append("registration_number", payload.registration_number);
+    formData.append("description", payload.description);
+    formData.append("email", payload.email);
+    formData.append("phone", payload.phone);
+    formData.append("address", payload.address);
+
+    if (payload.ngo_logo) {
+        formData.append("ngo_logo", payload.ngo_logo);
+    }
+
+    try {
+        return (await authFetch(`/ngo/${ngoId}/`, {
+            method: "PUT",
+            body: formData,
+        })) as NGOChangeRequestResponse;
+    } catch (error: unknown) {
+        throw error as NGOChangeRequestErrors;
+    }
 }
 
 export async function updateNGOStatus(
