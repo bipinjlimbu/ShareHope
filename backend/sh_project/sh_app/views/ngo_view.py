@@ -237,7 +237,7 @@ def ngo_detail_view(request, pk):
             errors['registration_number'] = 'NGO registration number is required.'
         elif not re.match(registration_number_pattern, registration_number):
             errors['registration_number'] = 'Registration number can only contain letters and numbers.'
-        elif NGO.objects.filter(status=NGO.Status.APPROVED, registration_number=registration_number).exclude(id=ngo.id).exists():
+        elif NGO.objects.filter(status=NGO.Status.ACTIVE, registration_number=registration_number).exclude(id=ngo.id).exists():
             errors['registration_number'] = 'NGO with this registration number already exists.'
             
         if not description:
@@ -247,7 +247,7 @@ def ngo_detail_view(request, pk):
             errors['email'] = 'NGO email is required.'
         elif not re.match(email_pattern, email):
             errors['email'] = 'Invalid email format.'
-        elif NGO.objects.filter(status=NGO.Status.APPROVED, email=email).exclude(id=ngo.id).exists():
+        elif NGO.objects.filter(status=NGO.Status.ACTIVE, email=email).exclude(id=ngo.id).exists():
             errors['email'] = 'NGO with this email already exists.'
             
         if not phone:
