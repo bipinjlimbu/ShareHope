@@ -22,7 +22,7 @@ import type {
 import PendingNGOsSection from "@/components/admin-dashboard/PendingNGOsSection";
 import PendingNGOChangesSection from "@/components/admin-dashboard/PendingNGOChangesSection";
 import PendingNGOsSkeleton from "@/components/skeleton/admin-dashboard/PendingNGOsSkeleton";
-import PendingNGODetailsModal from "@/components/admin-dashboard/PendingNGODetailsModal";
+import PendingNGOChangeDetailsModal from "@/components/admin-dashboard/PendingNGOChangeDetailsModal";
 import NGODetailsModal from "@/components/dashboard/NGODetailsModal";
 import ConfirmationModal from "@/components/common/ConfirmationModal";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -414,7 +414,7 @@ export default function PendingNGOsPage() {
                 onClose={() => setSelectedNGOId(null)}
             />
 
-            <PendingNGODetailsModal
+            <PendingNGOChangeDetailsModal
                 isOpen={selectedChangeId !== null}
                 changeId={selectedChangeId}
                 onClose={() => setSelectedChangeId(null)}
