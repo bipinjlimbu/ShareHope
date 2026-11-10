@@ -23,6 +23,7 @@ import {
     deleteCampaign,
     getCampaigns,
 } from "@/services/campaignService";
+import { getProfile } from "@/services/profileService";
 import type {
     Campaign,
     CampaignDonationType,
@@ -339,6 +340,17 @@ export default function NGOCampaignsPage() {
         setError(null);
 
         try {
+            // Get the currently authenticated user's profile.
+            const profileResponse = await getProfile();
+            const profileId = profileResponse.user.id;
+
+            if (profileId === undefined || profileId === null) {
+                throw new Error(
+                    "Unable to identify the currently logged-in user."
+                );
+            }
+
+            // Fetch campaigns and keep only those created by this user.
             const response = await getCampaigns();
 
             if (!Array.isArray(response)) {
@@ -347,7 +359,11 @@ export default function NGOCampaignsPage() {
                 );
             }
 
-            setCampaigns(response);
+            const ownCampaigns = response.filter(
+                (campaign) => campaign.created_by?.id === profileId
+            );
+
+            setCampaigns(ownCampaigns);
         } catch (err: unknown) {
             console.error("Failed to fetch campaigns:", err);
 
