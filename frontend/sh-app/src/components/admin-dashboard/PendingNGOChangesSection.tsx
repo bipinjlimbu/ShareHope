@@ -4,15 +4,17 @@ import { useMemo, useState } from "react";
 import {
     Building2,
     CalendarDays,
+    CheckCircle2,
     Clock3,
     ImageIcon,
     Layers3,
+    LoaderCircle,
     PencilLine,
     Search,
     X,
     XCircle,
-    CheckCircle2,
 } from "lucide-react";
+
 import type { PendingNGOChange } from "@/types/ngo";
 
 interface PendingNGOChangesSectionProps {
@@ -20,6 +22,8 @@ interface PendingNGOChangesSectionProps {
     searchQuery: string;
     onSearchChange: (value: string) => void;
     onViewDetails: (changeId: number) => void;
+    onApprove: (change: PendingNGOChange) => void;
+    approvingId: number | null;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -76,22 +80,15 @@ function PendingStatusBadge() {
 
 function DisabledAction({
     children,
-    variant,
 }: {
     children: React.ReactNode;
-    variant: "success" | "danger";
 }) {
-    const styles = {
-        success: "border-emerald-200 bg-emerald-50 text-emerald-700",
-        danger: "border-red-200 bg-red-50 text-red-600",
-    };
-
     return (
         <button
             type="button"
             disabled
             aria-disabled="true"
-            className={`inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border px-3 py-3 text-sm font-semibold opacity-55 ${styles[variant]}`}
+            className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-sm font-semibold text-red-600 opacity-55"
         >
             {children}
         </button>
@@ -101,12 +98,19 @@ function DisabledAction({
 function PendingNGOChangeCard({
     change,
     onViewDetails,
+    onApprove,
+    approvingId,
 }: {
     change: PendingNGOChange;
     onViewDetails: (changeId: number) => void;
+    onApprove: (change: PendingNGOChange) => void;
+    approvingId: number | null;
 }) {
     const [imageFailed, setImageFailed] = useState(false);
     const logoUrl = getNGOLogoUrl(change.ngo_logo);
+
+    const isApproving = approvingId === change.id;
+    const isApprovalInProgress = approvingId !== null;
 
     return (
         <article className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[#E5EDE3] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C9DFC4] hover:shadow-md">
@@ -223,12 +227,29 @@ function PendingNGOChangeCard({
                         </button>
 
                         <div className="grid grid-cols-2 gap-3">
-                            <DisabledAction variant="success">
-                                <CheckCircle2 size={16} />
-                                Approve
-                            </DisabledAction>
+                            <button
+                                type="button"
+                                onClick={() => onApprove(change)}
+                                disabled={isApprovalInProgress}
+                                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 focus:outline-none focus:ring-4 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {isApproving ? (
+                                    <>
+                                        <LoaderCircle
+                                            size={16}
+                                            className="animate-spin"
+                                        />
+                                        Approving...
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle2 size={16} />
+                                        Approve
+                                    </>
+                                )}
+                            </button>
 
-                            <DisabledAction variant="danger">
+                            <DisabledAction>
                                 <XCircle size={16} />
                                 Reject
                             </DisabledAction>
@@ -245,6 +266,8 @@ export default function PendingNGOChangesSection({
     searchQuery,
     onSearchChange,
     onViewDetails,
+    onApprove,
+    approvingId,
 }: PendingNGOChangesSectionProps) {
     const filteredChanges = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
@@ -368,6 +391,8 @@ export default function PendingNGOChangesSection({
                             key={change.id}
                             change={change}
                             onViewDetails={onViewDetails}
+                            onApprove={onApprove}
+                            approvingId={approvingId}
                         />
                     ))}
                 </section>
