@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo, useState } from "react";
@@ -20,6 +19,7 @@ interface PendingNGOChangesSectionProps {
     pendingChanges: PendingNGOChange[];
     searchQuery: string;
     onSearchChange: (value: string) => void;
+    onViewDetails: (changeId: number) => void;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -79,10 +79,9 @@ function DisabledAction({
     variant,
 }: {
     children: React.ReactNode;
-    variant: "primary" | "success" | "danger";
+    variant: "success" | "danger";
 }) {
     const styles = {
-        primary: "border-[#166534] bg-[#166534] text-white",
         success: "border-emerald-200 bg-emerald-50 text-emerald-700",
         danger: "border-red-200 bg-red-50 text-red-600",
     };
@@ -101,8 +100,10 @@ function DisabledAction({
 
 function PendingNGOChangeCard({
     change,
+    onViewDetails,
 }: {
     change: PendingNGOChange;
+    onViewDetails: (changeId: number) => void;
 }) {
     const [imageFailed, setImageFailed] = useState(false);
     const logoUrl = getNGOLogoUrl(change.ngo_logo);
@@ -206,16 +207,20 @@ function PendingNGOChangeCard({
                     <div className="mb-4 border-t border-[#EDF2E9] pt-4">
                         <p className="text-xs leading-5 text-[#829184]">
                             An NGO has submitted changes to its existing
-                            organization profile. These requests are displayed
-                            here for review.
+                            organization profile. Review the existing and
+                            proposed information before processing the request.
                         </p>
                     </div>
 
                     <div className="space-y-3">
-                        <DisabledAction variant="primary">
+                        <button
+                            type="button"
+                            onClick={() => onViewDetails(change.id)}
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#166534] bg-[#166534] px-3 py-3 text-sm font-semibold text-white transition hover:border-[#124D29] hover:bg-[#124D29] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
+                        >
                             <Search size={16} />
                             View Details
-                        </DisabledAction>
+                        </button>
 
                         <div className="grid grid-cols-2 gap-3">
                             <DisabledAction variant="success">
@@ -239,6 +244,7 @@ export default function PendingNGOChangesSection({
     pendingChanges,
     searchQuery,
     onSearchChange,
+    onViewDetails,
 }: PendingNGOChangesSectionProps) {
     const filteredChanges = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
@@ -361,6 +367,7 @@ export default function PendingNGOChangesSection({
                         <PendingNGOChangeCard
                             key={change.id}
                             change={change}
+                            onViewDetails={onViewDetails}
                         />
                     ))}
                 </section>
