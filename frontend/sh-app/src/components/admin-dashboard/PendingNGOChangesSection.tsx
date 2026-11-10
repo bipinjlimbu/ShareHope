@@ -17,13 +17,17 @@ import {
 
 import type { PendingNGOChange } from "@/types/ngo";
 
+type ReviewAction = "APPROVE" | "REJECT";
+
 interface PendingNGOChangesSectionProps {
     pendingChanges: PendingNGOChange[];
     searchQuery: string;
     onSearchChange: (value: string) => void;
     onViewDetails: (changeId: number) => void;
     onApprove: (change: PendingNGOChange) => void;
-    approvingId: number | null;
+    onReject: (change: PendingNGOChange) => void;
+    processingId: number | null;
+    processingAction: ReviewAction | null;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -78,39 +82,28 @@ function PendingStatusBadge() {
     );
 }
 
-function DisabledAction({
-    children,
-}: {
-    children: React.ReactNode;
-}) {
-    return (
-        <button
-            type="button"
-            disabled
-            aria-disabled="true"
-            className="inline-flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-sm font-semibold text-red-600 opacity-55"
-        >
-            {children}
-        </button>
-    );
-}
-
 function PendingNGOChangeCard({
     change,
     onViewDetails,
     onApprove,
-    approvingId,
+    onReject,
+    processingId,
+    processingAction,
 }: {
     change: PendingNGOChange;
     onViewDetails: (changeId: number) => void;
     onApprove: (change: PendingNGOChange) => void;
-    approvingId: number | null;
+    onReject: (change: PendingNGOChange) => void;
+    processingId: number | null;
+    processingAction: ReviewAction | null;
 }) {
     const [imageFailed, setImageFailed] = useState(false);
     const logoUrl = getNGOLogoUrl(change.ngo_logo);
 
-    const isApproving = approvingId === change.id;
-    const isApprovalInProgress = approvingId !== null;
+    const isProcessing = processingId === change.id;
+    const isApproving = isProcessing && processingAction === "APPROVE";
+    const isRejecting = isProcessing && processingAction === "REJECT";
+    const isAnyReviewInProgress = processingId !== null;
 
     return (
         <article className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[#E5EDE3] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C9DFC4] hover:shadow-md">
@@ -155,7 +148,8 @@ function PendingNGOChangeCard({
                     </div>
 
                     <p className="mt-2 break-words text-sm font-semibold text-[#183B2A]">
-                        Registration No. {change.registration_number || "Not provided"}
+                        Registration No.{" "}
+                        {change.registration_number || "Not provided"}
                     </p>
 
                     {change.description && (
@@ -230,7 +224,7 @@ function PendingNGOChangeCard({
                             <button
                                 type="button"
                                 onClick={() => onApprove(change)}
-                                disabled={isApprovalInProgress}
+                                disabled={isAnyReviewInProgress}
                                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3 text-sm font-semibold text-emerald-700 transition hover:border-emerald-300 hover:bg-emerald-100 focus:outline-none focus:ring-4 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {isApproving ? (
@@ -249,10 +243,27 @@ function PendingNGOChangeCard({
                                 )}
                             </button>
 
-                            <DisabledAction>
-                                <XCircle size={16} />
-                                Reject
-                            </DisabledAction>
+                            <button
+                                type="button"
+                                onClick={() => onReject(change)}
+                                disabled={isAnyReviewInProgress}
+                                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-sm font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100 focus:outline-none focus:ring-4 focus:ring-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                                {isRejecting ? (
+                                    <>
+                                        <LoaderCircle
+                                            size={16}
+                                            className="animate-spin"
+                                        />
+                                        Rejecting...
+                                    </>
+                                ) : (
+                                    <>
+                                        <XCircle size={16} />
+                                        Reject
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -267,7 +278,9 @@ export default function PendingNGOChangesSection({
     onSearchChange,
     onViewDetails,
     onApprove,
-    approvingId,
+    onReject,
+    processingId,
+    processingAction,
 }: PendingNGOChangesSectionProps) {
     const filteredChanges = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
@@ -335,7 +348,8 @@ export default function PendingNGOChangesSection({
                     </h2>
 
                     <p className="mt-1 text-sm text-[#647568]">
-                        Showing {filteredChanges.length.toLocaleString("en-NP")} of{" "}
+                        Showing{" "}
+                        {filteredChanges.length.toLocaleString("en-NP")} of{" "}
                         {pendingChanges.length.toLocaleString("en-NP")} pending
                         edit requests
                     </p>
@@ -392,7 +406,9 @@ export default function PendingNGOChangesSection({
                             change={change}
                             onViewDetails={onViewDetails}
                             onApprove={onApprove}
-                            approvingId={approvingId}
+                            onReject={onReject}
+                            processingId={processingId}
+                            processingAction={processingAction}
                         />
                     ))}
                 </section>
