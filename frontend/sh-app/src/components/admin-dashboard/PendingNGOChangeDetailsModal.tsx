@@ -250,11 +250,11 @@ function getErrorMessage(error: unknown): string {
     return "Unable to load NGO profile change details. Please try again.";
 }
 
-export default function PendingNGODetailsModal({
+export default function PendingNGOChangeDetailsModal({
     isOpen,
     changeId,
     onClose,
-}: PendingNGODetailsModalProps) {
+}: PendingNGOChangeDetailsModalProps) {
     const [change, setChange] = useState<PendingNGOChange | null>(null);
     const [ngo, setNgo] = useState<NGOListItem | null>(null);
 
@@ -319,7 +319,7 @@ export default function PendingNGODetailsModal({
     }
 
     if (isLoading) {
-        return <PendingNGODetailsModalSkeleton />;
+        return <PendingNGOChangeDetailsModalSkeleton />;
     }
 
     const ngoName = ngo?.name || change?.name || "NGO";
