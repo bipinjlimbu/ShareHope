@@ -29,8 +29,7 @@ function getNGOLogoUrl(path: string | null): string | null {
 function getApprovedActiveNGOs(ngos: NGOListItem[]): NGOListItem[] {
     return ngos.filter(
         (ngo) =>
-            ngo.status?.toUpperCase() === "APPROVED" &&
-            ngo.is_active === true
+            ngo.status?.toUpperCase() === "ACTIVE"
     );
 }
 
