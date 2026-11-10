@@ -22,6 +22,7 @@ import type {
 import PendingNGOsSection from "@/components/admin-dashboard/PendingNGOsSection";
 import PendingNGOChangesSection from "@/components/admin-dashboard/PendingNGOChangesSection";
 import PendingNGOsSkeleton from "@/components/skeleton/admin-dashboard/PendingNGOsSkeleton";
+import PendingNGODetailsModal from "@/components/admin-dashboard/PendingNGODetailsModal";
 import NGODetailsModal from "@/components/dashboard/NGODetailsModal";
 import ConfirmationModal from "@/components/common/ConfirmationModal";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -97,6 +98,7 @@ export default function PendingNGOsPage() {
     const [searchQuery, setSearchQuery] = useState("");
 
     const [selectedNGOId, setSelectedNGOId] = useState<number | null>(null);
+    const [selectedChangeId, setSelectedChangeId] = useState<number | null>(null);
 
     const [selectedReviewNGO, setSelectedReviewNGO] =
         useState<NGOListItem | null>(null);
@@ -315,7 +317,6 @@ export default function PendingNGOsPage() {
                                     />
                                 </section>
 
-                                {/* Approval tabs */}
                                 <section className="mb-7 rounded-2xl border border-[#E5EDE3] bg-white p-2 shadow-sm sm:p-3">
                                     <div className="grid grid-cols-2 gap-2">
                                         <button
@@ -325,16 +326,17 @@ export default function PendingNGOsPage() {
                                                 setSearchQuery("");
                                             }}
                                             className={`flex min-w-0 items-center justify-center gap-2 rounded-xl px-3 py-4 text-sm font-semibold transition sm:px-5 ${activeTab === "NEW"
-                                                ? "bg-[#166534] text-white shadow-sm"
-                                                : "text-[#647568] hover:bg-[#F1F7ED] hover:text-[#183B2A]"
+                                                    ? "bg-[#166534] text-white shadow-sm"
+                                                    : "text-[#647568] hover:bg-[#F1F7ED] hover:text-[#183B2A]"
                                                 }`}
                                         >
                                             <Building2 size={17} />
                                             <span>New NGO Applications</span>
+
                                             <span
                                                 className={`rounded-full px-2 py-0.5 text-xs ${activeTab === "NEW"
-                                                    ? "bg-white/20 text-white"
-                                                    : "bg-[#E5F2E1] text-[#166534]"
+                                                        ? "bg-white/20 text-white"
+                                                        : "bg-[#E5F2E1] text-[#166534]"
                                                     }`}
                                             >
                                                 {ngos.length}
@@ -348,16 +350,17 @@ export default function PendingNGOsPage() {
                                                 setSearchQuery("");
                                             }}
                                             className={`flex min-w-0 items-center justify-center gap-2 rounded-xl px-3 py-4 text-sm font-semibold transition sm:px-5 ${activeTab === "EDITS"
-                                                ? "bg-[#166534] text-white shadow-sm"
-                                                : "text-[#647568] hover:bg-[#F1F7ED] hover:text-[#183B2A]"
+                                                    ? "bg-[#166534] text-white shadow-sm"
+                                                    : "text-[#647568] hover:bg-[#F1F7ED] hover:text-[#183B2A]"
                                                 }`}
                                         >
                                             <ShieldCheck size={17} />
                                             <span>Profile Change Requests</span>
+
                                             <span
                                                 className={`rounded-full px-2 py-0.5 text-xs ${activeTab === "EDITS"
-                                                    ? "bg-white/20 text-white"
-                                                    : "bg-amber-100 text-amber-700"
+                                                        ? "bg-white/20 text-white"
+                                                        : "bg-amber-100 text-amber-700"
                                                     }`}
                                             >
                                                 {pendingChanges.length}
@@ -366,7 +369,6 @@ export default function PendingNGOsPage() {
                                     </div>
                                 </section>
 
-                                {/* Active tab content */}
                                 {activeTab === "NEW" ? (
                                     <PendingNGOsSection
                                         ngos={ngos}
@@ -386,6 +388,7 @@ export default function PendingNGOsPage() {
                                         pendingChanges={pendingChanges}
                                         searchQuery={searchQuery}
                                         onSearchChange={setSearchQuery}
+                                        onViewDetails={setSelectedChangeId}
                                     />
                                 )}
 
@@ -409,6 +412,12 @@ export default function PendingNGOsPage() {
                 isOpen={selectedNGOId !== null}
                 ngoId={selectedNGOId}
                 onClose={() => setSelectedNGOId(null)}
+            />
+
+            <PendingNGODetailsModal
+                isOpen={selectedChangeId !== null}
+                changeId={selectedChangeId}
+                onClose={() => setSelectedChangeId(null)}
             />
 
             <ConfirmationModal
