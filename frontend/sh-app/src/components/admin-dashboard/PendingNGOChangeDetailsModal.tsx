@@ -21,9 +21,9 @@ import type {
     PendingNGOChange,
 } from "@/types/ngo";
 
-import PendingNGODetailsModalSkeleton from "@/components/skeleton/admin-dashboard/PendingNGODetailsModalSkeleton";
+import PendingNGOChangeDetailsModalSkeleton from "@/components/skeleton/admin-dashboard/PendingNGOChangeDetailsModalSkeleton";
 
-interface PendingNGODetailsModalProps {
+interface PendingNGOChangeDetailsModalProps {
     isOpen: boolean;
     changeId: number | null;
     onClose: () => void;
