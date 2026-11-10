@@ -13,6 +13,7 @@ import {
     getNGOs,
     getPendingNGOChanges,
     rejectNGO,
+    rejectNGOChange,
 } from "@/services/ngoService";
 
 import type {
@@ -114,8 +115,11 @@ export default function PendingNGOsPage() {
         useState<PendingNGOChange | null>(null);
 
     const [reviewAction, setReviewAction] = useState<ReviewAction>("REJECT");
+    const [changeReviewAction, setChangeReviewAction] =
+        useState<ReviewAction>("APPROVE");
+
     const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-    const [isSubmittingChangeApproval, setIsSubmittingChangeApproval] =
+    const [isSubmittingChangeReview, setIsSubmittingChangeReview] =
         useState(false);
 
     const fetchPendingNGOs = useCallback(async () => {
@@ -233,56 +237,67 @@ export default function PendingNGOsPage() {
         }
     };
 
-    const openChangeApprovalConfirmation = (
-        change: PendingNGOChange
+    const openChangeReviewConfirmation = (
+        change: PendingNGOChange,
+        action: ReviewAction
     ) => {
         setSelectedReviewChange(change);
+        setChangeReviewAction(action);
     };
 
-    const closeChangeApprovalConfirmation = () => {
-        if (isSubmittingChangeApproval) return;
+    const closeChangeReviewConfirmation = () => {
+        if (isSubmittingChangeReview) return;
 
         setSelectedReviewChange(null);
     };
 
-    const handleApproveNGOChange = async () => {
-        if (!selectedReviewChange || isSubmittingChangeApproval) return;
+    const handleReviewNGOChange = async () => {
+        if (!selectedReviewChange || isSubmittingChangeReview) return;
 
-        const changeToApprove = selectedReviewChange;
-        const ngoName = getRelatedNGOName(changeToApprove);
+        const changeToReview = selectedReviewChange;
+        const action = changeReviewAction;
+        const ngoName = getRelatedNGOName(changeToReview);
 
-        setIsSubmittingChangeApproval(true);
+        setIsSubmittingChangeReview(true);
 
         try {
-            await approveNGOChange(changeToApprove.id);
+            if (action === "APPROVE") {
+                await approveNGOChange(changeToReview.id);
+            } else {
+                await rejectNGOChange(changeToReview.id);
+            }
 
             setPendingChanges((currentChanges) =>
                 currentChanges.filter(
-                    (change) => change.id !== changeToApprove.id
+                    (change) => change.id !== changeToReview.id
                 )
             );
 
             setSelectedReviewChange(null);
 
             showToast(
-                `${ngoName}'s profile change request has been approved successfully.`,
+                action === "APPROVE"
+                    ? `${ngoName}'s profile change request has been approved successfully.`
+                    : `${ngoName}'s profile change request has been rejected.`,
                 "success"
             );
         } catch (error: unknown) {
             console.error(
-                "Failed to approve NGO profile change request:",
+                `Failed to ${action.toLowerCase()} NGO profile change request:`,
                 error
             );
 
             showToast(
                 getErrorMessage(
                     error,
-                    "Unable to approve this NGO profile change request. Please try again."
+                    action === "APPROVE"
+                        ? "Unable to approve this NGO profile change request. Please try again."
+                        : "Unable to reject this NGO profile change request. Please try again."
                 ),
                 "error"
             );
         } finally {
-            setIsSubmittingChangeApproval(false);
+            setIsSubmittingChangeReview(false);
         }
     };
 
@@ -292,6 +307,7 @@ export default function PendingNGOsPage() {
     );
 
     const isApproving = reviewAction === "APPROVE";
+    const isApprovingChange = changeReviewAction === "APPROVE";
 
     return (
         <>
@@ -454,10 +470,26 @@ export default function PendingNGOsPage() {
                                         searchQuery={searchQuery}
                                         onSearchChange={setSearchQuery}
                                         onViewDetails={setSelectedChangeId}
-                                        onApprove={openChangeApprovalConfirmation}
-                                        approvingId={
-                                            isSubmittingChangeApproval
+                                        onApprove={(change) =>
+                                            openChangeReviewConfirmation(
+                                                change,
+                                                "APPROVE"
+                                            )
+                                        }
+                                        onReject={(change) =>
+                                            openChangeReviewConfirmation(
+                                                change,
+                                                "REJECT"
+                                            )
+                                        }
+                                        processingId={
+                                            isSubmittingChangeReview
                                                 ? selectedReviewChange?.id ?? null
+                                                : null
+                                        }
+                                        processingAction={
+                                            isSubmittingChangeReview
+                                                ? changeReviewAction
                                                 : null
                                         }
                                     />
@@ -466,7 +498,7 @@ export default function PendingNGOsPage() {
                                 <p className="mt-8 text-center text-xs leading-5 text-[#829184]">
                                     {activeTab === "NEW"
                                         ? "Review NGO registration details, submitted documents, and organization information before approving or rejecting an application."
-                                        : "Review submitted organization profile modification requests before approving them."}
+                                        : "Review submitted organization profile modification requests before approving or rejecting them."}
                                 </p>
                             </>
                         )}
@@ -528,21 +560,43 @@ export default function PendingNGOsPage() {
 
             <ConfirmationModal
                 isOpen={selectedReviewChange !== null}
-                title="Approve NGO profile changes?"
-                description="This will approve the submitted profile modifications and update the NGO's existing profile with the proposed information."
+                title={
+                    isApprovingChange
+                        ? "Approve NGO profile changes?"
+                        : "Reject NGO profile changes?"
+                }
+                description={
+                    isApprovingChange
+                        ? "This will approve the submitted profile modifications and update the NGO's existing profile with the proposed information."
+                        : "This will reject the submitted profile modifications. The proposed information will not replace the NGO's existing profile details."
+                }
                 itemName={
                     selectedReviewChange
                         ? `${getRelatedNGOName(selectedReviewChange)} · Request #${selectedReviewChange.id}`
                         : undefined
                 }
-                confirmText="Confirm Approval"
-                isDeleting={isSubmittingChangeApproval}
-                buttonColor="bg-[#166534]"
-                buttonHoverColor="hover:bg-[#124D29]"
-                iconBackgroundColor="bg-[#E5F2E1]"
-                iconColor="text-[#166534]"
-                onConfirm={() => void handleApproveNGOChange()}
-                onCancel={closeChangeApprovalConfirmation}
+                confirmText={
+                    isApprovingChange
+                        ? "Confirm Approval"
+                        : "Confirm Rejection"
+                }
+                isDeleting={isSubmittingChangeReview}
+                buttonColor={
+                    isApprovingChange ? "bg-[#166534]" : "bg-red-700"
+                }
+                buttonHoverColor={
+                    isApprovingChange
+                        ? "hover:bg-[#124D29]"
+                        : "hover:bg-red-800"
+                }
+                iconBackgroundColor={
+                    isApprovingChange ? "bg-[#E5F2E1]" : "bg-red-50"
+                }
+                iconColor={
+                    isApprovingChange ? "text-[#166534]" : "text-red-700"
+                }
+                onConfirm={() => void handleReviewNGOChange()}
+                onCancel={closeChangeReviewConfirmation}
             />
         </>
     );
