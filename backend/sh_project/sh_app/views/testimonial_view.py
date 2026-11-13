@@ -65,14 +65,18 @@ def testimonial_view(request):
         send_email(subject, message, [request.user.email])
         
         return Response({'message': 'Your testimonial has been submitted successfully.'}, status=status.HTTP_201_CREATED)
-    
-@api_view(['PUT', 'DELETE'])
+
+@api_view(['GET', 'PUT', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def testimonial_detail_view(request, pk):
     try:
         testimonial = Testimonial.objects.get(pk=pk, user=request.user)
     except Testimonial.DoesNotExist:
         return Response({'error': 'Testimonial not found or you do not have permission to modify it.'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'GET':
+        serializer = TestimonialSerializer(testimonial)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
     if request.method == 'PUT':
         if not request.user.is_authenticated:
