@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -28,6 +27,7 @@ import type {
 } from "@/types/testimonial";
 
 import { useToast } from "@/components/toast/ToastProvider";
+import TestimonialsSkeleton from "@/components/skeleton/admin-dashboard/TestimonialsSkeleton";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const MINIMUM_LOADING_TIME = 500;
@@ -131,45 +131,6 @@ function getErrorMessage(error: unknown): string {
     }
 
     return "Unable to load testimonials. Please try again.";
-}
-
-function TestimonialsSkeleton() {
-    return (
-        <main className="min-h-screen w-full bg-[#FFFCF6] px-3 py-5 sm:px-5 lg:px-6">
-            <div className="mx-auto w-full max-w-[1600px] animate-pulse space-y-7">
-                <div className="rounded-2xl border border-[#E5EDE3] bg-white p-6 shadow-sm">
-                    <div className="h-8 w-64 rounded-lg bg-[#E5F2E1]" />
-                    <div className="mt-3 h-4 w-96 max-w-full rounded bg-[#EDF2E9]" />
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    {Array.from({ length: 3 }).map((_, index) => (
-                        <div
-                            key={index}
-                            className="rounded-2xl border border-[#E5EDE3] bg-white p-6"
-                        >
-                            <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 rounded-full bg-[#E5F2E1]" />
-                                <div className="flex-1 space-y-2">
-                                    <div className="h-4 w-32 rounded bg-[#E5F2E1]" />
-                                    <div className="h-3 w-24 rounded bg-[#EDF2E9]" />
-                                </div>
-                            </div>
-                            <div className="mt-6 space-y-3">
-                                <div className="h-3 w-full rounded bg-[#EDF2E9]" />
-                                <div className="h-3 w-full rounded bg-[#EDF2E9]" />
-                                <div className="h-3 w-2/3 rounded bg-[#EDF2E9]" />
-                            </div>
-                            <div className="mt-7 flex gap-3">
-                                <div className="h-10 flex-1 rounded-xl bg-[#E5F2E1]" />
-                                <div className="h-10 flex-1 rounded-xl bg-[#EDF2E9]" />
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </main>
-    );
 }
 
 function SummaryCard({
