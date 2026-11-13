@@ -70,7 +70,7 @@ def testimonial_view(request):
 @permission_classes([IsAuthenticated])
 def testimonial_detail_view(request, pk):
     try:
-        testimonial = Testimonial.objects.get(pk=pk, user=request.user)
+        testimonial = Testimonial.objects.get(pk=pk)
     except Testimonial.DoesNotExist:
         return Response({'error': 'Testimonial not found or you do not have permission to modify it.'}, status=status.HTTP_404_NOT_FOUND)
     
