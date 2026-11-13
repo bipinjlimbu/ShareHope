@@ -1,5 +1,7 @@
 import { authFetch } from "@/lib/api";
+
 import type {
+    Testimonial,
     TestimonialListResponse,
     CreateTestimonialRequest,
     CreateTestimonialResponse,
@@ -15,6 +17,14 @@ export const getTestimonials = async (): Promise<TestimonialListResponse> => {
     return (await authFetch("/testimonial/", {
         method: "GET",
     })) as TestimonialListResponse;
+};
+
+export const getTestimonialById = async (
+    id: number
+): Promise<Testimonial> => {
+    return (await authFetch(`/testimonial/${id}/`, {
+        method: "GET",
+    })) as Testimonial;
 };
 
 export const createTestimonial = async (
