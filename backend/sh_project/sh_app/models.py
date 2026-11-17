@@ -100,6 +100,14 @@ class NGOMembership(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.ngo.name}"
+    
+class NGOMembershipInvitation(models.Model):
+    ngo = models.ForeignKey(NGO, on_delete=models.CASCADE, related_name="membership_invitations")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="membership_invitations")
+    invited_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Invitation to {self.user.email} for {self.ngo.name}"
 
 class Campaign(models.Model):
     class Status(models.TextChoices):
