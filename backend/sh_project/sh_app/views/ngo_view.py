@@ -664,7 +664,41 @@ def ngo_staff_invitation_view(request):
         serializer = NGOMembershipInvitationSerializer(invitations, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-@api_view(['GET'])
+    if request.method == 'POST':
+        user_id = request.data.get('user_id')
+        
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+        
+        if NGOMembership.objects.filter(ngo=ngo, user=user).exists():
+            return Response({'error': 'User is already a member of this NGO.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if NGOMembershipInvitation.objects.filter(ngo=ngo, user=user).exists():
+            return Response({'error': 'User has already been invited to this NGO.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        invitation = NGOMembershipInvitation.objects.create(
+            ngo=ngo,
+            user=user
+        )
+        invitation.save()
+        
+        notification = Notification.objects.create(
+            user=user,
+            type=Notification.NotificationType.INVITATION,
+            title='NGO Staff Invitation',
+            message=f'You have been invited to join the NGO "{ngo.name}" as a staff member. Please log in to your account to accept or decline the invitation.'
+        )
+        notification.save()
+        
+        subject = 'NGO Staff Invitation'
+        message = f'Dear {user.first_name},\n\nYou have been invited to join the NGO "{ngo.name}" as a staff member. Please log in to your account to accept or decline the invitation.\n\nBest regards,\nShareHope Team'
+        send_email(subject, message, [user.email])
+        
+        return Response({'message': 'NGO staff invitation sent successfully.'}, status=status.HTTP_201_CREATED)
+
+@api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def ngo_staff_invitation_detail_view(request, pk):
     try:
