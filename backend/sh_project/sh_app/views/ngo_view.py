@@ -651,7 +651,7 @@ def ngo_staff_detail_view(request, pk):
         
         return Response({'message': 'NGO staff member deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
     
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def ngo_staff_invitation_view(request):
     try:
@@ -659,6 +659,19 @@ def ngo_staff_invitation_view(request):
     except NGO.DoesNotExist:
         return Response({'error': 'NGO not found for the user.'}, status=status.HTTP_404_NOT_FOUND)
     
-    invitations = NGOMembershipInvitation.objects.filter(ngo=ngo)
-    serializer = NGOMembershipInvitationSerializer(invitations, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    if request.method == 'GET':
+        invitations = NGOMembershipInvitation.objects.filter(ngo=ngo)
+        serializer = NGOMembershipInvitationSerializer(invitations, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def ngo_staff_invitation_detail_view(request, pk):
+    try:
+        invitation = NGOMembershipInvitation.objects.get(pk=pk)
+    except NGOMembershipInvitation.DoesNotExist:
+        return Response({'error': 'NGO staff invitation not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        serializer = NGOMembershipInvitationSerializer(invitation)
+        return Response(serializer.data, status=status.HTTP_200_OK)
