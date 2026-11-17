@@ -17,7 +17,10 @@ import {
     XCircle,
 } from "lucide-react";
 
-import { getTestimonials } from "@/services/testimonialService";
+import {
+    getTestimonials,
+    deleteTestimonial,
+} from "@/services/testimonialService";
 
 import type {
     Testimonial,
@@ -27,6 +30,7 @@ import type {
 import { useToast } from "@/components/toast/ToastProvider";
 import TestimonialsSkeleton from "@/components/skeleton/admin-dashboard/TestimonialsSkeleton";
 import TestimonialDetailsModal from "@/components/dashboard/TestimonialDetailsModal";
+import ConfirmationModal from "@/components/common/ConfirmationModal";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const MINIMUM_LOADING_TIME = 500;
@@ -129,7 +133,7 @@ function getErrorMessage(error: unknown): string {
         }
     }
 
-    return "Unable to load testimonials. Please try again.";
+    return "Unable to complete the request. Please try again.";
 }
 
 function SummaryCard({
@@ -171,9 +175,11 @@ function SummaryCard({
 function TestimonialCard({
     testimonial,
     onViewDetails,
+    onDelete,
 }: {
     testimonial: Testimonial;
     onViewDetails: (id: number) => void;
+    onDelete: (id: number) => void;
 }) {
     const [imageFailed, setImageFailed] = useState(false);
 
@@ -273,9 +279,8 @@ function TestimonialCard({
 
                 <button
                     type="button"
-                    disabled
-                    title="Delete functionality will be added later"
-                    className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50/50 px-3 py-3 text-sm font-semibold text-red-400 opacity-60"
+                    onClick={() => onDelete(testimonial.id)}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-3 text-sm font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-100 focus:outline-none focus:ring-4 focus:ring-red-500/10"
                 >
                     <Trash2 size={16} />
                     Delete
@@ -298,6 +303,12 @@ export default function AdminTestimonialsPage() {
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [selectedTestimonialId, setSelectedTestimonialId] =
         useState<number | null>(null);
+
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [selectedDeleteId, setSelectedDeleteId] = useState<number | null>(
+        null
+    );
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const fetchTestimonials = useCallback(async () => {
         const startedAt = Date.now();
@@ -397,6 +408,48 @@ export default function AdminTestimonialsPage() {
     const handleCloseDetails = () => {
         setIsDetailsModalOpen(false);
         setSelectedTestimonialId(null);
+    };
+
+    const handleOpenDeleteModal = (id: number) => {
+        setSelectedDeleteId(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleCancelDelete = () => {
+        if (isDeleting) return;
+
+        setIsDeleteModalOpen(false);
+        setSelectedDeleteId(null);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (selectedDeleteId === null || isDeleting) return;
+
+        setIsDeleting(true);
+
+        try {
+            const response = await deleteTestimonial(selectedDeleteId);
+
+            setTestimonials((previousTestimonials) =>
+                previousTestimonials.filter(
+                    (testimonial) => testimonial.id !== selectedDeleteId
+                )
+            );
+
+            showToast(
+                response?.message || "Testimonial deleted successfully.",
+                "success"
+            );
+
+            setIsDeleteModalOpen(false);
+            setSelectedDeleteId(null);
+        } catch (err: unknown) {
+            console.error("Failed to delete testimonial:", err);
+
+            showToast(getErrorMessage(err), "error");
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     if (isLoading) {
@@ -603,6 +656,7 @@ export default function AdminTestimonialsPage() {
                                             key={testimonial.id}
                                             testimonial={testimonial}
                                             onViewDetails={handleViewDetails}
+                                            onDelete={handleOpenDeleteModal}
                                         />
                                     ))}
                                 </section>
@@ -617,6 +671,22 @@ export default function AdminTestimonialsPage() {
                 isOpen={isDetailsModalOpen}
                 testimonialId={selectedTestimonialId}
                 onClose={handleCloseDetails}
+            />
+
+            {/* Delete Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={isDeleteModalOpen}
+                title="Delete Testimonial?"
+                description="Are you sure you want to delete this testimonial? This action cannot be undone."
+                itemName={
+                    selectedDeleteId !== null
+                        ? `Testimonial #${selectedDeleteId}`
+                        : undefined
+                }
+                confirmText="Delete Testimonial"
+                isDeleting={isDeleting}
+                onConfirm={handleConfirmDelete}
+                onCancel={handleCancelDelete}
             />
         </>
     );
