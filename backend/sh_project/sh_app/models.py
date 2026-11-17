@@ -90,13 +90,9 @@ class NGODocument(models.Model):
         return f"{self.ngo.name} - {self.document_type}"
 
 class NGOMembership(models.Model):
-    class Status(models.TextChoices):
-        ACTIVE = "ACTIVE", "Active"
-        INACTIVE = "INACTIVE", "Inactive"
-
     ngo = models.ForeignKey(NGO, on_delete=models.CASCADE, related_name="members")
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="ngo_memberships")
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.ACTIVE)
+    is_active = models.BooleanField(default=True)
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
