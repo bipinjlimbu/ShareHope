@@ -698,7 +698,7 @@ def ngo_staff_invitation_view(request):
         
         return Response({'message': 'NGO staff invitation sent successfully.'}, status=status.HTTP_201_CREATED)
 
-@api_view(['GET', 'POST'])
+@api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def ngo_staff_invitation_detail_view(request, pk):
     try:
@@ -709,3 +709,50 @@ def ngo_staff_invitation_detail_view(request, pk):
     if request.method == 'GET':
         serializer = NGOMembershipInvitationSerializer(invitation)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    if request.method == 'PATCH':
+        if request.user != invitation.user:
+            return Response({'error': 'You are not authorized to respond to this invitation.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        action = request.data.get('action')
+        
+        if action == 'accept':
+            membership = NGOMembership.objects.create(
+                ngo=invitation.ngo,
+                user=invitation.user,
+            )
+            membership.save()
+            
+            notification = Notification.objects.create(
+                user=invitation.ngo.created_by,
+                type=Notification.NotificationType.USER,
+                title='NGO Staff Invitation Accepted',
+                message=f'User "{invitation.user.username}" has accepted the invitation to join the NGO "{invitation.ngo.name}" as a staff member.'
+            )
+            notification.save()
+            
+            subject = 'NGO Staff Invitation Accepted'
+            message = f'Dear {invitation.ngo.created_by.first_name},\n\nUser "{invitation.user.username}" has accepted the invitation to join the NGO "{invitation.ngo.name}" as a staff member.\n\nBest regards,\nShareHope Team'
+            send_email(subject, message, [invitation.ngo.email])
+            
+            invitation.delete()
+            return Response({'message': 'Invitation accepted and user added as NGO staff member.'}, status=status.HTTP_200_OK)
+        
+        elif action == 'decline':
+            notification = Notification.objects.create(
+                user=invitation.ngo.created_by,
+                type=Notification.NotificationType.USER,
+                title='NGO Staff Invitation Declined',
+                message=f'User "{invitation.user.username}" has declined the invitation to join the NGO "{invitation.ngo.name}" as a staff member.'
+            )
+            notification.save()
+            
+            subject = 'NGO Staff Invitation Declined'
+            message = f'Dear {invitation.ngo.created_by.first_name},\n\nUser "{invitation.user.username}" has declined the invitation to join the NGO "{invitation.ngo.name}" as a staff member.\n\nBest regards,\nShareHope Team'
+            send_email(subject, message, [invitation.ngo.email])
+            
+            invitation.delete()
+            return Response({'message': 'Invitation declined.'}, status=status.HTTP_200_OK)
+        
+        else:
+            return Response({'error': 'Invalid action. Only "accept" or "decline" actions are allowed.'}, status=status.HTTP_400_BAD_REQUEST)
