@@ -147,6 +147,8 @@ export interface NGOMembership {
     ngo: number;
 }
 
+export type NGOStaffResponse = NGOMembership[];
+
 export interface NGOListItem {
     id: number;
     name: string;
