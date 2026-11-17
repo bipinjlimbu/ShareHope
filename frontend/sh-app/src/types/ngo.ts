@@ -149,6 +149,40 @@ export interface NGOMembership {
 
 export type NGOStaffResponse = NGOMembership[];
 
+export interface NGOStaffRegistrationPayload {
+    username: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    password: string;
+    confirm_password: string;
+    phone: string;
+    profile_picture: File | null;
+}
+
+export interface NGOStaffRegistrationResponse {
+    message: string;
+}
+
+export type NGOStaffRegistrationErrors = Record<
+    string,
+    string | string[] | undefined
+>;
+
+export interface NGOStaffRegistrationFormErrors {
+    username?: string;
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    password?: string;
+    confirm_password?: string;
+    phone?: string;
+    profile_picture?: string;
+    non_field_errors?: string;
+    general?: string;
+    [key: string]: string | undefined;
+}
+
 export interface NGOListItem {
     id: number;
     name: string;
