@@ -183,6 +183,8 @@ export interface NGOStaffRegistrationFormErrors {
     [key: string]: string | undefined;
 }
 
+export type NGOStaffDetailResponse = NGOMembership;
+
 export interface NGOListItem {
     id: number;
     name: string;
