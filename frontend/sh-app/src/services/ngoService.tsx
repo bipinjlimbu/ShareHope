@@ -1,4 +1,3 @@
-
 import { authFetch } from "@/lib/api";
 import type {
     NGORegistrationPayload,
@@ -24,6 +23,7 @@ import type {
     NGOStaffRegistrationPayload,
     NGOStaffRegistrationResponse,
     NGOStaffRegistrationErrors,
+    NGOStaffDetailResponse,
 } from "@/types/ngo";
 
 export async function registerNGO(
@@ -238,4 +238,12 @@ export async function registerNGOStaff(
     } catch (error: unknown) {
         throw error as NGOStaffRegistrationErrors;
     }
+}
+
+export async function getNGOStaffById(
+    membershipId: number
+): Promise<NGOStaffDetailResponse> {
+    return (await authFetch(`/ngo/staff/${membershipId}/`, {
+        method: "GET",
+    })) as NGOStaffDetailResponse;
 }
