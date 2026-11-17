@@ -3,8 +3,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from PIL import Image
-from ..models import User, NGO, PendingNGOChange, NGODocument, NGOMembership, Notification
-from ..serializers import NGOSerializer, PendingNGOChangeSerializer, NGOMembershipSerializer
+from ..models import NGOMembershipInvitation, User, NGO, PendingNGOChange, NGODocument, NGOMembership, Notification
+from ..serializers import NGOMembershipInvitationSerializer, NGOSerializer, PendingNGOChangeSerializer, NGOMembershipSerializer
 from ..email_service import send_email, welcome_email
 import re
     
@@ -650,3 +650,15 @@ def ngo_staff_detail_view(request, pk):
         send_email(subject, message, [user.email])
         
         return Response({'message': 'NGO staff member deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def ngo_staff_invitation_view(request):
+    try:
+        ngo = NGO.objects.get(created_by=request.user)
+    except NGO.DoesNotExist:
+        return Response({'error': 'NGO not found for the user.'}, status=status.HTTP_404_NOT_FOUND)
+    
+    invitations = NGOMembershipInvitation.objects.filter(ngo=ngo)
+    serializer = NGOMembershipInvitationSerializer(invitations, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
