@@ -17,9 +17,7 @@ import {
     XCircle,
 } from "lucide-react";
 
-import {
-    getTestimonials,
-} from "@/services/testimonialService";
+import { getTestimonials } from "@/services/testimonialService";
 
 import type {
     Testimonial,
@@ -28,6 +26,7 @@ import type {
 
 import { useToast } from "@/components/toast/ToastProvider";
 import TestimonialsSkeleton from "@/components/skeleton/admin-dashboard/TestimonialsSkeleton";
+import TestimonialDetailsModal from "@/components/dashboard/TestimonialDetailsModal";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
 const MINIMUM_LOADING_TIME = 500;
@@ -171,8 +170,10 @@ function SummaryCard({
 
 function TestimonialCard({
     testimonial,
+    onViewDetails,
 }: {
     testimonial: Testimonial;
+    onViewDetails: (id: number) => void;
 }) {
     const [imageFailed, setImageFailed] = useState(false);
 
@@ -259,13 +260,12 @@ function TestimonialCard({
                 </div>
             </div>
 
-            {/* Action Buttons - Disabled Until Services Are Provided */}
+            {/* Action Buttons */}
             <div className="mt-5 grid grid-cols-2 gap-3 border-t border-[#EDF2E9] pt-5">
                 <button
                     type="button"
-                    disabled
-                    title="View details functionality will be added later"
-                    className="inline-flex cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-[#DDE7D9] bg-[#F8FAF6] px-3 py-3 text-sm font-semibold text-[#829184] opacity-60"
+                    onClick={() => onViewDetails(testimonial.id)}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#166534] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#124D29] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
                 >
                     <Eye size={16} />
                     View Details
@@ -294,6 +294,10 @@ export default function AdminTestimonialsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
+
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+    const [selectedTestimonialId, setSelectedTestimonialId] =
+        useState<number | null>(null);
 
     const fetchTestimonials = useCallback(async () => {
         const startedAt = Date.now();
@@ -385,215 +389,235 @@ export default function AdminTestimonialsPage() {
         });
     }, [visibleTestimonials, searchQuery]);
 
+    const handleViewDetails = (id: number) => {
+        setSelectedTestimonialId(id);
+        setIsDetailsModalOpen(true);
+    };
+
+    const handleCloseDetails = () => {
+        setIsDetailsModalOpen(false);
+        setSelectedTestimonialId(null);
+    };
+
     if (isLoading) {
         return <TestimonialsSkeleton />;
     }
 
     return (
-        <main className="min-h-screen w-full bg-[#FFFCF6] px-1.5 py-3 sm:px-2.5 sm:py-4 lg:px-3 xl:px-4 2xl:px-5">
-            <div className="mx-auto w-full max-w-[1600px]">
-                {/* Page Header */}
-                <header className="mb-8 flex flex-col justify-between gap-5 rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:p-7 lg:p-8">
-                    <div className="min-w-0 flex-1">
-                        <h1 className="text-3xl font-bold tracking-tight text-[#183B2A] sm:text-4xl">
-                            Testimonials
-                        </h1>
+        <>
+            <main className="min-h-screen w-full bg-[#FFFCF6] px-1.5 py-3 sm:px-2.5 sm:py-4 lg:px-3 xl:px-4 2xl:px-5">
+                <div className="mx-auto w-full max-w-[1600px]">
+                    {/* Page Header */}
+                    <header className="mb-8 flex flex-col justify-between gap-5 rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:p-7 lg:p-8">
+                        <div className="min-w-0 flex-1">
+                            <h1 className="text-3xl font-bold tracking-tight text-[#183B2A] sm:text-4xl">
+                                Testimonials
+                            </h1>
 
-                        <p className="mt-2 max-w-2xl text-sm leading-6 text-[#647568] sm:text-base">
-                            View and manage testimonials submitted by
-                            members of the ShareHope platform.
-                        </p>
-                    </div>
-
-                    <div className="flex items-center gap-3 rounded-xl border border-[#D8E8D4] bg-[#F5F9F2] px-5 py-3.5">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E5F2E1] text-[#166534]">
-                            <MessageSquare size={19} />
-                        </div>
-
-                        <div>
-                            <p className="text-xl font-bold leading-6 text-[#183B2A]">
-                                {visibleTestimonials.length.toLocaleString("en-NP")}
-                            </p>
-                            <p className="mt-0.5 whitespace-nowrap text-xs text-[#647568]">
-                                Total testimonials
+                            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#647568] sm:text-base">
+                                View and manage testimonials submitted by
+                                members of the ShareHope platform.
                             </p>
                         </div>
-                    </div>
-                </header>
 
-                {/* Error State */}
-                {error ? (
-                    <section className="rounded-2xl border border-dashed border-[#D5E3D0] bg-white px-6 py-16 text-center">
-                        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FCEFEA] text-red-600">
-                            <XCircle size={25} />
-                        </div>
-
-                        <h2 className="mt-4 text-lg font-bold text-[#183B2A]">
-                            Unable to load testimonials
-                        </h2>
-
-                        <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[#647568]">
-                            {error}
-                        </p>
-
-                        <button
-                            type="button"
-                            onClick={() => void fetchTestimonials()}
-                            className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-[#166534] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#124D29] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
-                        >
-                            <RefreshCw size={16} />
-                            Retry loading testimonials
-                        </button>
-                    </section>
-                ) : (
-                    <>
-                        {/* Summary Cards */}
-                        <section
-                            aria-label="Testimonial statistics"
-                            className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
-                        >
-                            <SummaryCard
-                                title="Total Testimonials"
-                                value={visibleTestimonials.length}
-                                description="All testimonials submitted by platform members"
-                                icon={MessageSquareQuote}
-                            />
-
-                            <SummaryCard
-                                title="Donor Entries"
-                                value={donorCount}
-                                description="Testimonials submitted by donors"
-                                icon={Users}
-                            />
-
-                            <SummaryCard
-                                title="NGO Admin Entries"
-                                value={ngoAdminCount}
-                                description="Testimonials submitted by NGO administrators"
-                                icon={ShieldCheck}
-                            />
-
-                            <SummaryCard
-                                title="NGO Staff Entries"
-                                value={ngoStaffCount}
-                                description="Testimonials submitted by NGO staff members"
-                                icon={UserRound}
-                            />
-                        </section>
-
-                        {/* Search */}
-                        <section className="mb-7 rounded-2xl border border-[#E5EDE3] bg-white p-4 shadow-sm sm:p-5">
-                            <div className="relative">
-                                <Search
-                                    size={19}
-                                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#829184]"
-                                />
-
-                                <input
-                                    type="search"
-                                    value={searchQuery}
-                                    onChange={(event) =>
-                                        setSearchQuery(event.target.value)
-                                    }
-                                    placeholder="Search by user, email, role or testimonial..."
-                                    aria-label="Search testimonials"
-                                    className="h-12 w-full rounded-xl border border-[#DDE7D9] bg-[#FFFCF6] pl-11 pr-10 text-sm text-[#183B2A] outline-none transition placeholder:text-[#91A092] focus:border-[#35A45C] focus:ring-4 focus:ring-[#35A45C]/10"
-                                />
-
-                                {searchQuery && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setSearchQuery("")}
-                                        aria-label="Clear search"
-                                        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#647568] transition hover:bg-[#E5F2E1]"
-                                    >
-                                        <span className="sr-only">
-                                            Clear search
-                                        </span>
-                                        <XCircle size={16} />
-                                    </button>
-                                )}
+                        <div className="flex items-center gap-3 rounded-xl border border-[#D8E8D4] bg-[#F5F9F2] px-5 py-3.5">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E5F2E1] text-[#166534]">
+                                <MessageSquare size={19} />
                             </div>
-                        </section>
 
-                        {/* List Heading */}
-                        <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
                             <div>
-                                <h2 className="text-xl font-bold text-[#183B2A]">
-                                    Submitted Testimonials
-                                </h2>
-
-                                <p className="mt-1 text-sm text-[#647568]">
-                                    Showing{" "}
-                                    {filteredTestimonials.length.toLocaleString(
-                                        "en-NP"
-                                    )}{" "}
-                                    of{" "}
-                                    {visibleTestimonials.length.toLocaleString(
-                                        "en-NP"
-                                    )}{" "}
-                                    testimonials
+                                <p className="text-xl font-bold leading-6 text-[#183B2A]">
+                                    {visibleTestimonials.length.toLocaleString("en-NP")}
+                                </p>
+                                <p className="mt-0.5 whitespace-nowrap text-xs text-[#647568]">
+                                    Total testimonials
                                 </p>
                             </div>
-
-                            {searchQuery && (
-                                <button
-                                    type="button"
-                                    onClick={() => setSearchQuery("")}
-                                    className="inline-flex items-center gap-2 self-start rounded-xl border border-[#DDE7D9] bg-white px-4 py-2.5 text-sm font-semibold text-[#526B56] transition hover:bg-[#F1F7ED] sm:self-auto"
-                                >
-                                    <XCircle size={15} />
-                                    Clear search
-                                </button>
-                            )}
                         </div>
+                    </header>
 
-                        {/* Empty State */}
-                        {filteredTestimonials.length === 0 ? (
-                            <section className="rounded-2xl border border-dashed border-[#D5E3D0] bg-white px-6 py-16 text-center">
-                                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
-                                    <MessageSquareQuote size={25} />
+                    {/* Error State */}
+                    {error ? (
+                        <section className="rounded-2xl border border-dashed border-[#D5E3D0] bg-white px-6 py-16 text-center">
+                            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#FCEFEA] text-red-600">
+                                <XCircle size={25} />
+                            </div>
+
+                            <h2 className="mt-4 text-lg font-bold text-[#183B2A]">
+                                Unable to load testimonials
+                            </h2>
+
+                            <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-[#647568]">
+                                {error}
+                            </p>
+
+                            <button
+                                type="button"
+                                onClick={() => void fetchTestimonials()}
+                                className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-[#166534] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#124D29] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
+                            >
+                                <RefreshCw size={16} />
+                                Retry loading testimonials
+                            </button>
+                        </section>
+                    ) : (
+                        <>
+                            {/* Summary Cards */}
+                            <section
+                                aria-label="Testimonial statistics"
+                                className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+                            >
+                                <SummaryCard
+                                    title="Total Testimonials"
+                                    value={visibleTestimonials.length}
+                                    description="All testimonials submitted by platform members"
+                                    icon={MessageSquareQuote}
+                                />
+
+                                <SummaryCard
+                                    title="Donor Entries"
+                                    value={donorCount}
+                                    description="Testimonials submitted by donors"
+                                    icon={Users}
+                                />
+
+                                <SummaryCard
+                                    title="NGO Admin Entries"
+                                    value={ngoAdminCount}
+                                    description="Testimonials submitted by NGO administrators"
+                                    icon={ShieldCheck}
+                                />
+
+                                <SummaryCard
+                                    title="NGO Staff Entries"
+                                    value={ngoStaffCount}
+                                    description="Testimonials submitted by NGO staff members"
+                                    icon={UserRound}
+                                />
+                            </section>
+
+                            {/* Search */}
+                            <section className="mb-7 rounded-2xl border border-[#E5EDE3] bg-white p-4 shadow-sm sm:p-5">
+                                <div className="relative">
+                                    <Search
+                                        size={19}
+                                        className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#829184]"
+                                    />
+
+                                    <input
+                                        type="search"
+                                        value={searchQuery}
+                                        onChange={(event) =>
+                                            setSearchQuery(event.target.value)
+                                        }
+                                        placeholder="Search by user, email, role or testimonial..."
+                                        aria-label="Search testimonials"
+                                        className="h-12 w-full rounded-xl border border-[#DDE7D9] bg-[#FFFCF6] pl-11 pr-10 text-sm text-[#183B2A] outline-none transition placeholder:text-[#91A092] focus:border-[#35A45C] focus:ring-4 focus:ring-[#35A45C]/10"
+                                    />
+
+                                    {searchQuery && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setSearchQuery("")}
+                                            aria-label="Clear search"
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#647568] transition hover:bg-[#E5F2E1]"
+                                        >
+                                            <span className="sr-only">
+                                                Clear search
+                                            </span>
+                                            <XCircle size={16} />
+                                        </button>
+                                    )}
+                                </div>
+                            </section>
+
+                            {/* List Heading */}
+                            <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+                                <div>
+                                    <h2 className="text-xl font-bold text-[#183B2A]">
+                                        Submitted Testimonials
+                                    </h2>
+
+                                    <p className="mt-1 text-sm text-[#647568]">
+                                        Showing{" "}
+                                        {filteredTestimonials.length.toLocaleString(
+                                            "en-NP"
+                                        )}{" "}
+                                        of{" "}
+                                        {visibleTestimonials.length.toLocaleString(
+                                            "en-NP"
+                                        )}{" "}
+                                        testimonials
+                                    </p>
                                 </div>
 
-                                <h3 className="mt-4 text-lg font-bold text-[#183B2A]">
-                                    {visibleTestimonials.length === 0
-                                        ? "No testimonials available"
-                                        : "No matching testimonials"}
-                                </h3>
-
-                                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#647568]">
-                                    {visibleTestimonials.length === 0
-                                        ? "Testimonials submitted by donors and NGO members will appear here."
-                                        : "Try another search term to find the testimonial you are looking for."}
-                                </p>
-
                                 {searchQuery && (
                                     <button
                                         type="button"
                                         onClick={() => setSearchQuery("")}
-                                        className="mt-5 rounded-xl bg-[#166534] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#124D29]"
+                                        className="inline-flex items-center gap-2 self-start rounded-xl border border-[#DDE7D9] bg-white px-4 py-2.5 text-sm font-semibold text-[#526B56] transition hover:bg-[#F1F7ED] sm:self-auto"
                                     >
+                                        <XCircle size={15} />
                                         Clear search
                                     </button>
                                 )}
-                            </section>
-                        ) : (
-                            /* Testimonial Cards */
-                            <section
-                                aria-label="Testimonials list"
-                                className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2 lg:gap-6 2xl:grid-cols-3"
-                            >
-                                {filteredTestimonials.map((testimonial) => (
-                                    <TestimonialCard
-                                        key={testimonial.id}
-                                        testimonial={testimonial}
-                                    />
-                                ))}
-                            </section>
-                        )}
-                    </>
-                )}
-            </div>
-        </main>
+                            </div>
+
+                            {/* Empty State */}
+                            {filteredTestimonials.length === 0 ? (
+                                <section className="rounded-2xl border border-dashed border-[#D5E3D0] bg-white px-6 py-16 text-center">
+                                    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
+                                        <MessageSquareQuote size={25} />
+                                    </div>
+
+                                    <h3 className="mt-4 text-lg font-bold text-[#183B2A]">
+                                        {visibleTestimonials.length === 0
+                                            ? "No testimonials available"
+                                            : "No matching testimonials"}
+                                    </h3>
+
+                                    <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#647568]">
+                                        {visibleTestimonials.length === 0
+                                            ? "Testimonials submitted by donors and NGO members will appear here."
+                                            : "Try another search term to find the testimonial you are looking for."}
+                                    </p>
+
+                                    {searchQuery && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setSearchQuery("")}
+                                            className="mt-5 rounded-xl bg-[#166534] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#124D29]"
+                                        >
+                                            Clear search
+                                        </button>
+                                    )}
+                                </section>
+                            ) : (
+                                /* Testimonial Cards */
+                                <section
+                                    aria-label="Testimonials list"
+                                    className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2 lg:gap-6 2xl:grid-cols-3"
+                                >
+                                    {filteredTestimonials.map((testimonial) => (
+                                        <TestimonialCard
+                                            key={testimonial.id}
+                                            testimonial={testimonial}
+                                            onViewDetails={handleViewDetails}
+                                        />
+                                    ))}
+                                </section>
+                            )}
+                        </>
+                    )}
+                </div>
+            </main>
+
+            {/* Testimonial Details Modal */}
+            <TestimonialDetailsModal
+                isOpen={isDetailsModalOpen}
+                testimonialId={selectedTestimonialId}
+                onClose={handleCloseDetails}
+            />
+        </>
     );
 }
