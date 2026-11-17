@@ -583,7 +583,7 @@ def ngo_staff_view(request):
         welcome_email(user)
         return Response({'message': 'User registered successfully.'}, status=status.HTTP_201_CREATED)
 
-@api_view(['GET'])
+@api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def ngo_staff_detail_view(request, pk):
     try:
@@ -594,3 +594,38 @@ def ngo_staff_detail_view(request, pk):
     if request.method == 'GET':
         serializer = NGOMembershipSerializer(membership)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    if request.method == 'PATCH':
+        is_active = request.data.get('is_active') == True
+        
+        membership.is_active = is_active
+        membership.save()
+        
+        if is_active:
+            notification = Notification.objects.create(
+                user=membership.user,
+                type=Notification.NotificationType.USER,
+                title='NGO Staff Account Activated',
+                message=f'Your account as an NGO staff member for the NGO "{membership.ngo.name}" has been activated. You can now access your account and manage NGO activities.'
+            )
+            notification.save()
+            
+            subject = 'NGO Staff Account Activated'
+            message = f'Dear {membership.user.first_name},\n\nYour account as an NGO staff member for the NGO "{membership.ngo.name}" has been activated. You can now access your account and manage NGO activities.\n\nBest regards,\nShareHope Team'
+            send_email(subject, message, [membership.user.email])
+            
+        else:
+            notification = Notification.objects.create(
+                user=membership.user,
+                type=Notification.NotificationType.USER,
+                title='NGO Staff Account Deactivated',
+                message=f'Your account as an NGO staff member for the NGO "{membership.ngo.name}" has been deactivated. Please contact the admin for more information.'
+            )
+            notification.save()
+            
+            subject = 'NGO Staff Account Deactivated'
+            message = f'Dear {membership.user.first_name},\n\nWe regret to inform you that your account as an NGO staff member for the NGO "{membership.ngo.name}" has been deactivated. Please contact the admin for more information.\n\nBest regards,\nShareHope Team'
+            send_email(subject, message, [membership.user.email])
+            
+        return Response({'message': 'NGO staff member status updated successfully.'}, status=status.HTTP_200_OK)
+        
