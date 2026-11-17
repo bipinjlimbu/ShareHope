@@ -583,3 +583,14 @@ def ngo_staff_view(request):
         welcome_email(user)
         return Response({'message': 'User registered successfully.'}, status=status.HTTP_201_CREATED)
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def ngo_staff_detail_view(request, pk):
+    try:
+        membership = NGOMembership.objects.get(pk=pk)
+    except NGOMembership.DoesNotExist:
+        return Response({'error': 'NGO staff member not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'GET':
+        serializer = NGOMembershipSerializer(membership)
+        return Response(serializer.data, status=status.HTTP_200_OK)
