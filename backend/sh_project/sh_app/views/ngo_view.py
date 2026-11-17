@@ -4,7 +4,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from PIL import Image
 from ..models import User, NGO, PendingNGOChange, NGODocument, NGOMembership, Notification
-from ..serializers import NGOSerializer, PendingNGOChangeSerializer
+from ..serializers import NGOSerializer, PendingNGOChangeSerializer, NGOMembershipSerializer
 from ..email_service import send_email
 import re
     
@@ -474,3 +474,16 @@ def pending_ngo_change_detail_view(request, pk):
         
         else:
             return Response({'error': 'Invalid status change. Only APPROVED or REJECTED status changes are allowed.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def ngo_staff_view(request):
+    try:
+        ngo = NGO.objects.get(created_by=request.user)
+    except NGO.DoesNotExist:
+        return Response({'error': 'NGO not found for the user.'}, status=status.HTTP_404_NOT_FOUND)
+    
+    if request.method == 'GET':
+        members = NGOMembership.objects.filter(ngo=ngo)
+        serializer = NGOMembershipSerializer(members, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
