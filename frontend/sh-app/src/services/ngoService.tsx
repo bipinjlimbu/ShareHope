@@ -1,3 +1,4 @@
+
 import { authFetch } from "@/lib/api";
 import type {
     NGORegistrationPayload,
@@ -20,6 +21,9 @@ import type {
     UpdateNGOChangeStatusResponse,
     UpdateNGOChangeStatusErrors,
     NGOStaffResponse,
+    NGOStaffRegistrationPayload,
+    NGOStaffRegistrationResponse,
+    NGOStaffRegistrationErrors,
 } from "@/types/ngo";
 
 export async function registerNGO(
@@ -207,4 +211,31 @@ export async function getNGOStaff(): Promise<NGOStaffResponse> {
     return (await authFetch("/ngo/staff/", {
         method: "GET",
     })) as NGOStaffResponse;
+}
+
+export async function registerNGOStaff(
+    payload: NGOStaffRegistrationPayload
+): Promise<NGOStaffRegistrationResponse> {
+    const formData = new FormData();
+
+    formData.append("username", payload.username);
+    formData.append("first_name", payload.first_name);
+    formData.append("last_name", payload.last_name);
+    formData.append("email", payload.email);
+    formData.append("password", payload.password);
+    formData.append("confirm_password", payload.confirm_password);
+    formData.append("phone", payload.phone);
+
+    if (payload.profile_picture) {
+        formData.append("profile_picture", payload.profile_picture);
+    }
+
+    try {
+        return (await authFetch("/ngo/staff/", {
+            method: "POST",
+            body: formData,
+        })) as NGOStaffRegistrationResponse;
+    } catch (error: unknown) {
+        throw error as NGOStaffRegistrationErrors;
+    }
 }
