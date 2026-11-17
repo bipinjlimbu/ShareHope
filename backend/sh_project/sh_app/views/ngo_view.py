@@ -583,7 +583,7 @@ def ngo_staff_view(request):
         welcome_email(user)
         return Response({'message': 'User registered successfully.'}, status=status.HTTP_201_CREATED)
 
-@api_view(['GET', 'PATCH'])
+@api_view(['GET', 'PATCH', 'DELETE'])
 @permission_classes([IsAuthenticated])
 def ngo_staff_detail_view(request, pk):
     try:
@@ -629,3 +629,24 @@ def ngo_staff_detail_view(request, pk):
             
         return Response({'message': 'NGO staff member status updated successfully.'}, status=status.HTTP_200_OK)
         
+    if request.method == 'DELETE':
+        user = membership.user
+        user.role = User.Role.DONOR
+        user.save()
+        
+        ngo_name = membership.ngo.name
+        membership.delete()
+        
+        notification = Notification.objects.create(
+            user=user,
+            type=Notification.NotificationType.USER,
+            title='NGO Staff Account Deleted',
+            message=f'Your account as an NGO staff member for the NGO "{ngo_name}" has been deleted and your role has been changed to Donor. Please contact the admin for more information.'
+        )
+        notification.save()
+        
+        subject = 'NGO Staff Account Deleted'
+        message = f'Dear {user.first_name},\n\nWe regret to inform you that your account as an NGO staff member for the NGO "{ngo_name}" has been deleted and your role has been changed to Donor. Please contact the admin for more information.\n\nBest regards,\nShareHope Team'
+        send_email(subject, message, [user.email])
+        
+        return Response({'message': 'NGO staff member deleted successfully.'}, status=status.HTTP_204_NO_CONTENT)
