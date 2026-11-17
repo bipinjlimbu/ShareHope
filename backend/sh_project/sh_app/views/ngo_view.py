@@ -565,6 +565,13 @@ def ngo_staff_view(request):
         )
         user.save()
         
+        membership = NGOMembership.objects.create(
+            ngo=ngo,
+            user=user,
+            status=NGOMembership.Status.ACTIVE
+        )
+        membership.save()
+        
         notification = Notification.objects.create(
             user=User.objects.get(role=User.Role.ADMIN),
             type=Notification.NotificationType.USER,
