@@ -24,6 +24,9 @@ import type {
     NGOStaffRegistrationResponse,
     NGOStaffRegistrationErrors,
     NGOStaffDetailResponse,
+    UpdateNGOStaffStatusPayload,
+    UpdateNGOStaffStatusResponse,
+    UpdateNGOStaffStatusErrors,
 } from "@/types/ngo";
 
 export async function registerNGO(
@@ -246,4 +249,26 @@ export async function getNGOStaffById(
     return (await authFetch(`/ngo/staff/${membershipId}/`, {
         method: "GET",
     })) as NGOStaffDetailResponse;
+}
+
+export async function updateNGOStaffStatus(
+    membershipId: number,
+    payload: UpdateNGOStaffStatusPayload
+): Promise<UpdateNGOStaffStatusResponse> {
+    try {
+        return (await authFetch(`/ngo/staff/${membershipId}/`, {
+            method: "PATCH",
+            body: JSON.stringify(payload),
+        })) as UpdateNGOStaffStatusResponse;
+    } catch (error: unknown) {
+        throw error as UpdateNGOStaffStatusErrors;
+    }
+}
+
+export async function activateNGOStaff(
+    membershipId: number
+): Promise<UpdateNGOStaffStatusResponse> {
+    return updateNGOStaffStatus(membershipId, {
+        is_active: true,
+    });
 }
