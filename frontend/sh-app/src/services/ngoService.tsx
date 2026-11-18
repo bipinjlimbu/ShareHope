@@ -272,3 +272,11 @@ export async function activateNGOStaff(
         is_active: true,
     });
 }
+
+export async function deactivateNGOStaff(
+    membershipId: number
+): Promise<UpdateNGOStaffStatusResponse> {
+    return updateNGOStaffStatus(membershipId, {
+        is_active: false,
+    });
+}
