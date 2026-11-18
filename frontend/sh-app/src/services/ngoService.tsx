@@ -280,3 +280,11 @@ export async function deactivateNGOStaff(
         is_active: false,
     });
 }
+
+export async function deleteNGOStaff(
+    membershipId: number
+): Promise<void> {
+    await authFetch(`/ngo/staff/${membershipId}/`, {
+        method: "DELETE",
+    });
+}
