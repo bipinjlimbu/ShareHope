@@ -185,6 +185,19 @@ export interface NGOStaffRegistrationFormErrors {
 
 export type NGOStaffDetailResponse = NGOMembership;
 
+export interface UpdateNGOStaffStatusPayload {
+    is_active: boolean;
+}
+
+export interface UpdateNGOStaffStatusResponse {
+    message: string;
+}
+
+export type UpdateNGOStaffStatusErrors = Record<
+    string,
+    string | string[] | undefined
+>;
+
 export interface NGOListItem {
     id: number;
     name: string;
