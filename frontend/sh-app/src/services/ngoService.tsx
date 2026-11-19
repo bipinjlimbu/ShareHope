@@ -32,6 +32,9 @@ import type {
     NGOStaffInvitationCreateResponse,
     NGOStaffInvitationErrors,
     NGOStaffInvitationDetailResponse,
+    NGOStaffInvitationActionPayload,
+    NGOStaffInvitationActionResponse,
+    NGOStaffInvitationActionErrors,
 } from "@/types/ngo";
 
 export async function registerNGO(
@@ -319,4 +322,29 @@ export async function getNGOStaffInvitationById(
     return (await authFetch(`/ngo/staff/invitation/${invitationId}/`, {
         method: "GET",
     })) as NGOStaffInvitationDetailResponse;
+}
+
+export async function respondToNGOStaffInvitation(
+    invitationId: number,
+    payload: NGOStaffInvitationActionPayload
+): Promise<NGOStaffInvitationActionResponse> {
+    try {
+        return (await authFetch(
+            `/ngo/staff/invitation/${invitationId}/`,
+            {
+                method: "PATCH",
+                body: JSON.stringify(payload),
+            }
+        )) as NGOStaffInvitationActionResponse;
+    } catch (error: unknown) {
+        throw error as NGOStaffInvitationActionErrors;
+    }
+}
+
+export async function acceptNGOStaffInvitation(
+    invitationId: number
+): Promise<NGOStaffInvitationActionResponse> {
+    return respondToNGOStaffInvitation(invitationId, {
+        action: "accept",
+    });
 }
