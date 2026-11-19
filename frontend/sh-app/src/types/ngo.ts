@@ -207,6 +207,8 @@ export interface NGOMembershipInvitation {
 
 export type NGOStaffInvitationResponse = NGOMembershipInvitation[];
 
+export type NGOStaffInvitationDetailResponse = NGOMembershipInvitation;
+
 export interface NGOStaffInvitationPayload {
     user_id: number;
 }
