@@ -28,6 +28,9 @@ import type {
     UpdateNGOStaffStatusResponse,
     UpdateNGOStaffStatusErrors,
     NGOStaffInvitationResponse,
+    NGOStaffInvitationPayload,
+    NGOStaffInvitationCreateResponse,
+    NGOStaffInvitationErrors,
 } from "@/types/ngo";
 
 export async function registerNGO(
@@ -294,4 +297,17 @@ export async function getNGOStaffInvitations(): Promise<NGOStaffInvitationRespon
     return (await authFetch("/ngo/staff/invitation/", {
         method: "GET",
     })) as NGOStaffInvitationResponse;
+}
+
+export async function sendNGOStaffInvitation(
+    payload: NGOStaffInvitationPayload
+): Promise<NGOStaffInvitationCreateResponse> {
+    try {
+        return (await authFetch("/ngo/staff/invitation/", {
+            method: "POST",
+            body: JSON.stringify(payload),
+        })) as NGOStaffInvitationCreateResponse;
+    } catch (error: unknown) {
+        throw error as NGOStaffInvitationErrors;
+    }
 }
