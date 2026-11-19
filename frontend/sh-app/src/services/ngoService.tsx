@@ -348,3 +348,11 @@ export async function acceptNGOStaffInvitation(
         action: "accept",
     });
 }
+
+export async function declineNGOStaffInvitation(
+    invitationId: number
+): Promise<NGOStaffInvitationActionResponse> {
+    return respondToNGOStaffInvitation(invitationId, {
+        action: "decline",
+    });
+}
