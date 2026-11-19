@@ -229,6 +229,21 @@ export interface NGOStaffInvitationFormErrors {
     [key: string]: string | undefined;
 }
 
+export type NGOStaffInvitationAction = "accept" | "decline";
+
+export interface NGOStaffInvitationActionPayload {
+    action: NGOStaffInvitationAction;
+}
+
+export interface NGOStaffInvitationActionResponse {
+    message: string;
+}
+
+export type NGOStaffInvitationActionErrors = Record<
+    string,
+    string | string[] | undefined
+>;
+
 export interface NGOListItem {
     id: number;
     name: string;
