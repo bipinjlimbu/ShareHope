@@ -207,6 +207,26 @@ export interface NGOMembershipInvitation {
 
 export type NGOStaffInvitationResponse = NGOMembershipInvitation[];
 
+export interface NGOStaffInvitationPayload {
+    user_id: number;
+}
+
+export interface NGOStaffInvitationCreateResponse {
+    message: string;
+}
+
+export type NGOStaffInvitationErrors = Record<
+    string,
+    string | string[] | undefined
+>;
+
+export interface NGOStaffInvitationFormErrors {
+    user_id?: string;
+    non_field_errors?: string;
+    general?: string;
+    [key: string]: string | undefined;
+}
+
 export interface NGOListItem {
     id: number;
     name: string;
