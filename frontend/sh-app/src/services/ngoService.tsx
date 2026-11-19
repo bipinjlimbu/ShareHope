@@ -31,6 +31,7 @@ import type {
     NGOStaffInvitationPayload,
     NGOStaffInvitationCreateResponse,
     NGOStaffInvitationErrors,
+    NGOStaffInvitationDetailResponse,
 } from "@/types/ngo";
 
 export async function registerNGO(
@@ -310,4 +311,12 @@ export async function sendNGOStaffInvitation(
     } catch (error: unknown) {
         throw error as NGOStaffInvitationErrors;
     }
+}
+
+export async function getNGOStaffInvitationById(
+    invitationId: number
+): Promise<NGOStaffInvitationDetailResponse> {
+    return (await authFetch(`/ngo/staff/invitation/${invitationId}/`, {
+        method: "GET",
+    })) as NGOStaffInvitationDetailResponse;
 }
