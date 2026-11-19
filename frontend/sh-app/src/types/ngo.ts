@@ -198,6 +198,15 @@ export type UpdateNGOStaffStatusErrors = Record<
     string | string[] | undefined
 >;
 
+export interface NGOMembershipInvitation {
+    id: number;
+    ngo: NGOListItem;
+    user: User;
+    invited_at: string;
+}
+
+export type NGOStaffInvitationResponse = NGOMembershipInvitation[];
+
 export interface NGOListItem {
     id: number;
     name: string;

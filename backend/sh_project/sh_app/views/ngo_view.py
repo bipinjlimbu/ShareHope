@@ -669,7 +669,7 @@ def ngo_staff_invitation_view(request):
         
         try:
             user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
+        except  User.DoesNotExist:
             return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
         
         if NGOMembership.objects.filter(ngo=ngo, user=user).exists():
