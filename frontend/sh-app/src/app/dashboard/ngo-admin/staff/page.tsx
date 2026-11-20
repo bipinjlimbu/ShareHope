@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Users,
     UserPlus,
@@ -15,86 +15,42 @@ import {
     Filter,
     ImageIcon,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
+import { getNGOStaff } from "@/services/ngoService";
+import type { NGOStaffResponse, NGOMembership } from "@/types/ngo";
+import type { User } from "@/types/user";
 
 type StaffStatus = "ACTIVE" | "INACTIVE";
-
-type StaffMember = {
-    id: number;
-    first_name: string;
-    last_name: string;
-    email: string;
-    username: string;
-    status: StaffStatus;
-    profile_picture: string | null;
-};
-
 type StatusFilter = "ALL" | StaffStatus;
 
-const dummyStaff: StaffMember[] = [
-    {
-        id: 1,
-        first_name: "Aarav",
-        last_name: "Sharma",
-        email: "aarav.sharma@example.com",
-        username: "aaravsharma",
-        status: "ACTIVE",
-        profile_picture: null,
-    },
-    {
-        id: 2,
-        first_name: "Priya",
-        last_name: "Adhikari",
-        email: "priya.adhikari@example.com",
-        username: "priyaadhikari",
-        status: "ACTIVE",
-        profile_picture: null,
-    },
-    {
-        id: 3,
-        first_name: "Suman",
-        last_name: "Thapa",
-        email: "suman.thapa@example.com",
-        username: "sumanthapa",
-        status: "ACTIVE",
-        profile_picture: null,
-    },
-    {
-        id: 4,
-        first_name: "Nisha",
-        last_name: "Karki",
-        email: "nisha.karki@example.com",
-        username: "nishakarki",
-        status: "INACTIVE",
-        profile_picture: null,
-    },
-    {
-        id: 5,
-        first_name: "Rohan",
-        last_name: "Gurung",
-        email: "rohan.gurung@example.com",
-        username: "rohangurung",
-        status: "ACTIVE",
-        profile_picture: null,
-    },
-    {
-        id: 6,
-        first_name: "Sita",
-        last_name: "Rai",
-        email: "sita.rai@example.com",
-        username: "sitarai",
-        status: "ACTIVE",
-        profile_picture: null,
-    },
-];
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+const MINIMUM_LOADING_TIME = 650;
 
-const dummyPendingInvitations = 2;
+function getProfilePictureUrl(path: string | null): string | null {
+    if (!path) return null;
 
-function getFullName(staff: StaffMember): string {
-    return `${staff.first_name} ${staff.last_name}`;
+    if (/^https?:\/\//i.test(path)) return path;
+
+    const baseUrl = API_URL.replace(/\/+$/, "").replace(/\/api$/i, "");
+
+    return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
-function getInitials(firstName: string, lastName: string): string {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+function getFullName(user: User): string {
+    const fullName = `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim();
+
+    return fullName || user.username;
+}
+
+function getInitials(user: User): string {
+    const first = user.first_name?.trim().charAt(0) ?? "";
+    const last = user.last_name?.trim().charAt(0) ?? "";
+
+    return (
+        `${first}${last}`.toUpperCase() ||
+        user.username.charAt(0).toUpperCase()
+    );
 }
 
 function SummaryCard({
@@ -106,7 +62,7 @@ function SummaryCard({
     title: string;
     value: number;
     description: string;
-    icon: typeof Users;
+    icon: LucideIcon;
 }) {
     return (
         <div className="group rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C9DFC4] hover:shadow-md sm:p-6">
@@ -133,28 +89,28 @@ function SummaryCard({
     );
 }
 
-function StaffImage({ staff }: { staff: StaffMember }) {
+function StaffImage({ membership }: { membership: NGOMembership }) {
+    const user = membership.user;
     const [imageFailed, setImageFailed] = useState(false);
+
+    const picture = getProfilePictureUrl(user.profile_picture);
 
     return (
         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-[#E5F2E1] text-[#166534] sm:h-[72px] sm:w-[72px]">
-            {staff.profile_picture && !imageFailed ? (
+            {picture && !imageFailed ? (
                 <img
-                    src={staff.profile_picture}
-                    alt={getFullName(staff)}
+                    src={picture}
+                    alt={getFullName(user)}
                     className="h-full w-full object-cover"
                     onError={() => setImageFailed(true)}
                 />
             ) : (
                 <div className="flex h-full w-full items-center justify-center">
-                    {staff.profile_picture ? (
+                    {user.profile_picture ? (
                         <ImageIcon size={27} strokeWidth={1.5} />
                     ) : (
                         <span className="text-xl font-bold">
-                            {getInitials(
-                                staff.first_name,
-                                staff.last_name
-                            )}
+                            {getInitials(user)}
                         </span>
                     )}
                 </div>
@@ -163,19 +119,21 @@ function StaffImage({ staff }: { staff: StaffMember }) {
     );
 }
 
-function StaffCard({ staff }: { staff: StaffMember }) {
+function StaffCard({ membership }: { membership: NGOMembership }) {
+    const user = membership.user;
+
     return (
         <article className="group flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[#E5EDE3] bg-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[#C9DFC4] hover:shadow-md">
             <div className="flex min-w-0 items-center gap-4 p-5 sm:p-6">
-                <StaffImage staff={staff} />
+                <StaffImage membership={membership} />
 
                 <div className="min-w-0 flex-1">
                     <h3 className="break-words text-lg font-bold leading-6 text-[#183B2A]">
-                        {getFullName(staff)}
+                        {getFullName(user)}
                     </h3>
 
                     <p className="mt-1 truncate text-sm text-[#829184]">
-                        @{staff.username}
+                        @{user.username}
                     </p>
                 </div>
             </div>
@@ -194,7 +152,7 @@ function StaffCard({ staff }: { staff: StaffMember }) {
                         </p>
 
                         <p className="mt-0.5 break-all text-sm font-medium text-[#35543B]">
-                            {staff.email}
+                            {user.email}
                         </p>
                     </div>
                 </div>
@@ -218,9 +176,7 @@ function StaffCard({ staff }: { staff: StaffMember }) {
                             className="flex cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-[#DDE7D9] bg-[#F8FAF6] px-3 py-2.5 text-sm font-semibold text-[#526B56] opacity-50"
                         >
                             <RefreshCw size={15} />
-                            {staff.status === "ACTIVE"
-                                ? "Deactivate"
-                                : "Activate"}
+                            {membership.is_active ? "Deactivate" : "Activate"}
                         </button>
 
                         <button
@@ -239,38 +195,119 @@ function StaffCard({ staff }: { staff: StaffMember }) {
     );
 }
 
+function StaffSkeleton() {
+    return (
+        <div className="grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2 xl:grid-cols-3 xl:gap-6 2xl:gap-7">
+            {Array.from({ length: 6 }).map((_, index) => (
+                <div
+                    key={index}
+                    className="animate-pulse overflow-hidden rounded-2xl border border-[#E5EDE3] bg-white p-5 shadow-sm sm:p-6"
+                >
+                    <div className="flex items-center gap-4">
+                        <div className="h-16 w-16 shrink-0 rounded-2xl bg-gray-200 sm:h-[72px] sm:w-[72px]" />
+
+                        <div className="min-w-0 flex-1 space-y-2">
+                            <div className="h-5 w-3/4 rounded bg-gray-200" />
+                            <div className="h-3 w-1/2 rounded bg-gray-100" />
+                        </div>
+                    </div>
+
+                    <div className="mt-6 h-16 rounded-xl bg-gray-100" />
+
+                    <div className="mt-5 h-11 rounded-xl bg-gray-100" />
+
+                    <div className="mt-3 grid grid-cols-2 gap-3">
+                        <div className="h-10 rounded-xl bg-gray-100" />
+                        <div className="h-10 rounded-xl bg-gray-100" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
 export default function NGOStaffPage() {
-    const [staff] = useState<StaffMember[]>(dummyStaff);
+    const [staff, setStaff] = useState<NGOStaffResponse>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] =
         useState<StatusFilter>("ALL");
 
+    const loadStaff = useCallback(async () => {
+        setLoading(true);
+        setError("");
+
+        const startedAt = Date.now();
+
+        try {
+            const result = await getNGOStaff();
+
+            setStaff(Array.isArray(result) ? result : []);
+        } catch (err: unknown) {
+            const message =
+                err instanceof Error
+                    ? err.message
+                    : "We couldn't load NGO staff. Please try again.";
+
+            setError(message);
+        } finally {
+            const elapsed = Date.now() - startedAt;
+            const remaining = Math.max(
+                0,
+                MINIMUM_LOADING_TIME - elapsed
+            );
+
+            if (remaining > 0) {
+                await new Promise<void>((resolve) => {
+                    window.setTimeout(resolve, remaining);
+                });
+            }
+
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        void loadStaff();
+    }, [loadStaff]);
+
     const activeCount = staff.filter(
-        (member) => member.status === "ACTIVE"
+        (member) => member.is_active
     ).length;
 
     const inactiveCount = staff.filter(
-        (member) => member.status === "INACTIVE"
+        (member) => !member.is_active
     ).length;
 
     const filteredStaff = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
 
-        return staff.filter((member) => {
-            const matchesSearch = [
-                member.first_name,
-                member.last_name,
-                member.email,
-                member.username,
-            ]
-                .join(" ")
-                .toLowerCase()
-                .includes(query);
+        return staff.filter((membership) => {
+            const user = membership.user;
+
+            const searchableValues = [
+                getFullName(user),
+                user.first_name,
+                user.last_name,
+                user.email,
+                user.username,
+            ];
+
+            const matchesSearch =
+                !query ||
+                searchableValues.some((value) =>
+                    value.toLowerCase().includes(query)
+                );
+
+            const memberStatus: StaffStatus = membership.is_active
+                ? "ACTIVE"
+                : "INACTIVE";
 
             const matchesStatus =
                 statusFilter === "ALL" ||
-                member.status === statusFilter;
+                memberStatus === statusFilter;
 
             return matchesSearch && matchesStatus;
         });
@@ -283,6 +320,39 @@ export default function NGOStaffPage() {
         setSearchQuery("");
         setStatusFilter("ALL");
     };
+
+    if (loading) {
+        return (
+            <main className="min-h-screen w-full bg-[#FFFCF6] px-1.5 py-3 sm:px-2.5 sm:py-4 lg:px-3 xl:px-4 2xl:px-5">
+                <div className="mx-auto w-full max-w-[1600px] space-y-8">
+                    <div className="animate-pulse rounded-2xl border border-[#E5EDE3] bg-white p-7 shadow-sm">
+                        <div className="h-9 w-64 rounded bg-gray-200" />
+                        <div className="mt-4 h-4 max-w-xl rounded bg-gray-100" />
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4">
+                        {Array.from({ length: 4 }).map((_, index) => (
+                            <div
+                                key={index}
+                                className="animate-pulse rounded-2xl border border-[#E5EDE3] bg-white p-6"
+                            >
+                                <div className="h-5 w-28 rounded bg-gray-200" />
+                                <div className="mt-4 h-10 w-16 rounded bg-gray-100" />
+                                <div className="mt-4 h-3 w-40 rounded bg-gray-100" />
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="animate-pulse rounded-2xl border border-[#E5EDE3] bg-white p-5">
+                        <div className="h-5 w-52 rounded bg-gray-200" />
+                        <div className="mt-5 h-12 rounded-xl bg-gray-100" />
+                    </div>
+
+                    <StaffSkeleton />
+                </div>
+            </main>
+        );
+    }
 
     return (
         <main className="min-h-screen w-full bg-[#FFFCF6] px-1.5 py-3 sm:px-2.5 sm:py-4 lg:px-3 xl:px-4 2xl:px-5">
@@ -368,8 +438,8 @@ export default function NGOStaffPage() {
 
                     <SummaryCard
                         title="Pending Invitations"
-                        value={dummyPendingInvitations}
-                        description="Invitations waiting for staff members to respond"
+                        value={0}
+                        description="Invitation records are not connected yet"
                         icon={Clock3}
                     />
                 </section>
@@ -440,10 +510,9 @@ export default function NGOStaffPage() {
 
                         <p className="mt-1 text-sm text-[#647568]">
                             Showing{" "}
-                            {filteredStaff.length.toLocaleString("en-NP")}{" "}
-                            of{" "}
-                            {staff.length.toLocaleString("en-NP")}{" "}
-                            staff members
+                            {filteredStaff.length.toLocaleString("en-NP")} of{" "}
+                            {staff.length.toLocaleString("en-NP")} staff
+                            members
                         </p>
                     </div>
 
@@ -459,20 +528,44 @@ export default function NGOStaffPage() {
                     )}
                 </div>
 
-                {filteredStaff.length === 0 ? (
+                {error ? (
+                    <section className="rounded-2xl border border-dashed border-red-200 bg-white px-6 py-16 text-center">
+                        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-red-500">
+                            <RefreshCw size={25} />
+                        </div>
+
+                        <h3 className="mt-4 text-lg font-bold text-[#183B2A]">
+                            Unable to load staff members
+                        </h3>
+
+                        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#647568]">
+                            {error}
+                        </p>
+
+                        <button
+                            type="button"
+                            onClick={() => void loadStaff()}
+                            className="mt-5 rounded-xl bg-[#166534] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#124D29]"
+                        >
+                            Try Again
+                        </button>
+                    </section>
+                ) : filteredStaff.length === 0 ? (
                     <section className="rounded-2xl border border-dashed border-[#D5E3D0] bg-white px-6 py-16 text-center">
                         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
                             <Search size={25} />
                         </div>
 
                         <h3 className="mt-4 text-lg font-bold text-[#183B2A]">
-                            No matching staff members
+                            {staff.length === 0
+                                ? "No staff members yet"
+                                : "No matching staff members"}
                         </h3>
 
                         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#647568]">
-                            No staff records match your current search or
-                            filters. Try a different search term or adjust
-                            your filters.
+                            {staff.length === 0
+                                ? "Your organization's staff members will appear here once they are added."
+                                : "No staff records match your current search or filters. Try a different search term or adjust your filters."}
                         </p>
 
                         {hasFilters && (
@@ -493,15 +586,15 @@ export default function NGOStaffPage() {
                         {filteredStaff.map((member) => (
                             <StaffCard
                                 key={member.id}
-                                staff={member}
+                                membership={member}
                             />
                         ))}
                     </section>
                 )}
 
                 <p className="mt-8 text-center text-xs leading-5 text-[#829184]">
-                    Manage your NGO team, review staff information,
-                    and monitor membership statuses.
+                    Manage your NGO team, review staff information, and
+                    monitor membership statuses.
                 </p>
             </div>
         </main>
