@@ -587,7 +587,7 @@ export default function NGODetailsModal({
                                                     </div>
 
                                                     <span className="self-start rounded-full border border-[#DDE8D7] bg-[#F0F7ED] px-3 py-1.5 text-xs font-semibold text-[#35543B] sm:self-center">
-                                                        {membership.status}
+                                                        {membership.is_active ? "Active" : "Inactive"}
                                                     </span>
                                                 </div>
                                             );
