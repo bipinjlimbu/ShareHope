@@ -11,8 +11,6 @@ export type NGOStatus =
 
 export type NGOStatusUpdate = "ACTIVE" | "INACTIVE" | "REJECTED";
 
-export type NGOMembershipStatus = "ACTIVE" | "INACTIVE";
-
 export type NGOChangeRequestStatus = "APPROVED" | "REJECTED";
 
 export interface NGORegistrationPayload {
@@ -142,9 +140,9 @@ export interface NGODocument {
 export interface NGOMembership {
     id: number;
     user: User;
-    status: NGOMembershipStatus | string;
+    is_active: boolean;
     joined_at: string;
-    ngo: number;
+    ngo: NGOListItem;
 }
 
 export type NGOStaffResponse = NGOMembership[];
