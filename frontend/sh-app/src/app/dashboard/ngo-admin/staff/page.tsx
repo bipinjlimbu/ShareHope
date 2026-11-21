@@ -15,7 +15,10 @@ import {
     Filter,
     ImageIcon,
 } from "lucide-react";
-import { getNGOStaff } from "@/services/ngoService";
+import {
+    getNGOStaff,
+    updateNGOStaffStatus,
+} from "@/services/ngoService";
 import { NGOMembership, NGOStaffResponse } from "@/types/ngo";
 import { User } from "@/types/user";
 import StaffManagementSkeleton from "@/components/skeleton/ngo-admin-dashboard/StaffManagementSkeleton";
@@ -126,9 +129,13 @@ function StaffImage({ user }: { user: User }) {
 function StaffCard({
     membership,
     onViewDetails,
+    onToggleStatus,
+    isUpdating,
 }: {
     membership: NGOMembership;
     onViewDetails: (membershipId: number) => void;
+    onToggleStatus: (membership: NGOMembership) => void;
+    isUpdating: boolean;
 }) {
     const user = membership.user;
 
@@ -180,12 +187,34 @@ function StaffCard({
                     <div className="grid grid-cols-2 gap-3">
                         <button
                             type="button"
-                            disabled
-                            title="Staff status management will be available later"
-                            className="flex cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-[#DDE7D9] bg-[#F8FAF6] px-3 py-2.5 text-sm font-semibold text-[#526B56] opacity-50"
+                            onClick={() => onToggleStatus(membership)}
+                            disabled={isUpdating}
+                            title={
+                                membership.is_active
+                                    ? "Deactivate this staff member"
+                                    : "Activate this staff member"
+                            }
+                            className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${membership.is_active
+                                ? "border-[#DDE7D9] bg-[#F8FAF6] text-[#526B56] hover:border-amber-200 hover:bg-amber-50 hover:text-amber-700"
+                                : "border-[#C9DFC4] bg-[#F5F9F2] text-[#166534] hover:bg-[#E5F2E1]"
+                                }`}
                         >
-                            <RefreshCw size={15} />
-                            {membership.is_active ? "Deactivate" : "Activate"}
+                            {isUpdating ? (
+                                <>
+                                    <RefreshCw
+                                        size={15}
+                                        className="animate-spin"
+                                    />
+                                    Updating...
+                                </>
+                            ) : (
+                                <>
+                                    <RefreshCw size={15} />
+                                    {membership.is_active
+                                        ? "Deactivate"
+                                        : "Activate"}
+                                </>
+                            )}
                         </button>
 
                         <button
@@ -210,8 +239,10 @@ export default function NGOStaffPage() {
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
+    const [actionError, setActionError] = useState("");
     const [selectedStaffId, setSelectedStaffId] = useState<number | null>(null);
     const [isRegisterFormOpen, setIsRegisterFormOpen] = useState(false);
+    const [updatingStaffId, setUpdatingStaffId] = useState<number | null>(null);
 
     const loadStaff = useCallback(async () => {
         setIsLoading(true);
@@ -235,6 +266,40 @@ export default function NGOStaffPage() {
     const handleRegistrationSuccess = () => {
         setIsRegisterFormOpen(false);
         void loadStaff();
+    };
+
+    const handleToggleStatus = async (membership: NGOMembership) => {
+        if (updatingStaffId !== null) return;
+
+        const newStatus = !membership.is_active;
+
+        setUpdatingStaffId(membership.id);
+        setActionError("");
+
+        try {
+            await updateNGOStaffStatus(membership.id, {
+                is_active: newStatus,
+            });
+
+            setStaff((currentStaff) =>
+                currentStaff.map((member) =>
+                    member.id === membership.id
+                        ? {
+                            ...member,
+                            is_active: newStatus,
+                        }
+                        : member
+                )
+            );
+        } catch (err) {
+            console.error("Failed to update NGO staff status:", err);
+            setActionError(
+                `Unable to ${newStatus ? "activate" : "deactivate"
+                } ${getFullName(membership.user)}. Please try again.`
+            );
+        } finally {
+            setUpdatingStaffId(null);
+        }
     };
 
     const activeCount = staff.filter(
@@ -369,6 +434,24 @@ export default function NGOStaffPage() {
                             icon={Clock3}
                         />
                     </section>
+
+                    {actionError && (
+                        <div
+                            role="alert"
+                            className="mb-6 flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-700"
+                        >
+                            <p>{actionError}</p>
+
+                            <button
+                                type="button"
+                                onClick={() => setActionError("")}
+                                aria-label="Dismiss error"
+                                className="shrink-0 rounded-md p-1 text-red-500 transition hover:bg-red-100"
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+                    )}
 
                     <section className="mb-7 rounded-2xl border border-[#E5EDE3] bg-white p-4 shadow-sm sm:p-5">
                         <div className="mb-4 flex items-center gap-2">
@@ -519,6 +602,10 @@ export default function NGOStaffPage() {
                                             key={membership.id}
                                             membership={membership}
                                             onViewDetails={setSelectedStaffId}
+                                            onToggleStatus={handleToggleStatus}
+                                            isUpdating={
+                                                updatingStaffId === membership.id
+                                            }
                                         />
                                     ))}
                                 </section>
