@@ -163,7 +163,7 @@ def ngo_view(request):
         ngo_membership = NGOMembership.objects.create(
             ngo=ngo,
             user=request.user,
-            status=NGOMembership.Status.ACTIVE
+            is_admin=True
         )
         
         ngo.save()
