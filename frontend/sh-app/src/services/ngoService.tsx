@@ -273,22 +273,6 @@ export async function updateNGOStaffStatus(
     }
 }
 
-export async function activateNGOStaff(
-    membershipId: number
-): Promise<UpdateNGOStaffStatusResponse> {
-    return updateNGOStaffStatus(membershipId, {
-        is_active: true,
-    });
-}
-
-export async function deactivateNGOStaff(
-    membershipId: number
-): Promise<UpdateNGOStaffStatusResponse> {
-    return updateNGOStaffStatus(membershipId, {
-        is_active: false,
-    });
-}
-
 export async function deleteNGOStaff(
     membershipId: number
 ): Promise<void> {
