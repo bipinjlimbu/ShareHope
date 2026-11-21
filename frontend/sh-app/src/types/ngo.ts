@@ -141,6 +141,7 @@ export interface NGOMembership {
     id: number;
     user: User;
     is_active: boolean;
+    is_admin: boolean;
     joined_at: string;
     ngo: number;
 }
