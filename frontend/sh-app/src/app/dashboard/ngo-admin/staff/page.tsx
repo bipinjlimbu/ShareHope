@@ -18,12 +18,14 @@ import {
 import {
     getNGOStaff,
     updateNGOStaffStatus,
+    removeNGOStaff,
 } from "@/services/ngoService";
 import { NGOMembership, NGOStaffResponse } from "@/types/ngo";
 import { User } from "@/types/user";
 import StaffManagementSkeleton from "@/components/skeleton/ngo-admin-dashboard/StaffManagementSkeleton";
 import NGOStaffDetailsModal from "@/components/dashboard/NGOStaffDetailsModal";
 import RegisterNGOStaffForm from "@/components/form/RegisterNGOStaffForm";
+import ConfirmationModal from "@/components/common/ConfirmationModal";
 
 type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
 
@@ -130,12 +132,16 @@ function StaffCard({
     membership,
     onViewDetails,
     onToggleStatus,
+    onRemove,
     isUpdating,
+    isRemoving,
 }: {
     membership: NGOMembership;
     onViewDetails: (membershipId: number) => void;
     onToggleStatus: (membership: NGOMembership) => void;
+    onRemove: (membership: NGOMembership) => void;
     isUpdating: boolean;
+    isRemoving: boolean;
 }) {
     const user = membership.user;
 
@@ -188,7 +194,7 @@ function StaffCard({
                         <button
                             type="button"
                             onClick={() => onToggleStatus(membership)}
-                            disabled={isUpdating}
+                            disabled={isUpdating || isRemoving}
                             title={
                                 membership.is_active
                                     ? "Deactivate this staff member"
@@ -219,9 +225,10 @@ function StaffCard({
 
                         <button
                             type="button"
-                            disabled
-                            title="Staff removal will be available later"
-                            className="flex cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50/50 px-3 py-2.5 text-sm font-semibold text-red-400 opacity-50"
+                            onClick={() => onRemove(membership)}
+                            disabled={isRemoving || isUpdating}
+                            title="Remove this staff member"
+                            className="flex items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 px-3 py-2.5 text-sm font-semibold text-red-600 transition hover:border-red-200 hover:bg-red-100 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             <UserMinus size={15} />
                             Remove
@@ -243,6 +250,8 @@ export default function NGOStaffPage() {
     const [selectedStaffId, setSelectedStaffId] = useState<number | null>(null);
     const [isRegisterFormOpen, setIsRegisterFormOpen] = useState(false);
     const [updatingStaffId, setUpdatingStaffId] = useState<number | null>(null);
+    const [staffToRemove, setStaffToRemove] = useState<NGOMembership | null>(null);
+    const [isRemovingStaff, setIsRemovingStaff] = useState(false);
 
     const loadStaff = useCallback(async () => {
         setIsLoading(true);
@@ -274,7 +283,13 @@ export default function NGOStaffPage() {
     };
 
     const handleToggleStatus = async (membership: NGOMembership) => {
-        if (updatingStaffId !== null || membership.is_admin) return;
+        if (
+            updatingStaffId !== null ||
+            isRemovingStaff ||
+            membership.is_admin
+        ) {
+            return;
+        }
 
         const newStatus = !membership.is_active;
 
@@ -305,6 +320,58 @@ export default function NGOStaffPage() {
             );
         } finally {
             setUpdatingStaffId(null);
+        }
+    };
+
+    const handleRemoveStaff = (membership: NGOMembership) => {
+        if (
+            membership.is_admin ||
+            isRemovingStaff ||
+            updatingStaffId !== null
+        ) {
+            return;
+        }
+
+        setActionError("");
+        setStaffToRemove(membership);
+    };
+
+    const handleCancelRemove = () => {
+        if (isRemovingStaff) return;
+
+        setStaffToRemove(null);
+    };
+
+    const handleConfirmRemove = async () => {
+        if (!staffToRemove || isRemovingStaff) return;
+
+        const membership = staffToRemove;
+
+        setIsRemovingStaff(true);
+        setActionError("");
+
+        try {
+            await removeNGOStaff(membership.id);
+
+            setStaff((currentStaff) =>
+                currentStaff.filter(
+                    (member) => member.id !== membership.id
+                )
+            );
+
+            setStaffToRemove(null);
+        } catch (err) {
+            console.error("Failed to remove NGO staff:", err);
+
+            setActionError(
+                `Unable to remove ${getFullName(
+                    membership.user
+                )}. Please try again.`
+            );
+
+            setStaffToRemove(null);
+        } finally {
+            setIsRemovingStaff(false);
         }
     };
 
@@ -613,8 +680,13 @@ export default function NGOStaffPage() {
                                             membership={membership}
                                             onViewDetails={setSelectedStaffId}
                                             onToggleStatus={handleToggleStatus}
+                                            onRemove={handleRemoveStaff}
                                             isUpdating={
                                                 updatingStaffId === membership.id
+                                            }
+                                            isRemoving={
+                                                isRemovingStaff &&
+                                                staffToRemove?.id === membership.id
                                             }
                                         />
                                     ))}
@@ -643,6 +715,21 @@ export default function NGOStaffPage() {
                     onClose={() => setSelectedStaffId(null)}
                 />
             )}
+
+            <ConfirmationModal
+                isOpen={staffToRemove !== null}
+                title="Remove Staff Member?"
+                description="Are you sure you want to remove this staff member from your NGO? This action cannot be undone."
+                itemName={
+                    staffToRemove
+                        ? getFullName(staffToRemove.user)
+                        : undefined
+                }
+                confirmText="Remove Staff"
+                isDeleting={isRemovingStaff}
+                onConfirm={handleConfirmRemove}
+                onCancel={handleCancelRemove}
+            />
         </>
     );
 }
