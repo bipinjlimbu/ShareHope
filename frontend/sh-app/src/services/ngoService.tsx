@@ -273,7 +273,7 @@ export async function updateNGOStaffStatus(
     }
 }
 
-export async function deleteNGOStaff(
+export async function removeNGOStaff(
     membershipId: number
 ): Promise<void> {
     await authFetch(`/ngo/staff/${membershipId}/`, {
