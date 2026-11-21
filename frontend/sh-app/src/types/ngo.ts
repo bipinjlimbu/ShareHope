@@ -142,7 +142,7 @@ export interface NGOMembership {
     user: User;
     is_active: boolean;
     joined_at: string;
-    ngo: NGOListItem;
+    ngo: number;
 }
 
 export type NGOStaffResponse = NGOMembership[];
