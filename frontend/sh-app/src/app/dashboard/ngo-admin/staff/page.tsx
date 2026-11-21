@@ -20,6 +20,7 @@ import { NGOMembership, NGOStaffResponse } from "@/types/ngo";
 import { User } from "@/types/user";
 import StaffManagementSkeleton from "@/components/skeleton/ngo-admin-dashboard/StaffManagementSkeleton";
 import NGOStaffDetailsModal from "@/components/dashboard/NGOStaffDetailsModal";
+import RegisterNGOStaffForm from "@/components/form/RegisterNGOStaffForm";
 
 type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
 
@@ -210,6 +211,7 @@ export default function NGOStaffPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
     const [selectedStaffId, setSelectedStaffId] = useState<number | null>(null);
+    const [isRegisterFormOpen, setIsRegisterFormOpen] = useState(false);
 
     const loadStaff = useCallback(async () => {
         setIsLoading(true);
@@ -229,6 +231,11 @@ export default function NGOStaffPage() {
     useEffect(() => {
         void loadStaff();
     }, [loadStaff]);
+
+    const handleRegistrationSuccess = () => {
+        setIsRegisterFormOpen(false);
+        void loadStaff();
+    };
 
     const activeCount = staff.filter(
         (member) => member.is_active
@@ -310,9 +317,8 @@ export default function NGOStaffPage() {
                             <div className="flex flex-col gap-2 sm:min-w-[155px]">
                                 <button
                                     type="button"
-                                    disabled
-                                    title="Add staff functionality will be connected later"
-                                    className="inline-flex min-h-[46px] cursor-not-allowed items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#166534] px-5 py-3 text-sm font-semibold text-white opacity-50 shadow-sm"
+                                    onClick={() => setIsRegisterFormOpen(true)}
+                                    className="inline-flex min-h-[46px] items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#166534] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#14532D] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
                                 >
                                     <UserPlus size={17} />
                                     Add Staff
@@ -526,6 +532,13 @@ export default function NGOStaffPage() {
                     </p>
                 </div>
             </main>
+
+            {isRegisterFormOpen && (
+                <RegisterNGOStaffForm
+                    onClose={() => setIsRegisterFormOpen(false)}
+                    onSuccess={handleRegistrationSuccess}
+                />
+            )}
 
             {selectedStaffId !== null && (
                 <NGOStaffDetailsModal
