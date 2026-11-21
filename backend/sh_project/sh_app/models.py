@@ -93,6 +93,7 @@ class NGOMembership(models.Model):
     ngo = models.ForeignKey(NGO, on_delete=models.CASCADE, related_name="members")
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="ngo_memberships")
     is_active = models.BooleanField(default=True)
+    is_admin = models.BooleanField(default=False)
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
