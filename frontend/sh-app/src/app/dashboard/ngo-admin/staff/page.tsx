@@ -250,7 +250,12 @@ export default function NGOStaffPage() {
 
         try {
             const response = await getNGOStaff();
-            setStaff(Array.isArray(response) ? response : []);
+
+            setStaff(
+                Array.isArray(response)
+                    ? response.filter((membership) => !membership.is_admin)
+                    : []
+            );
         } catch (err) {
             console.error("Failed to load NGO staff:", err);
             setError("Unable to load staff members. Please try again.");
@@ -269,7 +274,7 @@ export default function NGOStaffPage() {
     };
 
     const handleToggleStatus = async (membership: NGOMembership) => {
-        if (updatingStaffId !== null) return;
+        if (updatingStaffId !== null || membership.is_admin) return;
 
         const newStatus = !membership.is_active;
 
@@ -283,7 +288,7 @@ export default function NGOStaffPage() {
 
             setStaff((currentStaff) =>
                 currentStaff.map((member) =>
-                    member.id === membership.id
+                    member.id === membership.id && !member.is_admin
                         ? {
                             ...member,
                             is_active: newStatus,
@@ -293,6 +298,7 @@ export default function NGOStaffPage() {
             );
         } catch (err) {
             console.error("Failed to update NGO staff status:", err);
+
             setActionError(
                 `Unable to ${newStatus ? "activate" : "deactivate"
                 } ${getFullName(membership.user)}. Please try again.`
@@ -303,15 +309,19 @@ export default function NGOStaffPage() {
     };
 
     const activeCount = staff.filter(
-        (member) => member.is_active
+        (member) => !member.is_admin && member.is_active
     ).length;
 
-    const inactiveCount = staff.length - activeCount;
+    const inactiveCount = staff.filter(
+        (member) => !member.is_admin && !member.is_active
+    ).length;
 
     const filteredStaff = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
 
         return staff.filter((membership) => {
+            if (membership.is_admin) return false;
+
             const user = membership.user;
 
             const matchesSearch = [
@@ -409,7 +419,7 @@ export default function NGOStaffPage() {
                         <SummaryCard
                             title="Total Members"
                             value={staff.length}
-                            description="All staff accounts associated with your NGO"
+                            description="All non-admin staff accounts associated with your NGO"
                             icon={Users}
                         />
 
@@ -578,7 +588,7 @@ export default function NGOStaffPage() {
 
                                     <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#647568]">
                                         {staff.length === 0
-                                            ? "Your NGO staff members will appear here once they have been added to your organization."
+                                            ? "Your non-admin NGO staff members will appear here once they have been added to your organization."
                                             : "No staff records match your current search or filters. Try a different search term or adjust your filters."}
                                     </p>
 
