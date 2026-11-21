@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
     AlertCircle,
-    CalendarDays,
     CheckCircle2,
     Clock3,
     Mail,
@@ -11,13 +10,11 @@ import {
     UserRound,
     Users,
     X,
-    Phone,
     Building2,
-    Hash,
     RefreshCw,
 } from "lucide-react";
-import { getNGOStaffById } from "@/services/ngoService";
-import type { NGOStaffDetailResponse } from "@/types/ngo";
+import { getNGOStaffById, getNGOById } from "@/services/ngoService";
+import type { NGOStaffDetailResponse, NGOListItem } from "@/types/ngo";
 import type { User } from "@/types/user";
 import NGOStaffDetailsModalSkeleton from "@/components/skeleton/dashboard/NGOStaffDetailsModalSkeleton";
 
@@ -112,6 +109,9 @@ export default function NGOStaffDetailsModal({
 }: NGOStaffDetailsModalProps) {
     const [membership, setMembership] =
         useState<NGOStaffDetailResponse | null>(null);
+
+    const [ngo, setNgo] = useState<NGOListItem | null>(null);
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [imageError, setImageError] = useState(false);
@@ -120,13 +120,24 @@ export default function NGOStaffDetailsModal({
         setLoading(true);
         setError("");
         setImageError(false);
+        setMembership(null);
+        setNgo(null);
 
         try {
-            const result = await getNGOStaffById(membershipId);
-            setMembership(result);
+            const staffResult = await getNGOStaffById(membershipId);
+
+            setMembership(staffResult);
+
+            const ngoId = staffResult.ngo as unknown as number;
+
+            const ngoResult = await getNGOById(ngoId);
+
+            setNgo(ngoResult);
         } catch (err) {
             console.error("Failed to load NGO staff details:", err);
-            setError("We couldn't load this staff member's details. Please try again.");
+            setError(
+                "We couldn't load this staff member's details. Please try again."
+            );
         } finally {
             setLoading(false);
         }
@@ -232,7 +243,7 @@ export default function NGOStaffDetailsModal({
                                 </button>
                             </div>
                         </div>
-                    ) : membership && user ? (
+                    ) : membership && user && ngo ? (
                         <div className="space-y-6">
                             <div className="flex flex-col gap-4 rounded-2xl border border-[#D8E8D4] bg-white p-5 sm:flex-row sm:items-center">
                                 {picture && !imageError ? (
@@ -356,17 +367,17 @@ export default function NGOStaffDetailsModal({
 
                                     <DetailRow
                                         label="NGO name"
-                                        value={membership.ngo.name}
+                                        value={ngo.name}
                                     />
 
                                     <DetailRow
                                         label="NGO registration number"
-                                        value={membership.ngo.registration_number}
+                                        value={ngo.registration_number}
                                     />
 
                                     <DetailRow
                                         label="NGO status"
-                                        value={String(membership.ngo.status).replaceAll("_", " ")}
+                                        value={String(ngo.status).replaceAll("_", " ")}
                                     />
                                 </div>
                             </div>
@@ -439,18 +450,18 @@ export default function NGOStaffDetailsModal({
                                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                                     <DetailRow
                                         label="NGO email"
-                                        value={membership.ngo.email || "Not provided"}
+                                        value={ngo.email || "Not provided"}
                                     />
 
                                     <DetailRow
                                         label="NGO phone"
-                                        value={membership.ngo.phone || "Not provided"}
+                                        value={ngo.phone || "Not provided"}
                                     />
 
                                     <div className="sm:col-span-2">
                                         <DetailRow
                                             label="NGO address"
-                                            value={membership.ngo.address || "Not provided"}
+                                            value={ngo.address || "Not provided"}
                                         />
                                     </div>
                                 </div>
@@ -469,9 +480,9 @@ export default function NGOStaffDetailsModal({
 
                                     <p className="mt-1 text-xs leading-5 text-[#647568]">
                                         These details are retrieved from the
-                                        NGO staff detail API. Account credentials,
-                                        passwords, tokens, OTPs, and password-reset
-                                        secrets are not displayed.
+                                        NGO staff and NGO detail APIs. Account
+                                        credentials, passwords, tokens, OTPs,
+                                        and password-reset secrets are not displayed.
                                     </p>
                                 </div>
                             </div>
