@@ -24,6 +24,7 @@ import { NGOMembership, NGOStaffResponse } from "@/types/ngo";
 import { User } from "@/types/user";
 import StaffManagementSkeleton from "@/components/skeleton/ngo-admin-dashboard/StaffManagementSkeleton";
 import NGOStaffDetailsModal from "@/components/dashboard/NGOStaffDetailsModal";
+import NGOStaffInvitationUsersListModal from "@/components/dashboard/NGOStaffInvitationUsersListModal";
 import RegisterNGOStaffForm from "@/components/form/RegisterNGOStaffForm";
 import ConfirmationModal from "@/components/common/ConfirmationModal";
 
@@ -249,6 +250,7 @@ export default function NGOStaffPage() {
     const [actionError, setActionError] = useState("");
     const [selectedStaffId, setSelectedStaffId] = useState<number | null>(null);
     const [isRegisterFormOpen, setIsRegisterFormOpen] = useState(false);
+    const [isInvitationUsersModalOpen, setIsInvitationUsersModalOpen] = useState(false);
     const [updatingStaffId, setUpdatingStaffId] = useState<number | null>(null);
     const [staffToRemove, setStaffToRemove] = useState<NGOMembership | null>(null);
     const [isRemovingStaff, setIsRemovingStaff] = useState(false);
@@ -468,9 +470,8 @@ export default function NGOStaffPage() {
 
                                 <button
                                     type="button"
-                                    disabled
-                                    title="Staff invitation functionality will be connected later"
-                                    className="inline-flex min-h-[46px] cursor-not-allowed items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-[#C9DFC4] bg-[#F5F9F2] px-5 py-3 text-sm font-semibold text-[#166534] opacity-50"
+                                    onClick={() => setIsInvitationUsersModalOpen(true)}
+                                    className="inline-flex min-h-[46px] items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-[#C9DFC4] bg-[#F5F9F2] px-5 py-3 text-sm font-semibold text-[#166534] transition hover:bg-[#E5F2E1] focus:outline-none focus:ring-4 focus:ring-[#35A45C]/20"
                                 >
                                     <Mail size={17} />
                                     Invite Staff
@@ -715,6 +716,11 @@ export default function NGOStaffPage() {
                     onClose={() => setSelectedStaffId(null)}
                 />
             )}
+
+            <NGOStaffInvitationUsersListModal
+                isOpen={isInvitationUsersModalOpen}
+                onClose={() => setIsInvitationUsersModalOpen(false)}
+            />
 
             <ConfirmationModal
                 isOpen={staffToRemove !== null}
