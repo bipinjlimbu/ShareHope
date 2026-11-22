@@ -13,7 +13,10 @@ import {
     BadgeCheck,
 } from "lucide-react";
 import { getUsers } from "@/services/userService";
+import { sendNGOStaffInvitation } from "@/services/ngoService";
 import type { User } from "@/types/user";
+import type { NGOStaffInvitationPayload } from "@/types/ngo";
+import ConfirmationModal from "@/components/common/ConfirmationModal";
 import NGOStaffInvitationUsersListModalSkeleton from "@/components/skeleton/dashboard/NGOStaffInvitationUsersListModalSkeleton";
 
 interface NGOStaffInvitationUsersListModalProps {
@@ -76,9 +79,23 @@ function getErrorMessage(error: unknown): string {
         if (typeof errorObject.error === "string") {
             return errorObject.error;
         }
+
+        const firstError = Object.values(errorObject).find(
+            (value) =>
+                typeof value === "string" ||
+                (Array.isArray(value) && value.length > 0)
+        );
+
+        if (typeof firstError === "string") {
+            return firstError;
+        }
+
+        if (Array.isArray(firstError)) {
+            return String(firstError[0]);
+        }
     }
 
-    return "Unable to load donor accounts. Please try again.";
+    return "Something went wrong. Please try again.";
 }
 
 function DonorProfilePicture({ user }: { user: User }) {
@@ -108,7 +125,19 @@ function DonorProfilePicture({ user }: { user: User }) {
     );
 }
 
-function DonorCard({ user }: { user: User }) {
+interface DonorCardProps {
+    user: User;
+    isInvited: boolean;
+    isInviting: boolean;
+    onInvite: (user: User) => void;
+}
+
+function DonorCard({
+    user,
+    isInvited,
+    isInviting,
+    onInvite,
+}: DonorCardProps) {
     return (
         <article className="flex min-w-0 items-center gap-3 rounded-2xl border border-[#E5EDE3] bg-white p-4 transition hover:border-[#C9DFC4] hover:shadow-sm sm:gap-4">
             <DonorProfilePicture user={user} />
@@ -144,12 +173,26 @@ function DonorCard({ user }: { user: User }) {
 
             <button
                 type="button"
-                disabled
-                title="Invitation functionality will be available later"
-                className="inline-flex shrink-0 cursor-not-allowed items-center gap-1.5 rounded-xl border border-[#DDE7D9] bg-[#F5F9F2] px-3 py-2.5 text-xs font-semibold text-[#829184] opacity-60 sm:px-4 sm:text-sm"
+                onClick={() => onInvite(user)}
+                disabled={isInvited || isInviting}
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl border px-3 py-2.5 text-xs font-semibold transition sm:px-4 sm:text-sm ${isInvited
+                    ? "cursor-not-allowed border-[#DDE7D9] bg-[#E5F2E1] text-[#166534]"
+                    : isInviting
+                        ? "cursor-not-allowed border-[#DDE7D9] bg-[#F5F9F2] text-[#829184] opacity-60"
+                        : "border-[#C9DFC4] bg-[#F5F9F2] text-[#166534] hover:bg-[#E5F2E1]"
+                    }`}
             >
-                <UserPlus size={15} />
-                <span className="hidden sm:inline">Invite</span>
+                {isInvited ? (
+                    <>
+                        <BadgeCheck size={15} />
+                        <span>Invited</span>
+                    </>
+                ) : (
+                    <>
+                        <UserPlus size={15} />
+                        <span className="hidden sm:inline">Invite</span>
+                    </>
+                )}
             </button>
         </article>
     );
@@ -164,6 +207,19 @@ export default function NGOStaffInvitationUsersListModal({
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [retryKey, setRetryKey] = useState(0);
+
+    const [selectedUser, setSelectedUser] = useState<User | null>(null);
+    const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
+    const [isInviting, setIsInviting] = useState(false);
+    const [invitingUserId, setInvitingUserId] = useState<number | null>(null);
+    const [invitedUserIds, setInvitedUserIds] = useState<number[]>([]);
+
+    const [invitationSuccess, setInvitationSuccess] = useState<string | null>(
+        null
+    );
+    const [invitationError, setInvitationError] = useState<string | null>(
+        null
+    );
 
     const loadUsers = useCallback(async () => {
         setIsLoading(true);
@@ -195,11 +251,16 @@ export default function NGOStaffInvitationUsersListModal({
     }, [isOpen, loadUsers, retryKey]);
 
     useEffect(() => {
-        if (!isOpen) return;
+        if (!isOpen || isInviting) return;
 
         function handleKeyDown(event: KeyboardEvent) {
             if (event.key === "Escape") {
-                onClose();
+                if (isConfirmationOpen) {
+                    setIsConfirmationOpen(false);
+                    setSelectedUser(null);
+                } else {
+                    onClose();
+                }
             }
         }
 
@@ -208,7 +269,7 @@ export default function NGOStaffInvitationUsersListModal({
         return () => {
             window.removeEventListener("keydown", handleKeyDown);
         };
-    }, [isOpen, onClose]);
+    }, [isOpen, isConfirmationOpen, isInviting, onClose]);
 
     const filteredUsers = useMemo(() => {
         const query = searchQuery.trim().toLowerCase();
@@ -226,189 +287,286 @@ export default function NGOStaffInvitationUsersListModal({
         });
     }, [users, searchQuery]);
 
+    const handleOpenConfirmation = (user: User) => {
+        setSelectedUser(user);
+        setInvitationError(null);
+        setInvitationSuccess(null);
+        setIsConfirmationOpen(true);
+    };
+
+    const handleCancelInvitation = () => {
+        if (isInviting) return;
+
+        setIsConfirmationOpen(false);
+        setSelectedUser(null);
+    };
+
+    const handleConfirmInvitation = async () => {
+        if (!selectedUser || isInviting) return;
+
+        setIsInviting(true);
+        setInvitingUserId(selectedUser.id);
+        setInvitationError(null);
+        setInvitationSuccess(null);
+
+        try {
+            const payload: NGOStaffInvitationPayload = {
+                user_id: selectedUser.id,
+            };
+
+            const response = await sendNGOStaffInvitation(payload);
+
+            setInvitedUserIds((current) =>
+                current.includes(selectedUser.id)
+                    ? current
+                    : [...current, selectedUser.id]
+            );
+
+            setInvitationSuccess(
+                response.message || `Invitation sent to ${getFullName(selectedUser)}.`
+            );
+
+            setIsConfirmationOpen(false);
+            setSelectedUser(null);
+        } catch (err: unknown) {
+            console.error("Failed to send NGO staff invitation:", err);
+            setInvitationError(getErrorMessage(err));
+        } finally {
+            setIsInviting(false);
+            setInvitingUserId(null);
+        }
+    };
+
     if (!isOpen) return null;
 
     return (
-        <div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#102719]/55 p-3 backdrop-blur-sm sm:p-6"
-            onMouseDown={(event) => {
-                if (event.target === event.currentTarget) {
-                    onClose();
-                }
-            }}
-        >
-            <section
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="ngo-staff-invitation-title"
-                className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-[#E1E9DC] bg-[#FFFCF6] shadow-2xl sm:rounded-3xl"
+        <>
+            <div
+                className="fixed inset-0 z-[100] flex items-center justify-center bg-[#102719]/55 p-3 backdrop-blur-sm sm:p-6"
+                onMouseDown={(event) => {
+                    if (
+                        event.target === event.currentTarget &&
+                        !isConfirmationOpen
+                    ) {
+                        onClose();
+                    }
+                }}
             >
-                <header className="flex items-start justify-between gap-4 border-b border-[#E1E9DC] px-5 py-5 sm:px-7">
-                    <div className="flex min-w-0 items-start gap-3">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
-                            <Users size={24} />
-                        </div>
+                <section
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="ngo-staff-invitation-title"
+                    className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-[#E1E9DC] bg-[#FFFCF6] shadow-2xl sm:rounded-3xl"
+                >
+                    <header className="flex items-start justify-between gap-4 border-b border-[#E1E9DC] px-5 py-5 sm:px-7">
+                        <div className="flex min-w-0 items-start gap-3">
+                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
+                                <Users size={24} />
+                            </div>
 
-                        <div className="min-w-0">
-                            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#27824B]">
-                                NGO team management
-                            </p>
-
-                            <h2
-                                id="ngo-staff-invitation-title"
-                                className="mt-1 break-words text-xl font-bold text-[#183B2A] sm:text-2xl"
-                            >
-                                Donor Accounts
-                            </h2>
-
-                            <p className="mt-1 text-sm text-[#718071]">
-                                Browse registered donor accounts for your NGO team.
-                            </p>
-                        </div>
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        aria-label="Close donor list"
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#617263] transition hover:bg-[#EAF2E5] hover:text-[#183B2A]"
-                    >
-                        <X size={21} />
-                    </button>
-                </header>
-
-                <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-7">
-                    <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-                        <div>
-                            <h3 className="text-base font-bold text-[#183B2A]">
-                                Available Donors
-                            </h3>
-
-                            {!isLoading && !error && (
-                                <p className="mt-1 text-sm text-[#718071]">
-                                    {filteredUsers.length.toLocaleString("en-NP")}{" "}
-                                    of {users.length.toLocaleString("en-NP")}{" "}
-                                    donor accounts
+                            <div className="min-w-0">
+                                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#27824B]">
+                                    NGO team management
                                 </p>
-                            )}
+
+                                <h2
+                                    id="ngo-staff-invitation-title"
+                                    className="mt-1 break-words text-xl font-bold text-[#183B2A] sm:text-2xl"
+                                >
+                                    Donor Accounts
+                                </h2>
+
+                                <p className="mt-1 text-sm text-[#718071]">
+                                    Browse registered donor accounts for your NGO team.
+                                </p>
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="relative mb-5">
-                        <Search
-                            size={19}
-                            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#829184]"
-                        />
-
-                        <input
-                            type="search"
-                            value={searchQuery}
-                            onChange={(event) =>
-                                setSearchQuery(event.target.value)
-                            }
-                            placeholder="Search donor name, username or email..."
-                            aria-label="Search donors"
-                            className="h-12 w-full rounded-xl border border-[#DDE7D9] bg-white pl-11 pr-10 text-sm text-[#183B2A] outline-none transition placeholder:text-[#91A092] focus:border-[#35A45C] focus:ring-4 focus:ring-[#35A45C]/10"
-                        />
-
-                        {searchQuery && (
-                            <button
-                                type="button"
-                                onClick={() => setSearchQuery("")}
-                                aria-label="Clear search"
-                                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#647568] transition hover:bg-[#E5F2E1]"
-                            >
-                                <X size={16} />
-                            </button>
-                        )}
-                    </div>
-
-                    {isLoading ? (
-                        <NGOStaffInvitationUsersListModalSkeleton />
-                    ) : error ? (
-                        <div
-                            role="alert"
-                            className="rounded-2xl border border-red-200 bg-red-50 p-5"
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            aria-label="Close donor list"
+                            disabled={isInviting}
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#617263] transition hover:bg-[#EAF2E5] hover:text-[#183B2A] disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                            <div className="flex items-start gap-3">
-                                <XCircle
-                                    size={22}
-                                    className="mt-0.5 shrink-0 text-red-600"
-                                />
+                            <X size={21} />
+                        </button>
+                    </header>
 
-                                <div>
-                                    <h3 className="font-bold text-red-800">
-                                        Unable to load donor accounts
-                                    </h3>
+                    <div className="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-7">
+                        <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                            <div>
+                                <h3 className="text-base font-bold text-[#183B2A]">
+                                    Available Donors
+                                </h3>
 
-                                    <p className="mt-2 break-words text-sm leading-6 text-red-700">
-                                        {error}
+                                {!isLoading && !error && (
+                                    <p className="mt-1 text-sm text-[#718071]">
+                                        {filteredUsers.length.toLocaleString("en-NP")}{" "}
+                                        of {users.length.toLocaleString("en-NP")}{" "}
+                                        donor accounts
                                     </p>
-                                </div>
+                                )}
                             </div>
-
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    setRetryKey((current) => current + 1)
-                                }
-                                className="mt-4 inline-flex items-center gap-2 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-800 transition hover:bg-red-100"
-                            >
-                                <RefreshCw size={15} />
-                                Try again
-                            </button>
                         </div>
-                    ) : filteredUsers.length === 0 ? (
-                        <div className="rounded-2xl border border-dashed border-[#D5E3D0] bg-white px-6 py-14 text-center">
-                            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
-                                <Search size={25} />
+
+                        {invitationSuccess && (
+                            <div
+                                role="status"
+                                className="mb-5 rounded-xl border border-[#C9DFC4] bg-[#EAF5E6] px-4 py-3 text-sm font-medium text-[#166534]"
+                            >
+                                {invitationSuccess}
                             </div>
+                        )}
 
-                            <h3 className="mt-4 text-lg font-bold text-[#183B2A]">
-                                {users.length === 0
-                                    ? "No Donor Accounts Found"
-                                    : "No Matching Donors"}
-                            </h3>
+                        {invitationError && (
+                            <div
+                                role="alert"
+                                className="mb-5 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                            >
+                                <XCircle size={18} className="mt-0.5 shrink-0" />
+                                <p className="break-words">{invitationError}</p>
+                            </div>
+                        )}
 
-                            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#647568]">
-                                {users.length === 0
-                                    ? "Registered donor accounts will appear here when they are available."
-                                    : "No donor accounts match your search. Try another name, username or email address."}
-                            </p>
+                        <div className="relative mb-5">
+                            <Search
+                                size={19}
+                                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#829184]"
+                            />
+
+                            <input
+                                type="search"
+                                value={searchQuery}
+                                onChange={(event) =>
+                                    setSearchQuery(event.target.value)
+                                }
+                                placeholder="Search donor name, username or email..."
+                                aria-label="Search donors"
+                                className="h-12 w-full rounded-xl border border-[#DDE7D9] bg-white pl-11 pr-10 text-sm text-[#183B2A] outline-none transition placeholder:text-[#91A092] focus:border-[#35A45C] focus:ring-4 focus:ring-[#35A45C]/10"
+                            />
 
                             {searchQuery && (
                                 <button
                                     type="button"
                                     onClick={() => setSearchQuery("")}
-                                    className="mt-5 rounded-xl bg-[#166534] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14532D]"
+                                    aria-label="Clear search"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1 text-[#647568] transition hover:bg-[#E5F2E1]"
                                 >
-                                    Clear search
+                                    <X size={16} />
                                 </button>
                             )}
                         </div>
-                    ) : (
-                        <div className="space-y-3">
-                            {filteredUsers.map((user) => (
-                                <DonorCard key={user.id} user={user} />
-                            ))}
-                        </div>
-                    )}
-                </div>
 
-                <footer className="flex items-center justify-between gap-3 border-t border-[#E1E9DC] bg-[#F7F9F3] px-5 py-4 sm:px-7">
-                    <p className="text-xs text-[#829184]">
-                        Showing donor accounts only
-                    </p>
+                        {isLoading ? (
+                            <NGOStaffInvitationUsersListModalSkeleton />
+                        ) : error ? (
+                            <div
+                                role="alert"
+                                className="rounded-2xl border border-red-200 bg-red-50 p-5"
+                            >
+                                <div className="flex items-start gap-3">
+                                    <XCircle
+                                        size={22}
+                                        className="mt-0.5 shrink-0 text-red-600"
+                                    />
 
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="rounded-xl bg-[#166534] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14532D]"
-                    >
-                        Close
-                    </button>
-                </footer>
-            </section>
-        </div>
+                                    <div>
+                                        <h3 className="font-bold text-red-800">
+                                            Unable to load donor accounts
+                                        </h3>
+
+                                        <p className="mt-2 break-words text-sm leading-6 text-red-700">
+                                            {error}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setRetryKey((current) => current + 1)
+                                    }
+                                    className="mt-4 inline-flex items-center gap-2 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-800 transition hover:bg-red-100"
+                                >
+                                    <RefreshCw size={15} />
+                                    Try again
+                                </button>
+                            </div>
+                        ) : filteredUsers.length === 0 ? (
+                            <div className="rounded-2xl border border-dashed border-[#D5E3D0] bg-white px-6 py-14 text-center">
+                                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
+                                    <Search size={25} />
+                                </div>
+
+                                <h3 className="mt-4 text-lg font-bold text-[#183B2A]">
+                                    {users.length === 0
+                                        ? "No Donor Accounts Found"
+                                        : "No Matching Donors"}
+                                </h3>
+
+                                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#647568]">
+                                    {users.length === 0
+                                        ? "Registered donor accounts will appear here when they are available."
+                                        : "No donor accounts match your search. Try another name, username or email address."}
+                                </p>
+
+                                {searchQuery && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearchQuery("")}
+                                        className="mt-5 rounded-xl bg-[#166534] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14532D]"
+                                    >
+                                        Clear search
+                                    </button>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {filteredUsers.map((user) => (
+                                    <DonorCard
+                                        key={user.id}
+                                        user={user}
+                                        isInvited={invitedUserIds.includes(user.id)}
+                                        isInviting={invitingUserId === user.id}
+                                        onInvite={handleOpenConfirmation}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <footer className="flex items-center justify-between gap-3 border-t border-[#E1E9DC] bg-[#F7F9F3] px-5 py-4 sm:px-7">
+                        <p className="text-xs text-[#829184]">
+                            Showing donor accounts only
+                        </p>
+
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            disabled={isInviting}
+                            className="rounded-xl bg-[#166534] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14532D] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            Close
+                        </button>
+                    </footer>
+                </section>
+            </div>
+
+            <ConfirmationModal
+                isOpen={isConfirmationOpen}
+                title="Send Staff Invitation?"
+                description="Are you sure you want to invite this donor to join your NGO team? The invitation will be sent only after you confirm."
+                itemName={selectedUser ? getFullName(selectedUser) : undefined}
+                confirmText="Send Invitation"
+                isDeleting={isInviting}
+                buttonColor="bg-[#166534]"
+                buttonHoverColor="hover:bg-[#14532D]"
+                iconBackgroundColor="bg-[#E5F2E1]"
+                iconColor="text-[#166534]"
+                onConfirm={handleConfirmInvitation}
+                onCancel={handleCancelInvitation}
+            />
+        </>
     );
 }
