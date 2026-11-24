@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 
 import NGODetailsPageSkeleton from "@/components/skeleton/main/NGODetailsPageSkeleton";
+import { useToast } from "@/components/toast/ToastProvider";
 
 import { getNGOById } from "@/services/ngoService";
 import { getProfile } from "@/services/profileService";
@@ -74,6 +75,8 @@ export default function NGODetailsPage() {
     const params = useParams<{ id: string }>();
     const ngoId = Number(params.id);
 
+    const { showToast } = useToast();
+
     const [ngo, setNgo] = useState<NGOListItem | null>(null);
     const [isNGOLoading, setIsNGOLoading] = useState(true);
     const [ngoError, setNgoError] = useState("");
@@ -113,8 +116,14 @@ export default function NGODetailsPage() {
 
         async function loadNGO() {
             if (!Number.isInteger(ngoId) || ngoId <= 0) {
-                setNgoError("The organization link is invalid.");
-                setIsNGOLoading(false);
+                if (active) {
+                    const errorMessage = "The organization link is invalid.";
+
+                    setNgoError(errorMessage);
+                    showToast(errorMessage, "error");
+                    setIsNGOLoading(false);
+                }
+
                 return;
             }
 
@@ -129,9 +138,11 @@ export default function NGODetailsPage() {
                 }
             } catch {
                 if (active) {
-                    setNgoError(
-                        "We couldn't load this organization. It may have been removed or is temporarily unavailable."
-                    );
+                    const errorMessage =
+                        "We couldn't load this organization. It may have been removed or is temporarily unavailable.";
+
+                    setNgoError(errorMessage);
+                    showToast(errorMessage, "error");
                 }
             } finally {
                 if (active) {
@@ -153,7 +164,7 @@ export default function NGODetailsPage() {
             active = false;
             window.removeEventListener("auth-change", handleAuthChange);
         };
-    }, [ngoId, loadViewer]);
+    }, [ngoId, loadViewer, showToast]);
 
     const ngoLogo = useMemo(
         () => getImageUrl(ngo?.ngo_logo ?? null),
@@ -179,8 +190,7 @@ export default function NGODetailsPage() {
                     </h1>
 
                     <p className="mt-3 text-sm leading-6 text-gray-600">
-                        {ngoError ||
-                            "This organization could not be found."}
+                        This organization could not be found or is currently unavailable.
                     </p>
 
                     <Link
@@ -214,7 +224,6 @@ export default function NGODetailsPage() {
 
     return (
         <main className="min-h-screen bg-[#FFFCF6] pb-20">
-            {/* Back navigation */}
             <div className="bg-[#FFFCF6]">
                 <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
                     <Link
@@ -229,9 +238,7 @@ export default function NGODetailsPage() {
 
             <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 sm:pt-10 lg:px-8">
                 <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(340px,0.85fr)]">
-                    {/* Main NGO information */}
                     <section>
-                        {/* NGO identity - no cover image */}
                         <div className="rounded-3xl border border-[#E5EBDD] bg-white p-6 shadow-sm sm:p-8">
                             <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
                                 <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-3xl border border-[#E5EBDD] bg-[#EDF6E9] sm:h-36 sm:w-36">
@@ -310,7 +317,6 @@ export default function NGODetailsPage() {
                                 </p>
                             </div>
 
-                            {/* Chat and report - UI only */}
                             <div className="mt-7 grid gap-3 border-t border-[#E5EBDD] pt-6 sm:grid-cols-2">
                                 <button
                                     type="button"
@@ -340,7 +346,6 @@ export default function NGODetailsPage() {
                             </div>
                         </div>
 
-                        {/* Organization information */}
                         <div className="mt-8 rounded-3xl border border-[#E5EBDD] bg-white p-6 sm:p-8">
                             <div className="flex items-center gap-2">
                                 <ShieldCheck
@@ -439,7 +444,6 @@ export default function NGODetailsPage() {
                             </div>
                         </div>
 
-                        {/* NGO administrator */}
                         <div className="mt-8 rounded-3xl border border-[#E5EBDD] bg-white p-6 sm:p-8">
                             <div className="flex items-center gap-2">
                                 <Users
@@ -503,7 +507,6 @@ export default function NGODetailsPage() {
                         </div>
                     </section>
 
-                    {/* Organization overview */}
                     <aside className="lg:sticky lg:top-8">
                         <div className="overflow-hidden rounded-3xl border border-[#E5EBDD] bg-white shadow-sm">
                             <div className="border-b border-[#E5EBDD] bg-[#EDF6E9] px-6 py-6">
