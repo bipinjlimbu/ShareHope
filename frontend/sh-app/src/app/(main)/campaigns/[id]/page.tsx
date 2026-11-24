@@ -20,9 +20,9 @@ import {
 import { getCampaignById } from "@/services/campaignService";
 import { getProfile } from "@/services/profileService";
 import { getAuthStatus } from "@/lib/authStatus";
+import { useToast } from "@/components/toast/ToastProvider";
 
 import CampaignDetailsPageSkeleton from "@/components/skeleton/main/CampaignDetailsPageSkeleton";
-
 import type { Campaign } from "@/types/campaign";
 
 type Viewer = {
@@ -100,15 +100,14 @@ function getDaysRemaining(endDate: string): number {
 export default function CampaignDetailsPage() {
     const params = useParams<{ id: string }>();
     const campaignId = Number(params.id);
+    const { showToast } = useToast();
 
     const [campaign, setCampaign] = useState<Campaign | null>(null);
     const [isCampaignLoading, setIsCampaignLoading] = useState(true);
-    const [campaignError, setCampaignError] = useState("");
+    const [campaignError, setCampaignError] = useState(false);
 
     const [viewer, setViewer] = useState<Viewer | null>(null);
     const [viewerStatus, setViewerStatus] = useState<ViewerStatus>("loading");
-
-    const [donateMessage, setDonateMessage] = useState("");
 
     const loadViewer = useCallback(async () => {
         if (!getAuthStatus()) {
@@ -141,13 +140,14 @@ export default function CampaignDetailsPage() {
 
         async function loadCampaign() {
             if (!Number.isInteger(campaignId) || campaignId <= 0) {
-                setCampaignError("The campaign link is invalid.");
+                setCampaignError(true);
                 setIsCampaignLoading(false);
+                showToast("The campaign link is invalid.", "error");
                 return;
             }
 
             setIsCampaignLoading(true);
-            setCampaignError("");
+            setCampaignError(false);
 
             try {
                 const response = await getCampaignById(campaignId);
@@ -157,8 +157,11 @@ export default function CampaignDetailsPage() {
                 }
             } catch {
                 if (active) {
-                    setCampaignError(
-                        "We couldn't load this campaign. It may have been removed or is temporarily unavailable."
+                    setCampaignError(true);
+
+                    showToast(
+                        "We couldn't load this campaign. It may have been removed or is temporarily unavailable.",
+                        "error"
                     );
                 }
             } finally {
@@ -181,7 +184,7 @@ export default function CampaignDetailsPage() {
             active = false;
             window.removeEventListener("auth-change", handleAuthChange);
         };
-    }, [campaignId, loadViewer]);
+    }, [campaignId, loadViewer, showToast]);
 
     const campaignImage = useMemo(
         () => getImageUrl(campaign?.campaign_image ?? null),
@@ -195,25 +198,13 @@ export default function CampaignDetailsPage() {
     if (campaignError || !campaign) {
         return (
             <main className="min-h-screen bg-[#FFFCF6] px-4 py-16">
-                <div className="mx-auto w-full max-w-lg rounded-3xl border border-[#E5EBDD] bg-white p-8 text-center shadow-sm">
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#EDF6E9] text-[#166534]">
-                        <Heart size={30} />
-                    </div>
-
-                    <h1 className="mt-6 text-2xl font-bold text-[#183B2A]">
-                        Campaign unavailable
-                    </h1>
-
-                    <p className="mt-3 text-sm leading-6 text-gray-600">
-                        {campaignError || "This campaign could not be found."}
-                    </p>
-
+                <div className="mx-auto max-w-7xl">
                     <Link
                         href="/campaigns"
-                        className="mt-7 inline-flex items-center gap-2 rounded-xl bg-[#166534] px-6 py-3 font-semibold text-white transition hover:bg-[#14532D]"
+                        className="inline-flex items-center gap-2 rounded-full border border-[#DCE8D8] bg-[#EDF6E9] px-4 py-2.5 text-sm font-semibold text-[#166534] transition hover:border-[#166534] hover:bg-[#E5F2E1]"
                     >
-                        <ArrowLeft size={18} />
-                        Explore campaigns
+                        <ArrowLeft size={17} />
+                        Back to campaigns
                     </Link>
                 </div>
             </main>
@@ -271,14 +262,14 @@ export default function CampaignDetailsPage() {
         viewerStatus === "ready" && isCampaignCreator;
 
     function handleDonateClick() {
-        setDonateMessage(
-            "The donation process is coming soon. Please check back later."
+        showToast(
+            "The donation process is coming soon. Please check back later.",
+            "success"
         );
     }
 
     return (
         <main className="min-h-screen bg-[#FFFCF6] pb-20">
-            {/* Back navigation */}
             <div className="bg-[#FFFCF6]">
                 <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
                     <Link
@@ -293,9 +284,7 @@ export default function CampaignDetailsPage() {
 
             <div className="mx-auto max-w-7xl px-4 pt-8 sm:px-6 sm:pt-10 lg:px-8">
                 <div className="grid items-start gap-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(340px,0.85fr)]">
-                    {/* Main campaign information */}
                     <section>
-                        {/* Campaign image */}
                         <div className="relative aspect-[16/9] overflow-hidden rounded-3xl bg-[#E5F2E1] shadow-sm">
                             {campaignImage ? (
                                 <img
@@ -323,7 +312,6 @@ export default function CampaignDetailsPage() {
                             </div>
                         </div>
 
-                        {/* Campaign title and description */}
                         <div className="mt-8">
                             <div className="flex flex-wrap items-center gap-3">
                                 <span className="rounded-full bg-[#E5F2E1] px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-[#166534]">
@@ -345,7 +333,6 @@ export default function CampaignDetailsPage() {
                             </div>
                         </div>
 
-                        {/* Campaign timeline */}
                         <div className="mt-10 rounded-3xl border border-[#E5EBDD] bg-white p-6 sm:p-8">
                             <h2 className="text-xl font-bold text-[#183B2A]">
                                 Campaign timeline
@@ -384,7 +371,6 @@ export default function CampaignDetailsPage() {
                             </div>
                         </div>
 
-                        {/* NGO information */}
                         <div className="mt-8 rounded-3xl border border-[#E5EBDD] bg-white p-6 sm:p-8">
                             <div className="flex items-center gap-2">
                                 <ShieldCheck
@@ -396,7 +382,6 @@ export default function CampaignDetailsPage() {
                                 </h2>
                             </div>
 
-                            {/* NGO identity */}
                             <div className="mt-6 flex flex-col gap-5 sm:flex-row sm:items-start">
                                 <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[#E5EBDD] bg-[#EDF6E9]">
                                     {ngo.ngo_logo ? (
@@ -434,7 +419,6 @@ export default function CampaignDetailsPage() {
                                 </div>
                             </div>
 
-                            {/* NGO contact and registration details */}
                             <div className="mt-7 grid gap-4 border-t border-[#E5EBDD] pt-6 sm:grid-cols-2">
                                 {ngo.registration_number && (
                                     <div className="flex items-start gap-3">
@@ -511,7 +495,6 @@ export default function CampaignDetailsPage() {
                                 )}
                             </div>
 
-                            {/* NGO administrator */}
                             <div className="mt-7 border-t border-[#E5EBDD] pt-6">
                                 <h3 className="font-bold text-[#183B2A]">
                                     NGO administrator
@@ -567,7 +550,6 @@ export default function CampaignDetailsPage() {
                         </div>
                     </section>
 
-                    {/* Donation progress and action */}
                     <aside className="lg:sticky lg:top-8">
                         <div className="overflow-hidden rounded-3xl border border-[#E5EBDD] bg-white shadow-sm">
                             <div className="border-b border-[#E5EBDD] bg-[#EDF6E9] px-6 py-6">
@@ -695,7 +677,6 @@ export default function CampaignDetailsPage() {
                                     </div>
                                 </div>
 
-                                {/* Role-based action */}
                                 <div className="mt-7">
                                     {viewerStatus === "loading" ? (
                                         <div className="h-14 w-full animate-pulse rounded-2xl bg-[#DCE8D8]" />
@@ -718,15 +699,6 @@ export default function CampaignDetailsPage() {
                                                 Donate to this campaign
                                                 <ArrowRight size={18} />
                                             </button>
-
-                                            {donateMessage && (
-                                                <p
-                                                    role="status"
-                                                    className="mt-3 rounded-xl bg-[#EDF6E9] px-4 py-3 text-center text-sm leading-6 text-[#166534]"
-                                                >
-                                                    {donateMessage}
-                                                </p>
-                                            )}
 
                                             <p className="mt-3 text-center text-xs leading-5 text-gray-500">
                                                 Every contribution can help
