@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
-    AlertCircle,
     Building2,
     Mail,
     MapPin,
@@ -11,6 +10,7 @@ import {
     Search,
 } from "lucide-react";
 import { getNGOs } from "@/services/ngoService";
+import { useToast } from "@/components/toast/ToastProvider";
 import type { NGOListItem } from "@/types/ngo";
 import NGOsDataFetchSkeleton from "@/components/skeleton/main/NGOsDataFetchSkeleton";
 
@@ -34,6 +34,8 @@ function getApprovedActiveNGOs(ngos: NGOListItem[]): NGOListItem[] {
 }
 
 export default function NGOsPage() {
+    const { showToast } = useToast();
+
     const [ngos, setNgos] = useState<NGOListItem[]>([]);
     const [search, setSearch] = useState("");
     const [loading, setLoading] = useState(true);
@@ -52,15 +54,17 @@ export default function NGOsPage() {
                 )
             );
         } catch (err: unknown) {
-            setError(
+            const errorMessage =
                 err instanceof Error
                     ? err.message
-                    : "We couldn't load the NGOs. Please try again."
-            );
+                    : "We couldn't load the NGOs. Please try again.";
+
+            setError(errorMessage);
+            showToast(errorMessage, "error");
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [showToast]);
 
     useEffect(() => {
         void loadNGOs();
@@ -120,27 +124,23 @@ export default function NGOsPage() {
                 </div>
 
                 {error ? (
-                    <div
-                        role="alert"
-                        className="mx-auto max-w-xl rounded-2xl border border-red-200 bg-red-50 p-6 text-center"
-                    >
-                        <AlertCircle
-                            size={28}
-                            className="mx-auto text-red-600"
-                        />
+                    <div className="rounded-3xl border border-dashed border-[#D5E3D0] bg-white px-6 py-16 text-center">
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
+                            <Building2 size={28} />
+                        </div>
 
-                        <h2 className="mt-3 font-bold text-red-800">
-                            Unable to load organizations
+                        <h2 className="mt-5 text-xl font-bold text-[#183B2A]">
+                            Organizations are temporarily unavailable
                         </h2>
 
-                        <p className="mt-2 text-sm leading-6 text-red-700">
-                            {error}
+                        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#647568]">
+                            Please try loading the organizations again.
                         </p>
 
                         <button
                             type="button"
                             onClick={() => void loadNGOs()}
-                            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700"
+                            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#166534] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14532D]"
                         >
                             <RefreshCw size={15} />
                             Try again
