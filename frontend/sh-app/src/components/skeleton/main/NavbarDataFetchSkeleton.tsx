@@ -15,13 +15,20 @@ export default function NavbarDataFetchSkeleton({
                         <div className="h-4 w-32 max-w-full rounded bg-[#EDF6E9]" />
                     </div>
                 </div>
-                <div className="mt-4 h-10 w-full rounded-xl bg-[#EDF6E9]" />
+
+                <div className="mt-4 flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center">
+                        <div className="h-5 w-5 rounded-full bg-[#E5F2E1]" />
+                    </div>
+                    <div className="h-10 flex-1 rounded-xl bg-[#EDF6E9]" />
+                </div>
             </div>
         );
     }
 
     return (
         <div className="flex animate-pulse items-center gap-3">
+            <div className="h-5 w-5 rounded-full bg-[#E5F2E1]" />
             <div className="h-10 w-10 rounded-full bg-[#E5F2E1]" />
             <div className="h-4 w-24 rounded bg-[#EDF6E9]" />
             <div className="h-10 w-20 rounded-xl bg-[#E5F2E1]" />
