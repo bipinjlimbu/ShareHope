@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { Bell } from "lucide-react";
 import type { AuthUser } from "@/types/auth";
 import { getProfile } from "@/services/profileService";
 import { getAuthStatus } from "@/lib/authStatus";
@@ -106,6 +107,9 @@ export default function Navbar() {
     const logoutClass =
         "rounded-xl border border-[#DDE7DC] px-4 py-2.5 text-sm font-semibold text-[#31523C] transition hover:border-red-200 hover:bg-red-50 hover:text-red-700";
 
+    const notificationLinkClass =
+        "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#31523C] transition hover:text-[#166534]";
+
     function closeMenu() {
         setMenuOpen(false);
     }
@@ -144,6 +148,15 @@ export default function Navbar() {
                     ) : user ? (
                         <>
                             <a
+                                href="/notifications"
+                                className={notificationLinkClass}
+                                aria-label="Notifications"
+                                title="Notifications"
+                            >
+                                <Bell size={21} strokeWidth={1.8} />
+                            </a>
+
+                            <a
                                 href="/profile"
                                 className={profileLinkClass}
                                 aria-label={`View ${username}'s profile`}
@@ -159,10 +172,12 @@ export default function Navbar() {
                                         {username.charAt(0) || "U"}
                                     </span>
                                 )}
+
                                 <span className="max-w-32 truncate text-sm font-semibold text-[#31523C]">
                                     {username}
                                 </span>
                             </a>
+
                             <LogoutButton className={logoutClass} />
                         </>
                     ) : (
@@ -173,6 +188,7 @@ export default function Navbar() {
                             >
                                 Log in
                             </a>
+
                             <a
                                 href="/register"
                                 className="rounded-xl bg-[#166534] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#14532D]"
@@ -244,31 +260,45 @@ export default function Navbar() {
                             <NavbarDataFetchSkeleton mobile />
                         ) : user ? (
                             <>
-                                <a
-                                    href="/profile"
-                                    onClick={closeMenu}
-                                    className="mt-2 flex items-center gap-3 rounded-xl px-4 py-3 transition hover:bg-[#EDF5EC]"
-                                >
-                                    {user.profile_picture ? (
-                                        <img
-                                            src={`${API_URL}${user.profile_picture}`}
-                                            alt=""
-                                            className="h-10 w-10 rounded-full border border-[#DDE7DC] object-cover"
-                                        />
-                                    ) : (
-                                        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E4F1E4] text-sm font-bold uppercase text-[#166534]">
-                                            {username.charAt(0) || "U"}
+                                <div className="mt-2 flex items-center gap-2">
+                                    <a
+                                        href="/notifications"
+                                        onClick={closeMenu}
+                                        className={notificationLinkClass}
+                                        aria-label="Notifications"
+                                        title="Notifications"
+                                    >
+                                        <Bell size={21} strokeWidth={1.8} />
+                                    </a>
+
+                                    <a
+                                        href="/profile"
+                                        onClick={closeMenu}
+                                        className="flex min-w-0 flex-1 items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-[#EDF5EC]"
+                                    >
+                                        {user.profile_picture ? (
+                                            <img
+                                                src={`${API_URL}${user.profile_picture}`}
+                                                alt=""
+                                                className="h-10 w-10 shrink-0 rounded-full border border-[#DDE7DC] object-cover"
+                                            />
+                                        ) : (
+                                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E4F1E4] text-sm font-bold uppercase text-[#166534]">
+                                                {username.charAt(0) || "U"}
+                                            </span>
+                                        )}
+
+                                        <span className="min-w-0">
+                                            <span className="block text-xs text-[#718174]">
+                                                Signed in as
+                                            </span>
+
+                                            <span className="block truncate text-sm font-semibold text-[#31523C]">
+                                                {username}
+                                            </span>
                                         </span>
-                                    )}
-                                    <span className="min-w-0">
-                                        <span className="block text-xs text-[#718174]">
-                                            Signed in as
-                                        </span>
-                                        <span className="block truncate text-sm font-semibold text-[#31523C]">
-                                            {username}
-                                        </span>
-                                    </span>
-                                </a>
+                                    </a>
+                                </div>
 
                                 <div className="mt-3">
                                     <LogoutButton
@@ -286,6 +316,7 @@ export default function Navbar() {
                                 >
                                     Log in
                                 </a>
+
                                 <a
                                     href="/register"
                                     onClick={closeMenu}
