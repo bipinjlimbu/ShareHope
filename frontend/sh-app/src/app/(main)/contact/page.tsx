@@ -15,6 +15,7 @@ import {
 import { getAuthStatus } from "@/lib/authStatus";
 import { getProfile } from "@/services/profileService";
 import { sendContactMessage } from "@/services/mainService";
+import { useToast } from "@/components/toast/ToastProvider";
 import type { ContactErrors } from "@/types/main";
 import ContactSkeleton from "@/components/skeleton/main/ContactSkeleton";
 
@@ -55,6 +56,8 @@ const faqs = [
 ];
 
 export default function ContactPage() {
+    const { showToast } = useToast();
+
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isAdmin, setIsAdmin] = useState(false);
     const [isProfileLoading, setIsProfileLoading] = useState(true);
@@ -67,8 +70,6 @@ export default function ContactPage() {
     });
 
     const [errors, setErrors] = useState<ContactErrors>({});
-    const [successMessage, setSuccessMessage] = useState("");
-    const [generalError, setGeneralError] = useState("");
 
     const loadProfile = useCallback(async () => {
         if (!getAuthStatus()) {
@@ -136,9 +137,6 @@ export default function ContactPage() {
             ...previous,
             [field]: undefined,
         }));
-
-        setSuccessMessage("");
-        setGeneralError("");
     };
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -146,14 +144,13 @@ export default function ContactPage() {
 
         setIsSubmitting(true);
         setErrors({});
-        setSuccessMessage("");
-        setGeneralError("");
 
         try {
             const response = await sendContactMessage(formData);
 
-            setSuccessMessage(
-                response.message || "Your message has been sent successfully."
+            showToast(
+                response.message || "Your message has been sent successfully.",
+                "success"
             );
 
             setFormData((previous) => ({
@@ -198,10 +195,11 @@ export default function ContactPage() {
             setErrors(fieldErrors);
 
             if (fieldErrors.general) {
-                setGeneralError(fieldErrors.general);
+                showToast(fieldErrors.general, "error");
             } else if (Object.keys(fieldErrors).length === 0) {
-                setGeneralError(
-                    "Something went wrong while sending your message. Please try again."
+                showToast(
+                    "Something went wrong while sending your message. Please try again.",
+                    "error"
                 );
             }
         } finally {
@@ -254,17 +252,21 @@ export default function ContactPage() {
                                     "url('https://images.unsplash.com/photo-1531206715517-5c0ba140b2b8?auto=format&fit=crop&w=1400&q=85')",
                             }}
                         />
+
                         <div className="absolute inset-0 bg-gradient-to-t from-[#0C2E1B] via-[#0C2E1B]/25 to-transparent" />
 
                         <div className="relative z-10 max-w-lg text-white">
                             <span className="mb-5 block text-xs font-bold uppercase tracking-[0.2em] text-[#B9D9B9]">
                                 Together, we can make a difference
                             </span>
+
                             <p className="font-serif text-3xl leading-snug sm:text-4xl">
                                 "Behind every meaningful change is a conversation that starts
                                 somewhere."
                             </p>
+
                             <div className="mt-7 h-px w-16 bg-[#9BC79F]" />
+
                             <p className="mt-5 text-sm tracking-wide text-white/70">
                                 The ShareHope Team
                             </p>
@@ -493,24 +495,6 @@ export default function ContactPage() {
                                         </p>
                                     )}
                                 </div>
-
-                                {generalError && (
-                                    <div
-                                        role="alert"
-                                        className="border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-                                    >
-                                        {generalError}
-                                    </div>
-                                )}
-
-                                {successMessage && (
-                                    <div
-                                        role="status"
-                                        className="border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
-                                    >
-                                        {successMessage}
-                                    </div>
-                                )}
 
                                 <button
                                     type="submit"
