@@ -3,14 +3,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-    AlertCircle,
     CalendarDays,
     CheckCircle2,
     Coins,
     ImageIcon,
     Layers3,
     Package,
-    RefreshCw,
     Search,
     Target,
     X,
@@ -21,6 +19,7 @@ import type {
     CampaignDonationType,
 } from "@/types/campaign";
 import CampaignsDataFetchSkeleton from "@/components/skeleton/main/CampaignsDataFetchSkeleton";
+import { useToast } from "@/components/toast/ToastProvider";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "")
     .replace(/\/+$/, "")
@@ -150,17 +149,19 @@ function getCampaignProgress(campaign: Campaign): number {
 }
 
 export default function CampaignsPage() {
+    const { showToast } = useToast();
+
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);
     const [search, setSearch] = useState("");
     const [donationType, setDonationType] =
         useState<DonationTypeFilter>("ALL");
     const [category, setCategory] = useState("ALL");
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
+    const [hasLoadError, setHasLoadError] = useState(false);
 
     const loadCampaigns = useCallback(async () => {
         setLoading(true);
-        setError("");
+        setHasLoadError(false);
 
         try {
             const response = await getCampaigns();
@@ -180,15 +181,18 @@ export default function CampaignsPage() {
         } catch (err: unknown) {
             console.error("Failed to load campaigns:", err);
 
-            setError(
+            setHasLoadError(true);
+
+            const message =
                 err instanceof Error
                     ? err.message
-                    : "We couldn't load the campaigns. Please try again."
-            );
+                    : "We couldn't load the campaigns. Please try again.";
+
+            showToast(message, "error");
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [showToast]);
 
     useEffect(() => {
         void loadCampaigns();
@@ -333,34 +337,7 @@ export default function CampaignsPage() {
 
                 {loading ? (
                     <CampaignsDataFetchSkeleton />
-                ) : error ? (
-                    <div
-                        role="alert"
-                        className="mx-auto max-w-xl rounded-2xl border border-red-200 bg-red-50 p-6 text-center"
-                    >
-                        <AlertCircle
-                            size={28}
-                            className="mx-auto text-red-600"
-                        />
-
-                        <h2 className="mt-3 font-bold text-red-800">
-                            Unable to load campaigns
-                        </h2>
-
-                        <p className="mt-2 text-sm leading-6 text-red-700">
-                            {error}
-                        </p>
-
-                        <button
-                            type="button"
-                            onClick={() => void loadCampaigns()}
-                            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700"
-                        >
-                            <RefreshCw size={15} />
-                            Try again
-                        </button>
-                    </div>
-                ) : filteredCampaigns.length === 0 ? (
+                ) : hasLoadError ? null : filteredCampaigns.length === 0 ? (
                     <div className="rounded-3xl border border-dashed border-[#D5E3D0] bg-white px-6 py-16 text-center">
                         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
                             <Target size={28} />
