@@ -23,6 +23,7 @@ import {
     Clock3,
     Filter,
     RotateCcw,
+    Trash2,
 } from "lucide-react";
 
 import type { LucideIcon } from "lucide-react";
@@ -35,10 +36,12 @@ import {
     getNotifications,
     toggleAllNotificationsReadStatus,
     toggleNotificationReadStatus,
+    deleteNotificationById,
 } from "@/services/notificationService";
 
 import { getAuthStatus } from "@/lib/authStatus";
 import { useToast } from "@/components/toast/ToastProvider";
+import ConfirmationModal from "@/components/common/ConfirmationModal";
 
 type NotificationFilter = "ALL" | "UNREAD" | "READ";
 
@@ -173,6 +176,11 @@ export default function NotificationsPage() {
     const [updatingNotificationIds, setUpdatingNotificationIds] =
         useState<Set<number>>(new Set());
 
+    const [notificationToDelete, setNotificationToDelete] =
+        useState<NotificationItem | null>(null);
+
+    const [isDeleting, setIsDeleting] = useState(false);
+
     const redirectingRef = useRef(false);
 
     // Authentication check.
@@ -206,7 +214,7 @@ export default function NotificationsPage() {
         };
     }, [router, showToast]);
 
-    // Fetch notifications for the authenticated user.
+    // Fetch notifications.
     const loadNotifications = useCallback(async () => {
         setIsLoading(true);
         setLoadError(false);
@@ -256,7 +264,8 @@ export default function NotificationsPage() {
         if (
             notifications.length === 0 ||
             isUpdatingAll ||
-            updatingNotificationIds.size > 0
+            updatingNotificationIds.size > 0 ||
+            isDeleting
         ) {
             return;
         }
@@ -293,7 +302,8 @@ export default function NotificationsPage() {
     ) => {
         if (
             updatingNotificationIds.has(notificationId) ||
-            isUpdatingAll
+            isUpdatingAll ||
+            isDeleting
         ) {
             return;
         }
@@ -343,6 +353,53 @@ export default function NotificationsPage() {
                 updated.delete(notificationId);
                 return updated;
             });
+        }
+    };
+
+    // Open delete confirmation modal.
+    const handleOpenDeleteModal = (notification: NotificationItem) => {
+        if (isUpdatingAll || updatingNotificationIds.size > 0 || isDeleting) {
+            return;
+        }
+
+        setNotificationToDelete(notification);
+    };
+
+    // Close delete confirmation modal.
+    const handleCloseDeleteModal = () => {
+        if (isDeleting) return;
+
+        setNotificationToDelete(null);
+    };
+
+    // Delete an individual notification.
+    const handleDeleteNotification = async () => {
+        if (!notificationToDelete || isDeleting) return;
+
+        setIsDeleting(true);
+
+        try {
+            const response = await deleteNotificationById(
+                notificationToDelete.id
+            );
+
+            setNotifications((previous) =>
+                previous.filter(
+                    (notification) =>
+                        notification.id !== notificationToDelete.id
+                )
+            );
+
+            setNotificationToDelete(null);
+
+            showToast(
+                response.message || "Notification deleted successfully.",
+                "success"
+            );
+        } catch (error: unknown) {
+            showToast(getErrorMessage(error), "error");
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -468,185 +525,202 @@ export default function NotificationsPage() {
     }
 
     return (
-        <main className="min-h-screen bg-[#FFFCF6] px-5 py-12 sm:px-8 sm:py-16">
-            <div className="mx-auto max-w-7xl">
+        <>
+            <main className="min-h-screen bg-[#FFFCF6] px-5 py-12 sm:px-8 sm:py-16">
+                <div className="mx-auto max-w-7xl">
 
-                {/* Page Header */}
-                <header className="mb-10 text-center">
-                    <span className="inline-flex items-center gap-2 rounded-full border border-[#D8E8D4] bg-[#F0F7ED] px-4 py-2 text-sm font-semibold text-[#166534]">
-                        <Bell size={16} />
-                        Your Updates
-                    </span>
-
-                    <h1 className="mt-5 text-3xl font-extrabold tracking-tight text-[#183B2A] sm:text-4xl lg:text-5xl">
-                        Notifications
-                        <span className="block text-[#29904C]">
-                            Stay Connected
+                    {/* Page Header */}
+                    <header className="mb-10 text-center">
+                        <span className="inline-flex items-center gap-2 rounded-full border border-[#D8E8D4] bg-[#F0F7ED] px-4 py-2 text-sm font-semibold text-[#166534]">
+                            <Bell size={16} />
+                            Your Updates
                         </span>
-                    </h1>
 
-                    <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-[#647568] sm:text-base">
-                        Stay informed about your donations, campaigns,
-                        organization activities, and important updates
-                        from ShareHope.
-                    </p>
-                </header>
+                        <h1 className="mt-5 text-3xl font-extrabold tracking-tight text-[#183B2A] sm:text-4xl lg:text-5xl">
+                            Notifications
+                            <span className="block text-[#29904C]">
+                                Stay Connected
+                            </span>
+                        </h1>
 
-                {/* Notification Summary */}
-                <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    <SummaryCard
-                        icon={Bell}
-                        label="Total Notifications"
-                        value={notifications.length}
-                        iconColor="text-[#166534]"
-                        iconBackground="bg-[#E5F2E1]"
-                    />
+                        <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-[#647568] sm:text-base">
+                            Stay informed about your donations, campaigns,
+                            organization activities, and important updates
+                            from ShareHope.
+                        </p>
+                    </header>
 
-                    <SummaryCard
-                        icon={Inbox}
-                        label="Unread Notifications"
-                        value={unreadCount}
-                        iconColor="text-orange-600"
-                        iconBackground="bg-orange-50"
-                    />
+                    {/* Notification Summary */}
+                    <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <SummaryCard
+                            icon={Bell}
+                            label="Total Notifications"
+                            value={notifications.length}
+                            iconColor="text-[#166534]"
+                            iconBackground="bg-[#E5F2E1]"
+                        />
 
-                    <SummaryCard
-                        icon={CheckCheck}
-                        label="Read Notifications"
-                        value={readCount}
-                        iconColor="text-blue-600"
-                        iconBackground="bg-blue-50"
-                    />
-                </section>
+                        <SummaryCard
+                            icon={Inbox}
+                            label="Unread Notifications"
+                            value={unreadCount}
+                            iconColor="text-orange-600"
+                            iconBackground="bg-orange-50"
+                        />
 
-                {/* Notification Toolbar */}
-                <section className="mb-6 rounded-3xl border border-[#E5EDE3] bg-white p-4 shadow-sm sm:p-5">
-                    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <Filter
-                                    size={17}
-                                    className="text-[#29904C]"
-                                />
+                        <SummaryCard
+                            icon={CheckCheck}
+                            label="Read Notifications"
+                            value={readCount}
+                            iconColor="text-blue-600"
+                            iconBackground="bg-blue-50"
+                        />
+                    </section>
 
-                                <h2 className="text-base font-bold text-[#183B2A]">
-                                    Your Activity
-                                </h2>
+                    {/* Notification Toolbar */}
+                    <section className="mb-6 rounded-3xl border border-[#E5EDE3] bg-white p-4 shadow-sm sm:p-5">
+                        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <Filter
+                                        size={17}
+                                        className="text-[#29904C]"
+                                    />
+
+                                    <h2 className="text-base font-bold text-[#183B2A]">
+                                        Your Activity
+                                    </h2>
+                                </div>
+
+                                <p className="mt-1 text-xs text-[#829184]">
+                                    Manage and keep track of your notifications.
+                                </p>
                             </div>
 
-                            <p className="mt-1 text-xs text-[#829184]">
-                                Manage and keep track of your notifications.
-                            </p>
+                            <button
+                                type="button"
+                                onClick={handleToggleAllReadStatus}
+                                disabled={
+                                    notifications.length === 0 ||
+                                    isUpdatingAll ||
+                                    updatingNotificationIds.size > 0 ||
+                                    isDeleting
+                                }
+                                className="inline-flex items-center justify-center gap-2 self-start rounded-xl border border-[#D8E8D4] bg-[#F0F7ED] px-4 py-2.5 text-sm font-semibold text-[#166534] transition hover:border-[#B8D8B1] hover:bg-[#E5F2E1] disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
+                            >
+                                <CheckCheck size={16} />
+
+                                {isUpdatingAll
+                                    ? "Updating..."
+                                    : unreadCount > 0
+                                        ? "Mark all as read"
+                                        : "Mark all as unread"}
+                            </button>
                         </div>
 
-                        <button
-                            type="button"
-                            onClick={handleToggleAllReadStatus}
-                            disabled={
-                                notifications.length === 0 ||
-                                isUpdatingAll ||
-                                updatingNotificationIds.size > 0
-                            }
-                            className="inline-flex items-center justify-center gap-2 self-start rounded-xl border border-[#D8E8D4] bg-[#F0F7ED] px-4 py-2.5 text-sm font-semibold text-[#166534] transition hover:border-[#B8D8B1] hover:bg-[#E5F2E1] disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
-                        >
-                            <CheckCheck size={16} />
-
-                            {isUpdatingAll
-                                ? "Updating..."
-                                : unreadCount > 0
-                                    ? "Mark all as read"
-                                    : "Mark all as unread"}
-                        </button>
-                    </div>
-
-                    {/* Filters */}
-                    <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-[#EDF2E9] pt-4">
-                        {filters.map((filter) => (
-                            <button
-                                key={filter.value}
-                                type="button"
-                                onClick={() => setActiveFilter(filter.value)}
-                                className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${activeFilter === filter.value
+                        {/* Filters */}
+                        <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-[#EDF2E9] pt-4">
+                            {filters.map((filter) => (
+                                <button
+                                    key={filter.value}
+                                    type="button"
+                                    onClick={() => setActiveFilter(filter.value)}
+                                    className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${activeFilter === filter.value
                                         ? "bg-[#166534] text-white shadow-sm"
                                         : "border border-[#E5EDE3] bg-white text-[#647568] hover:border-[#B8D8B1] hover:bg-[#F0F7ED] hover:text-[#166534]"
-                                    }`}
-                            >
-                                {filter.label}
-
-                                <span
-                                    className={`rounded-full px-2 py-0.5 text-xs ${activeFilter === filter.value
-                                            ? "bg-white/20 text-white"
-                                            : "bg-[#F0F7ED] text-[#166534]"
                                         }`}
                                 >
-                                    {filter.count}
-                                </span>
-                            </button>
-                        ))}
-                    </div>
-                </section>
+                                    {filter.label}
 
-                {/* Notification List */}
-                <section aria-label="Notifications">
-                    {filteredNotifications.length > 0 ? (
-                        <div className="space-y-3">
-                            {filteredNotifications.map((notification) => (
-                                <NotificationCard
-                                    key={notification.id}
-                                    notification={notification}
-                                    isUpdating={updatingNotificationIds.has(
-                                        notification.id
-                                    )}
-                                    onToggleReadStatus={
-                                        handleToggleNotificationReadStatus
-                                    }
-                                />
+                                    <span
+                                        className={`rounded-full px-2 py-0.5 text-xs ${activeFilter === filter.value
+                                            ? "bg-white/20 text-white"
+                                            : "bg-[#F0F7ED] text-[#166534]"
+                                            }`}
+                                    >
+                                        {filter.count}
+                                    </span>
+                                </button>
                             ))}
                         </div>
-                    ) : (
-                        <div className="rounded-3xl border border-dashed border-[#D5E3D0] bg-white px-6 py-16 text-center">
-                            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
-                                <Inbox size={30} strokeWidth={1.6} />
+                    </section>
+
+                    {/* Notification List */}
+                    <section aria-label="Notifications">
+                        {filteredNotifications.length > 0 ? (
+                            <div className="space-y-3">
+                                {filteredNotifications.map((notification) => (
+                                    <NotificationCard
+                                        key={notification.id}
+                                        notification={notification}
+                                        isUpdating={updatingNotificationIds.has(
+                                            notification.id
+                                        )}
+                                        isDeleting={isDeleting}
+                                        onToggleReadStatus={
+                                            handleToggleNotificationReadStatus
+                                        }
+                                        onDelete={handleOpenDeleteModal}
+                                    />
+                                ))}
                             </div>
+                        ) : (
+                            <div className="rounded-3xl border border-dashed border-[#D5E3D0] bg-white px-6 py-16 text-center">
+                                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
+                                    <Inbox size={30} strokeWidth={1.6} />
+                                </div>
 
-                            <h2 className="mt-5 text-xl font-bold text-[#183B2A]">
-                                {activeFilter === "UNREAD"
-                                    ? "You're all caught up!"
-                                    : activeFilter === "READ"
-                                        ? "No read notifications"
-                                        : "No notifications yet"}
-                            </h2>
+                                <h2 className="mt-5 text-xl font-bold text-[#183B2A]">
+                                    {activeFilter === "UNREAD"
+                                        ? "You're all caught up!"
+                                        : activeFilter === "READ"
+                                            ? "No read notifications"
+                                            : "No notifications yet"}
+                                </h2>
 
-                            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#647568]">
-                                {activeFilter === "UNREAD"
-                                    ? "You don't have any unread notifications at the moment."
-                                    : activeFilter === "READ"
-                                        ? "Notifications you have already read will appear here."
-                                        : "When there's something new, your notifications will appear here."}
-                            </p>
+                                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#647568]">
+                                    {activeFilter === "UNREAD"
+                                        ? "You don't have any unread notifications at the moment."
+                                        : activeFilter === "READ"
+                                            ? "Notifications you have already read will appear here."
+                                            : "When there's something new, your notifications will appear here."}
+                                </p>
 
-                            {activeFilter !== "ALL" && (
-                                <button
-                                    type="button"
-                                    onClick={() => setActiveFilter("ALL")}
-                                    className="mt-5 rounded-xl bg-[#166534] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14532D]"
-                                >
-                                    View all notifications
-                                </button>
-                            )}
-                        </div>
-                    )}
-                </section>
+                                {activeFilter !== "ALL" && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setActiveFilter("ALL")}
+                                        className="mt-5 rounded-xl bg-[#166534] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14532D]"
+                                    >
+                                        View all notifications
+                                    </button>
+                                )}
+                            </div>
+                        )}
+                    </section>
 
-                {/* Footer Note */}
-                <div className="mt-8 flex items-center justify-center gap-2 text-center text-xs text-[#829184]">
-                    <Sparkles size={14} className="text-[#29904C]" />
-                    <p>
-                        Stay connected with everything happening on ShareHope.
-                    </p>
+                    {/* Footer Note */}
+                    <div className="mt-8 flex items-center justify-center gap-2 text-center text-xs text-[#829184]">
+                        <Sparkles size={14} className="text-[#29904C]" />
+                        <p>
+                            Stay connected with everything happening on ShareHope.
+                        </p>
+                    </div>
                 </div>
-            </div>
-        </main>
+            </main>
+
+            {/* Delete Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={notificationToDelete !== null}
+                title="Delete Notification?"
+                description="Are you sure you want to delete this notification? This action cannot be undone."
+                itemName={notificationToDelete?.title}
+                confirmText="Delete Notification"
+                isDeleting={isDeleting}
+                onConfirm={handleDeleteNotification}
+                onCancel={handleCloseDeleteModal}
+            />
+        </>
     );
 }
 
@@ -687,11 +761,15 @@ function SummaryCard({
 function NotificationCard({
     notification,
     isUpdating,
+    isDeleting,
     onToggleReadStatus,
+    onDelete,
 }: {
     notification: NotificationItem;
     isUpdating: boolean;
+    isDeleting: boolean;
     onToggleReadStatus: (notificationId: number) => void;
+    onDelete: (notification: NotificationItem) => void;
 }) {
     const style = notificationStyles[notification.type];
     const Icon = style.icon;
@@ -699,8 +777,8 @@ function NotificationCard({
     return (
         <article
             className={`group relative flex gap-3 overflow-hidden rounded-2xl border p-4 transition-all duration-200 sm:gap-4 sm:p-5 ${notification.is_read
-                    ? "border-[#E5EDE3] bg-white hover:border-[#C9DFC4] hover:shadow-md"
-                    : "border-[#D4E8CE] bg-[#F8FCF5] shadow-sm hover:border-[#B8D8B1] hover:shadow-md"
+                ? "border-[#E5EDE3] bg-white hover:border-[#C9DFC4] hover:shadow-md"
+                : "border-[#D4E8CE] bg-[#F8FCF5] shadow-sm hover:border-[#B8D8B1] hover:shadow-md"
                 }`}
         >
             {/* Unread Indicator */}
@@ -723,8 +801,8 @@ function NotificationCard({
                 <div className="flex flex-wrap items-center gap-2">
                     <h3
                         className={`break-words text-sm sm:text-base ${notification.is_read
-                                ? "font-semibold text-[#183B2A]"
-                                : "font-bold text-[#183B2A]"
+                            ? "font-semibold text-[#183B2A]"
+                            : "font-bold text-[#183B2A]"
                             }`}
                     >
                         {notification.title}
@@ -753,12 +831,13 @@ function NotificationCard({
                 </div>
             </div>
 
-            {/* Toggle Read / Unread */}
-            <div className="flex shrink-0 items-start">
+            {/* Notification Actions */}
+            <div className="flex shrink-0 items-start gap-2">
+                {/* Toggle Read / Unread */}
                 <button
                     type="button"
                     onClick={() => onToggleReadStatus(notification.id)}
-                    disabled={isUpdating}
+                    disabled={isUpdating || isDeleting}
                     title={
                         notification.is_read
                             ? "Mark as unread"
@@ -778,6 +857,18 @@ function NotificationCard({
                     ) : (
                         <Check size={17} />
                     )}
+                </button>
+
+                {/* Delete Notification */}
+                <button
+                    type="button"
+                    onClick={() => onDelete(notification)}
+                    disabled={isUpdating || isDeleting}
+                    title="Delete notification"
+                    aria-label={`Delete ${notification.title}`}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-100 bg-white text-red-500 transition hover:border-red-500 hover:bg-red-500 hover:text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                    <Trash2 size={16} />
                 </button>
             </div>
         </article>
