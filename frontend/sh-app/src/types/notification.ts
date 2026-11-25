@@ -29,6 +29,10 @@ export interface ToggleAllNotificationsReadStatusResponse {
     message: string;
 }
 
+export interface ToggleNotificationReadStatusResponse {
+    message: string;
+}
+
 export interface DeleteAllNotificationsResponse {
     message: string;
 }
