@@ -4,6 +4,7 @@ import type {
     NotificationResponse,
     NotificationItem,
     ToggleAllNotificationsReadStatusResponse,
+    ToggleNotificationReadStatusResponse,
     DeleteAllNotificationsResponse,
 } from "@/types/notification";
 
@@ -31,4 +32,12 @@ export async function getNotificationById(
     return (await authFetch(`/notification/${notificationId}/`, {
         method: "GET",
     })) as NotificationItem;
+}
+
+export async function toggleNotificationReadStatus(
+    notificationId: number
+): Promise<ToggleNotificationReadStatusResponse> {
+    return (await authFetch(`/notification/${notificationId}/`, {
+        method: "PATCH",
+    })) as ToggleNotificationReadStatusResponse;
 }
