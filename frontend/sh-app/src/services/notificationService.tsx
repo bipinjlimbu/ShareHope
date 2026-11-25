@@ -2,6 +2,7 @@ import { authFetch } from "@/lib/api";
 
 import type {
     NotificationResponse,
+    NotificationItem,
     ToggleAllNotificationsReadStatusResponse,
     DeleteAllNotificationsResponse,
 } from "@/types/notification";
@@ -22,4 +23,12 @@ export async function deleteAllNotifications(): Promise<DeleteAllNotificationsRe
     return (await authFetch("/notification/", {
         method: "DELETE",
     })) as DeleteAllNotificationsResponse;
+}
+
+export async function getNotificationById(
+    notificationId: number
+): Promise<NotificationItem> {
+    return (await authFetch(`/notification/${notificationId}/`, {
+        method: "GET",
+    })) as NotificationItem;
 }
