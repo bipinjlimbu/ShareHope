@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -21,6 +22,7 @@ import {
     Sparkles,
     Clock3,
     Filter,
+    RotateCcw,
 } from "lucide-react";
 
 import type { LucideIcon } from "lucide-react";
@@ -32,6 +34,7 @@ import type {
 import {
     getNotifications,
     toggleAllNotificationsReadStatus,
+    toggleNotificationReadStatus,
 } from "@/services/notificationService";
 
 import { getAuthStatus } from "@/lib/authStatus";
@@ -167,6 +170,9 @@ export default function NotificationsPage() {
     const [loadError, setLoadError] = useState(false);
     const [isUpdatingAll, setIsUpdatingAll] = useState(false);
 
+    const [updatingNotificationIds, setUpdatingNotificationIds] =
+        useState<Set<number>>(new Set());
+
     const redirectingRef = useRef(false);
 
     // Authentication check.
@@ -207,7 +213,6 @@ export default function NotificationsPage() {
 
         try {
             const response = await getNotifications();
-
             setNotifications(response);
         } catch (error: unknown) {
             setLoadError(true);
@@ -248,14 +253,19 @@ export default function NotificationsPage() {
 
     // Toggle all notifications between read and unread.
     const handleToggleAllReadStatus = async () => {
-        if (notifications.length === 0 || isUpdatingAll) return;
+        if (
+            notifications.length === 0 ||
+            isUpdatingAll ||
+            updatingNotificationIds.size > 0
+        ) {
+            return;
+        }
 
         setIsUpdatingAll(true);
 
         try {
             const response = await toggleAllNotificationsReadStatus();
 
-            // Check the exact backend response to distinguish "read" from "unread".
             const markedAsRead =
                 response.message === "All notifications marked as read.";
 
@@ -277,15 +287,63 @@ export default function NotificationsPage() {
         }
     };
 
-    // Local UI update for an individual notification.
-    const handleMarkAsRead = (notificationId: number) => {
-        setNotifications((previous) =>
-            previous.map((notification) =>
-                notification.id === notificationId
-                    ? { ...notification, is_read: true }
-                    : notification
-            )
-        );
+    // Toggle an individual notification between read and unread.
+    const handleToggleNotificationReadStatus = async (
+        notificationId: number
+    ) => {
+        if (
+            updatingNotificationIds.has(notificationId) ||
+            isUpdatingAll
+        ) {
+            return;
+        }
+
+        setUpdatingNotificationIds((previous) => {
+            const updated = new Set(previous);
+            updated.add(notificationId);
+            return updated;
+        });
+
+        try {
+            const response =
+                await toggleNotificationReadStatus(notificationId);
+
+            const markedAsUnread =
+                response.message.toLowerCase().includes("unread");
+
+            const markedAsRead =
+                response.message.toLowerCase().includes("marked as read");
+
+            if (!markedAsUnread && !markedAsRead) {
+                throw new Error(
+                    "Unable to determine the updated notification status."
+                );
+            }
+
+            setNotifications((previous) =>
+                previous.map((notification) =>
+                    notification.id === notificationId
+                        ? {
+                            ...notification,
+                            is_read: markedAsRead,
+                        }
+                        : notification
+                )
+            );
+
+            showToast(
+                response.message || "Notification status updated successfully.",
+                "success"
+            );
+        } catch (error: unknown) {
+            showToast(getErrorMessage(error), "error");
+        } finally {
+            setUpdatingNotificationIds((previous) => {
+                const updated = new Set(previous);
+                updated.delete(notificationId);
+                return updated;
+            });
+        }
     };
 
     const filters: {
@@ -485,7 +543,9 @@ export default function NotificationsPage() {
                             type="button"
                             onClick={handleToggleAllReadStatus}
                             disabled={
-                                notifications.length === 0 || isUpdatingAll
+                                notifications.length === 0 ||
+                                isUpdatingAll ||
+                                updatingNotificationIds.size > 0
                             }
                             className="inline-flex items-center justify-center gap-2 self-start rounded-xl border border-[#D8E8D4] bg-[#F0F7ED] px-4 py-2.5 text-sm font-semibold text-[#166534] transition hover:border-[#B8D8B1] hover:bg-[#E5F2E1] disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
                         >
@@ -507,16 +567,16 @@ export default function NotificationsPage() {
                                 type="button"
                                 onClick={() => setActiveFilter(filter.value)}
                                 className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${activeFilter === filter.value
-                                    ? "bg-[#166534] text-white shadow-sm"
-                                    : "border border-[#E5EDE3] bg-white text-[#647568] hover:border-[#B8D8B1] hover:bg-[#F0F7ED] hover:text-[#166534]"
+                                        ? "bg-[#166534] text-white shadow-sm"
+                                        : "border border-[#E5EDE3] bg-white text-[#647568] hover:border-[#B8D8B1] hover:bg-[#F0F7ED] hover:text-[#166534]"
                                     }`}
                             >
                                 {filter.label}
 
                                 <span
                                     className={`rounded-full px-2 py-0.5 text-xs ${activeFilter === filter.value
-                                        ? "bg-white/20 text-white"
-                                        : "bg-[#F0F7ED] text-[#166534]"
+                                            ? "bg-white/20 text-white"
+                                            : "bg-[#F0F7ED] text-[#166534]"
                                         }`}
                                 >
                                     {filter.count}
@@ -534,7 +594,12 @@ export default function NotificationsPage() {
                                 <NotificationCard
                                     key={notification.id}
                                     notification={notification}
-                                    onMarkAsRead={handleMarkAsRead}
+                                    isUpdating={updatingNotificationIds.has(
+                                        notification.id
+                                    )}
+                                    onToggleReadStatus={
+                                        handleToggleNotificationReadStatus
+                                    }
                                 />
                             ))}
                         </div>
@@ -621,10 +686,12 @@ function SummaryCard({
 
 function NotificationCard({
     notification,
-    onMarkAsRead,
+    isUpdating,
+    onToggleReadStatus,
 }: {
     notification: NotificationItem;
-    onMarkAsRead: (notificationId: number) => void;
+    isUpdating: boolean;
+    onToggleReadStatus: (notificationId: number) => void;
 }) {
     const style = notificationStyles[notification.type];
     const Icon = style.icon;
@@ -632,8 +699,8 @@ function NotificationCard({
     return (
         <article
             className={`group relative flex gap-3 overflow-hidden rounded-2xl border p-4 transition-all duration-200 sm:gap-4 sm:p-5 ${notification.is_read
-                ? "border-[#E5EDE3] bg-white hover:border-[#C9DFC4] hover:shadow-md"
-                : "border-[#D4E8CE] bg-[#F8FCF5] shadow-sm hover:border-[#B8D8B1] hover:shadow-md"
+                    ? "border-[#E5EDE3] bg-white hover:border-[#C9DFC4] hover:shadow-md"
+                    : "border-[#D4E8CE] bg-[#F8FCF5] shadow-sm hover:border-[#B8D8B1] hover:shadow-md"
                 }`}
         >
             {/* Unread Indicator */}
@@ -656,8 +723,8 @@ function NotificationCard({
                 <div className="flex flex-wrap items-center gap-2">
                     <h3
                         className={`break-words text-sm sm:text-base ${notification.is_read
-                            ? "font-semibold text-[#183B2A]"
-                            : "font-bold text-[#183B2A]"
+                                ? "font-semibold text-[#183B2A]"
+                                : "font-bold text-[#183B2A]"
                             }`}
                     >
                         {notification.title}
@@ -686,20 +753,33 @@ function NotificationCard({
                 </div>
             </div>
 
-            {/* Mark as Read */}
-            {!notification.is_read && (
-                <div className="flex shrink-0 items-start">
-                    <button
-                        type="button"
-                        onClick={() => onMarkAsRead(notification.id)}
-                        title="Mark as read"
-                        aria-label={`Mark ${notification.title} as read`}
-                        className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D8E8D4] bg-white text-[#166534] transition hover:border-[#166534] hover:bg-[#166534] hover:text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#35A45C]/20"
-                    >
+            {/* Toggle Read / Unread */}
+            <div className="flex shrink-0 items-start">
+                <button
+                    type="button"
+                    onClick={() => onToggleReadStatus(notification.id)}
+                    disabled={isUpdating}
+                    title={
+                        notification.is_read
+                            ? "Mark as unread"
+                            : "Mark as read"
+                    }
+                    aria-label={
+                        notification.is_read
+                            ? `Mark ${notification.title} as unread`
+                            : `Mark ${notification.title} as read`
+                    }
+                    className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#D8E8D4] bg-white text-[#166534] transition hover:border-[#166534] hover:bg-[#166534] hover:text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#35A45C]/20 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                    {isUpdating ? (
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#166534] border-t-transparent" />
+                    ) : notification.is_read ? (
+                        <RotateCcw size={16} />
+                    ) : (
                         <Check size={17} />
-                    </button>
-                </div>
-            )}
+                    )}
+                </button>
+            </div>
         </article>
     );
 }
