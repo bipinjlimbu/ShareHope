@@ -36,3 +36,7 @@ export interface ToggleNotificationReadStatusResponse {
 export interface DeleteAllNotificationsResponse {
     message: string;
 }
+
+export interface DeleteNotificationResponse {
+    message: string;
+}
