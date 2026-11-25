@@ -1,8 +1,9 @@
 
 "use client";
 
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+
 import {
     Bell,
     Check,
@@ -28,8 +29,8 @@ import type {
     NotificationItem,
     NotificationType,
 } from "@/types/notification";
-import type { User } from "@/types/user";
 
+import { getNotifications } from "@/services/notificationService";
 import { getAuthStatus } from "@/lib/authStatus";
 import { useToast } from "@/components/toast/ToastProvider";
 
@@ -42,139 +43,19 @@ type NotificationStyle = {
     label: string;
 };
 
-// Dummy user for notification data.
-const dummyUser = {
-    id: 1,
-} as User;
+function getErrorMessage(error: unknown): string {
+    if (typeof error === "object" && error !== null) {
+        const response = error as Record<string, unknown>;
 
-// Dummy notification data.
-const initialNotifications: NotificationItem[] = [
-    {
-        id: 1,
-        user: dummyUser,
-        type: "DONATION",
-        title: "New donation received",
-        message:
-            "You have received a new donation of NPR 5,000 for the Education Support Campaign.",
-        is_read: false,
-        created_at: new Date(
-            Date.now() - 5 * 60 * 1000
-        ).toISOString(),
-    },
-    {
-        id: 2,
-        user: dummyUser,
-        type: "CAMPAIGN",
-        title: "Campaign approved",
-        message:
-            "Your campaign 'Support Children's Education' has been approved and is now active.",
-        is_read: false,
-        created_at: new Date(
-            Date.now() - 35 * 60 * 1000
-        ).toISOString(),
-    },
-    {
-        id: 3,
-        user: dummyUser,
-        type: "NGO",
-        title: "NGO registration approved",
-        message:
-            "Congratulations! Your NGO registration has been successfully approved by the administrator.",
-        is_read: false,
-        created_at: new Date(
-            Date.now() - 2 * 60 * 60 * 1000
-        ).toISOString(),
-    },
-    {
-        id: 4,
-        user: dummyUser,
-        type: "PAYMENT",
-        title: "Payment successful",
-        message:
-            "Your donation payment of NPR 2,500 was completed successfully.",
-        is_read: true,
-        created_at: new Date(
-            Date.now() - 5 * 60 * 60 * 1000
-        ).toISOString(),
-    },
-    {
-        id: 5,
-        user: dummyUser,
-        type: "INVITATION",
-        title: "New staff invitation",
-        message:
-            "You have received an invitation to join Helping Hands Foundation as an NGO staff member.",
-        is_read: true,
-        created_at: new Date(
-            Date.now() - 24 * 60 * 60 * 1000
-        ).toISOString(),
-    },
-    {
-        id: 6,
-        user: dummyUser,
-        type: "TESTIMONIAL",
-        title: "New testimonial submitted",
-        message:
-            "A donor has shared a testimonial about their experience with your organization.",
-        is_read: true,
-        created_at: new Date(
-            Date.now() - 30 * 60 * 60 * 1000
-        ).toISOString(),
-    },
-    {
-        id: 7,
-        user: dummyUser,
-        type: "PROFILE",
-        title: "Profile updated",
-        message:
-            "Your account profile information has been successfully updated.",
-        is_read: true,
-        created_at: new Date(
-            Date.now() - 48 * 60 * 60 * 1000
-        ).toISOString(),
-    },
-    {
-        id: 8,
-        user: dummyUser,
-        type: "REPORT",
-        title: "Report generated",
-        message:
-            "Your requested campaign donation report is ready to view.",
-        is_read: true,
-        created_at: new Date(
-            Date.now() - 72 * 60 * 60 * 1000
-        ).toISOString(),
-    },
-    {
-        id: 9,
-        user: dummyUser,
-        type: "USER",
-        title: "Welcome to ShareHope",
-        message:
-            "Welcome to ShareHope! Thank you for joining our community and helping create positive change.",
-        is_read: true,
-        created_at: new Date(
-            Date.now() - 5 * 24 * 60 * 60 * 1000
-        ).toISOString(),
-    },
-    {
-        id: 10,
-        user: dummyUser,
-        type: "AUDIT",
-        title: "Account activity recorded",
-        message:
-            "Your recent account activity has been successfully recorded in the system.",
-        is_read: true,
-        created_at: new Date(
-            Date.now() - 7 * 24 * 60 * 60 * 1000
-        ).toISOString(),
-    },
-];
+        if (typeof response.message === "string") return response.message;
+        if (typeof response.detail === "string") return response.detail;
+        if (typeof response.error === "string") return response.error;
+    }
 
-const notificationStyles: Record<
-    NotificationType,
-    NotificationStyle
-> = {
+    return "Something went wrong. Please try again.";
+}
+
+const notificationStyles: Record<NotificationType, NotificationStyle> = {
     USER: {
         icon: UserCircle,
         iconColor: "text-blue-600",
@@ -274,13 +155,13 @@ export default function NotificationsPage() {
     const router = useRouter();
     const { showToast } = useToast();
 
-    const [notifications, setNotifications] =
-        useState<NotificationItem[]>(initialNotifications);
-
+    const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [activeFilter, setActiveFilter] =
         useState<NotificationFilter>("ALL");
 
     const [isAuthChecked, setIsAuthChecked] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
 
     const redirectingRef = useRef(false);
 
@@ -314,6 +195,29 @@ export default function NotificationsPage() {
             window.removeEventListener("auth-change", checkAuthStatus);
         };
     }, [router, showToast]);
+
+    // Fetch notifications for the authenticated user.
+    const loadNotifications = useCallback(async () => {
+        setIsLoading(true);
+        setLoadError(false);
+
+        try {
+            const response = await getNotifications();
+
+            setNotifications(response);
+        } catch (error: unknown) {
+            setLoadError(true);
+            showToast(getErrorMessage(error), "error");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [showToast]);
+
+    useEffect(() => {
+        if (!isAuthChecked) return;
+
+        void loadNotifications();
+    }, [isAuthChecked, loadNotifications]);
 
     const unreadCount = notifications.filter(
         (notification) => !notification.is_read
@@ -379,7 +283,7 @@ export default function NotificationsPage() {
             },
         ];
 
-    // Do not render notifications before authentication is confirmed.
+    // Authentication loading state.
     if (!isAuthChecked || redirectingRef.current) {
         return (
             <main className="flex min-h-[65vh] items-center justify-center bg-[#FFFCF6] px-5 py-16 sm:px-8">
@@ -393,6 +297,86 @@ export default function NotificationsPage() {
                     <p className="mt-3 text-sm text-[#829184]">
                         Checking your account...
                     </p>
+                </div>
+            </main>
+        );
+    }
+
+    // Notification loading state.
+    if (isLoading) {
+        return (
+            <main className="min-h-screen bg-[#FFFCF6] px-5 py-12 sm:px-8 sm:py-16">
+                <div className="mx-auto max-w-7xl">
+                    <div className="mb-10 text-center">
+                        <div className="mx-auto h-9 w-36 animate-pulse rounded-full bg-[#E5EDE3]" />
+
+                        <div className="mx-auto mt-5 h-12 w-72 max-w-full animate-pulse rounded-xl bg-[#E5EDE3]" />
+
+                        <div className="mx-auto mt-4 h-4 max-w-md animate-pulse rounded-lg bg-[#E5EDE3]" />
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        {[1, 2, 3].map((item) => (
+                            <div
+                                key={item}
+                                className="flex items-center gap-4 rounded-2xl border border-[#E5EDE3] bg-white p-5"
+                            >
+                                <div className="h-12 w-12 animate-pulse rounded-xl bg-[#E5F2E1]" />
+
+                                <div className="flex-1 space-y-2">
+                                    <div className="h-3 w-32 animate-pulse rounded bg-[#E5EDE3]" />
+                                    <div className="h-6 w-12 animate-pulse rounded bg-[#E5EDE3]" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="mt-8 space-y-3">
+                        {[1, 2, 3, 4].map((item) => (
+                            <div
+                                key={item}
+                                className="flex items-start gap-4 rounded-2xl border border-[#E5EDE3] bg-white p-5"
+                            >
+                                <div className="h-12 w-12 animate-pulse rounded-xl bg-[#E5F2E1]" />
+
+                                <div className="flex-1 space-y-3">
+                                    <div className="h-4 w-48 max-w-full animate-pulse rounded bg-[#E5EDE3]" />
+                                    <div className="h-3 w-full animate-pulse rounded bg-[#E5EDE3]" />
+                                    <div className="h-3 w-28 animate-pulse rounded bg-[#E5EDE3]" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </main>
+        );
+    }
+
+    // Notification loading error.
+    if (loadError) {
+        return (
+            <main className="flex min-h-[65vh] items-center justify-center bg-[#FFFCF6] px-5 py-16 sm:px-8">
+                <div className="text-center">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F0F6ED] text-[#166534]">
+                        <Bell size={28} />
+                    </div>
+
+                    <h1 className="mt-5 text-2xl font-extrabold text-[#14532D]">
+                        Unable to load notifications
+                    </h1>
+
+                    <p className="mt-3 text-sm leading-6 text-[#718174]">
+                        Something went wrong while retrieving your notifications.
+                        Please try again.
+                    </p>
+
+                    <button
+                        type="button"
+                        onClick={() => void loadNotifications()}
+                        className="mt-6 inline-flex items-center justify-center rounded-xl bg-[#166534] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#14532D]"
+                    >
+                        Try again
+                    </button>
                 </div>
             </main>
         );
