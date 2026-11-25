@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -37,6 +36,7 @@ import {
     toggleAllNotificationsReadStatus,
     toggleNotificationReadStatus,
     deleteNotificationById,
+    deleteAllNotifications,
 } from "@/services/notificationService";
 
 import { getAuthStatus } from "@/lib/authStatus";
@@ -51,6 +51,11 @@ type NotificationStyle = {
     iconBackground: string;
     label: string;
 };
+
+type DeleteModalState =
+    | { type: "single"; notification: NotificationItem }
+    | { type: "all" }
+    | null;
 
 function getErrorMessage(error: unknown): string {
     if (typeof error === "object" && error !== null) {
@@ -176,8 +181,8 @@ export default function NotificationsPage() {
     const [updatingNotificationIds, setUpdatingNotificationIds] =
         useState<Set<number>>(new Set());
 
-    const [notificationToDelete, setNotificationToDelete] =
-        useState<NotificationItem | null>(null);
+    const [deleteModal, setDeleteModal] =
+        useState<DeleteModalState>(null);
 
     const [isDeleting, setIsDeleting] = useState(false);
 
@@ -356,46 +361,81 @@ export default function NotificationsPage() {
         }
     };
 
-    // Open delete confirmation modal.
-    const handleOpenDeleteModal = (notification: NotificationItem) => {
-        if (isUpdatingAll || updatingNotificationIds.size > 0 || isDeleting) {
+    // Open individual delete confirmation.
+    const handleOpenSingleDeleteModal = (
+        notification: NotificationItem
+    ) => {
+        if (
+            isUpdatingAll ||
+            updatingNotificationIds.size > 0 ||
+            isDeleting
+        ) {
             return;
         }
 
-        setNotificationToDelete(notification);
+        setDeleteModal({
+            type: "single",
+            notification,
+        });
     };
 
-    // Close delete confirmation modal.
+    // Open delete-all confirmation.
+    const handleOpenDeleteAllModal = () => {
+        if (
+            notifications.length === 0 ||
+            isUpdatingAll ||
+            updatingNotificationIds.size > 0 ||
+            isDeleting
+        ) {
+            return;
+        }
+
+        setDeleteModal({ type: "all" });
+    };
+
+    // Close confirmation modal.
     const handleCloseDeleteModal = () => {
         if (isDeleting) return;
 
-        setNotificationToDelete(null);
+        setDeleteModal(null);
     };
 
-    // Delete an individual notification.
-    const handleDeleteNotification = async () => {
-        if (!notificationToDelete || isDeleting) return;
+    // Delete an individual notification or all notifications.
+    const handleConfirmDelete = async () => {
+        if (!deleteModal || isDeleting) return;
 
         setIsDeleting(true);
 
         try {
-            const response = await deleteNotificationById(
-                notificationToDelete.id
-            );
+            if (deleteModal.type === "single") {
+                const response = await deleteNotificationById(
+                    deleteModal.notification.id
+                );
 
-            setNotifications((previous) =>
-                previous.filter(
-                    (notification) =>
-                        notification.id !== notificationToDelete.id
-                )
-            );
+                setNotifications((previous) =>
+                    previous.filter(
+                        (notification) =>
+                            notification.id !== deleteModal.notification.id
+                    )
+                );
 
-            setNotificationToDelete(null);
+                showToast(
+                    response.message || "Notification deleted successfully.",
+                    "success"
+                );
+            } else {
+                const response = await deleteAllNotifications();
 
-            showToast(
-                response.message || "Notification deleted successfully.",
-                "success"
-            );
+                setNotifications([]);
+
+                showToast(
+                    response.message ||
+                    "All notifications deleted successfully.",
+                    "success"
+                );
+            }
+
+            setDeleteModal(null);
         } catch (error: unknown) {
             showToast(getErrorMessage(error), "error");
         } finally {
@@ -597,25 +637,42 @@ export default function NotificationsPage() {
                                 </p>
                             </div>
 
-                            <button
-                                type="button"
-                                onClick={handleToggleAllReadStatus}
-                                disabled={
-                                    notifications.length === 0 ||
-                                    isUpdatingAll ||
-                                    updatingNotificationIds.size > 0 ||
-                                    isDeleting
-                                }
-                                className="inline-flex items-center justify-center gap-2 self-start rounded-xl border border-[#D8E8D4] bg-[#F0F7ED] px-4 py-2.5 text-sm font-semibold text-[#166534] transition hover:border-[#B8D8B1] hover:bg-[#E5F2E1] disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
-                            >
-                                <CheckCheck size={16} />
+                            <div className="flex flex-wrap items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={handleToggleAllReadStatus}
+                                    disabled={
+                                        notifications.length === 0 ||
+                                        isUpdatingAll ||
+                                        updatingNotificationIds.size > 0 ||
+                                        isDeleting
+                                    }
+                                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D8E8D4] bg-[#F0F7ED] px-4 py-2.5 text-sm font-semibold text-[#166534] transition hover:border-[#B8D8B1] hover:bg-[#E5F2E1] disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <CheckCheck size={16} />
 
-                                {isUpdatingAll
-                                    ? "Updating..."
-                                    : unreadCount > 0
-                                        ? "Mark all as read"
-                                        : "Mark all as unread"}
-                            </button>
+                                    {isUpdatingAll
+                                        ? "Updating..."
+                                        : unreadCount > 0
+                                            ? "Mark all as read"
+                                            : "Mark all as unread"}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={handleOpenDeleteAllModal}
+                                    disabled={
+                                        notifications.length === 0 ||
+                                        isUpdatingAll ||
+                                        updatingNotificationIds.size > 0 ||
+                                        isDeleting
+                                    }
+                                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <Trash2 size={16} />
+                                    Delete all
+                                </button>
+                            </div>
                         </div>
 
                         {/* Filters */}
@@ -660,7 +717,7 @@ export default function NotificationsPage() {
                                         onToggleReadStatus={
                                             handleToggleNotificationReadStatus
                                         }
-                                        onDelete={handleOpenDeleteModal}
+                                        onDelete={handleOpenSingleDeleteModal}
                                     />
                                 ))}
                             </div>
@@ -709,15 +766,33 @@ export default function NotificationsPage() {
                 </div>
             </main>
 
-            {/* Delete Confirmation Modal */}
+            {/* Shared Delete Confirmation Modal */}
             <ConfirmationModal
-                isOpen={notificationToDelete !== null}
-                title="Delete Notification?"
-                description="Are you sure you want to delete this notification? This action cannot be undone."
-                itemName={notificationToDelete?.title}
-                confirmText="Delete Notification"
+                isOpen={deleteModal !== null}
+                title={
+                    deleteModal?.type === "all"
+                        ? "Delete All Notifications?"
+                        : "Delete Notification?"
+                }
+                description={
+                    deleteModal?.type === "all"
+                        ? "Are you sure you want to delete all your notifications? This will permanently remove every notification from your account. This action cannot be undone."
+                        : "Are you sure you want to delete this notification? This action cannot be undone."
+                }
+                itemName={
+                    deleteModal?.type === "single"
+                        ? deleteModal.notification.title
+                        : deleteModal?.type === "all"
+                            ? `${notifications.length} notifications will be deleted`
+                            : undefined
+                }
+                confirmText={
+                    deleteModal?.type === "all"
+                        ? "Delete All"
+                        : "Delete Notification"
+                }
                 isDeleting={isDeleting}
-                onConfirm={handleDeleteNotification}
+                onConfirm={handleConfirmDelete}
                 onCancel={handleCloseDeleteModal}
             />
         </>
