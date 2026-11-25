@@ -24,3 +24,7 @@ export interface NotificationItem {
 }
 
 export type NotificationResponse = NotificationItem[];
+
+export interface ToggleAllNotificationsReadStatusResponse {
+    message: string;
+}
