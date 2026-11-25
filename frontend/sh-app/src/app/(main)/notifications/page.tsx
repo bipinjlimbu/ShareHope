@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -30,7 +29,11 @@ import type {
     NotificationType,
 } from "@/types/notification";
 
-import { getNotifications } from "@/services/notificationService";
+import {
+    getNotifications,
+    toggleAllNotificationsReadStatus,
+} from "@/services/notificationService";
+
 import { getAuthStatus } from "@/lib/authStatus";
 import { useToast } from "@/components/toast/ToastProvider";
 
@@ -162,6 +165,7 @@ export default function NotificationsPage() {
     const [isAuthChecked, setIsAuthChecked] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState(false);
+    const [isUpdatingAll, setIsUpdatingAll] = useState(false);
 
     const redirectingRef = useRef(false);
 
@@ -242,6 +246,38 @@ export default function NotificationsPage() {
         }
     }, [notifications, activeFilter]);
 
+    // Toggle all notifications between read and unread.
+    const handleToggleAllReadStatus = async () => {
+        if (notifications.length === 0 || isUpdatingAll) return;
+
+        setIsUpdatingAll(true);
+
+        try {
+            const response = await toggleAllNotificationsReadStatus();
+
+            // Check the exact backend response to distinguish "read" from "unread".
+            const markedAsRead =
+                response.message === "All notifications marked as read.";
+
+            setNotifications((previous) =>
+                previous.map((notification) => ({
+                    ...notification,
+                    is_read: markedAsRead,
+                }))
+            );
+
+            showToast(
+                response.message || "Notification status updated successfully.",
+                "success"
+            );
+        } catch (error: unknown) {
+            showToast(getErrorMessage(error), "error");
+        } finally {
+            setIsUpdatingAll(false);
+        }
+    };
+
+    // Local UI update for an individual notification.
     const handleMarkAsRead = (notificationId: number) => {
         setNotifications((previous) =>
             previous.map((notification) =>
@@ -249,15 +285,6 @@ export default function NotificationsPage() {
                     ? { ...notification, is_read: true }
                     : notification
             )
-        );
-    };
-
-    const handleMarkAllAsRead = () => {
-        setNotifications((previous) =>
-            previous.map((notification) => ({
-                ...notification,
-                is_read: true,
-            }))
         );
     };
 
@@ -456,12 +483,19 @@ export default function NotificationsPage() {
 
                         <button
                             type="button"
-                            onClick={handleMarkAllAsRead}
-                            disabled={unreadCount === 0}
+                            onClick={handleToggleAllReadStatus}
+                            disabled={
+                                notifications.length === 0 || isUpdatingAll
+                            }
                             className="inline-flex items-center justify-center gap-2 self-start rounded-xl border border-[#D8E8D4] bg-[#F0F7ED] px-4 py-2.5 text-sm font-semibold text-[#166534] transition hover:border-[#B8D8B1] hover:bg-[#E5F2E1] disabled:cursor-not-allowed disabled:opacity-50 sm:self-auto"
                         >
                             <CheckCheck size={16} />
-                            Mark all as read
+
+                            {isUpdatingAll
+                                ? "Updating..."
+                                : unreadCount > 0
+                                    ? "Mark all as read"
+                                    : "Mark all as unread"}
                         </button>
                     </div>
 
