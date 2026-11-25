@@ -1,13 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import Image from "next/image";
+
 import { Bell } from "lucide-react";
+
 import type { AuthUser } from "@/types/auth";
+import type { NotificationResponse } from "@/types/notification";
+
 import { getProfile } from "@/services/profileService";
+import { getNotifications } from "@/services/notificationService";
+
 import { getAuthStatus } from "@/lib/authStatus";
+
 import LogoutButton from "@/components/main/LogoutButton";
+
 import NavbarDataFetchSkeleton from "@/components/skeleton/main/NavbarDataFetchSkeleton";
+
 import NavLogo from "@/images/NavLogo.png";
 
 const links = [
@@ -20,8 +30,12 @@ const links = [
 
 export default function Navbar() {
     const [menuOpen, setMenuOpen] = useState(false);
+
     const [user, setUser] = useState<AuthUser | null>(null);
+
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+    const [unreadCount, setUnreadCount] = useState(0);
 
     useEffect(() => {
         let active = true;
@@ -30,22 +44,49 @@ export default function Navbar() {
         async function syncUser() {
             if (!getAuthStatus()) {
                 requestId++;
+
                 setUser(null);
+                setUnreadCount(0);
                 setIsCheckingAuth(false);
+
                 return;
             }
 
             const currentRequestId = ++requestId;
 
             try {
-                const response = await getProfile();
+                const [profileResult, notificationsResult] =
+                    await Promise.allSettled([
+                        getProfile(),
+                        getNotifications(),
+                    ]);
 
-                if (active && currentRequestId === requestId) {
-                    setUser(response.user);
+                if (!active || currentRequestId !== requestId) {
+                    return;
+                }
+
+                if (profileResult.status === "fulfilled") {
+                    setUser(profileResult.value.user);
+                } else {
+                    setUser(null);
+                }
+
+                if (notificationsResult.status === "fulfilled") {
+                    const notifications: NotificationResponse =
+                        notificationsResult.value;
+
+                    const totalUnread = notifications.filter(
+                        (notification) => !notification.is_read
+                    ).length;
+
+                    setUnreadCount(totalUnread);
+                } else {
+                    setUnreadCount(0);
                 }
             } catch {
                 if (active && currentRequestId === requestId) {
                     setUser(null);
+                    setUnreadCount(0);
                 }
             } finally {
                 if (active && currentRequestId === requestId) {
@@ -61,8 +102,11 @@ export default function Navbar() {
 
             if (customEvent.detail?.authenticated === false) {
                 requestId++;
+
                 setUser(null);
+                setUnreadCount(0);
                 setIsCheckingAuth(false);
+
                 return;
             }
 
@@ -74,7 +118,9 @@ export default function Navbar() {
                 void syncUser();
             } else {
                 requestId++;
+
                 setUser(null);
+                setUnreadCount(0);
                 setIsCheckingAuth(false);
             }
         }
@@ -99,6 +145,7 @@ export default function Navbar() {
     }, []);
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/?$/, "");
+
     const username = user?.username ?? "";
 
     const profileLinkClass =
@@ -108,10 +155,37 @@ export default function Navbar() {
         "rounded-xl border border-[#DDE7DC] px-4 py-2.5 text-sm font-semibold text-[#31523C] transition hover:border-red-200 hover:bg-red-50 hover:text-red-700";
 
     const notificationLinkClass =
-        "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#31523C] transition hover:text-[#166534]";
+        "relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-[#31523C] transition hover:bg-[#EDF5EC] hover:text-[#166534]";
 
     function closeMenu() {
         setMenuOpen(false);
+    }
+
+    function NotificationBell() {
+        return (
+            <a
+                href="/notifications"
+                className={notificationLinkClass}
+                aria-label={
+                    unreadCount > 0
+                        ? `Notifications, ${unreadCount} unread`
+                        : "Notifications"
+                }
+                title={
+                    unreadCount > 0
+                        ? `${unreadCount} unread notifications`
+                        : "Notifications"
+                }
+            >
+                <Bell size={21} strokeWidth={1.8} />
+
+                {unreadCount > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 flex h-[19px] min-w-[19px] items-center justify-center rounded-full border-2 border-[#FFFCF6] bg-red-500 px-1 text-[10px] font-bold leading-none text-white shadow-sm">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                )}
+            </a>
+        );
     }
 
     return (
@@ -147,14 +221,7 @@ export default function Navbar() {
                         <NavbarDataFetchSkeleton />
                     ) : user ? (
                         <>
-                            <a
-                                href="/notifications"
-                                className={notificationLinkClass}
-                                aria-label="Notifications"
-                                title="Notifications"
-                            >
-                                <Bell size={21} strokeWidth={1.8} />
-                            </a>
+                            <NotificationBell />
 
                             <a
                                 href="/profile"
@@ -261,15 +328,9 @@ export default function Navbar() {
                         ) : user ? (
                             <>
                                 <div className="mt-2 flex items-center gap-2">
-                                    <a
-                                        href="/notifications"
-                                        onClick={closeMenu}
-                                        className={notificationLinkClass}
-                                        aria-label="Notifications"
-                                        title="Notifications"
-                                    >
-                                        <Bell size={21} strokeWidth={1.8} />
-                                    </a>
+                                    <div onClick={closeMenu}>
+                                        <NotificationBell />
+                                    </div>
 
                                     <a
                                         href="/profile"
