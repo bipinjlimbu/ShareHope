@@ -23,6 +23,8 @@ import {
     Filter,
     RotateCcw,
     Trash2,
+    RefreshCw,
+    AlertTriangle,
 } from "lucide-react";
 
 import type { LucideIcon } from "lucide-react";
@@ -42,6 +44,7 @@ import {
 import { getAuthStatus } from "@/lib/authStatus";
 import { useToast } from "@/components/toast/ToastProvider";
 import ConfirmationModal from "@/components/common/ConfirmationModal";
+import NotificationsDataFetchSkeleton from "@/components/skeleton/main/NotificationsDataFetchSkeleton";
 
 type NotificationFilter = "ALL" | "UNREAD" | "READ";
 
@@ -165,6 +168,30 @@ function formatNotificationDate(dateString: string): string {
     });
 }
 
+function NotificationsPageHeader() {
+    return (
+        <header className="mb-10 text-center">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#D8E8D4] bg-[#F0F7ED] px-4 py-2 text-sm font-semibold text-[#166534]">
+                <Bell size={16} />
+                Your Updates
+            </span>
+
+            <h1 className="mt-5 text-3xl font-extrabold tracking-tight text-[#183B2A] sm:text-4xl lg:text-5xl">
+                Notifications
+                <span className="block text-[#29904C]">
+                    Stay Connected
+                </span>
+            </h1>
+
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-[#647568] sm:text-base">
+                Stay informed about your donations, campaigns,
+                organization activities, and important updates
+                from ShareHope.
+            </p>
+        </header>
+    );
+}
+
 export default function NotificationsPage() {
     const router = useRouter();
     const { showToast } = useToast();
@@ -173,7 +200,7 @@ export default function NotificationsPage() {
     const [activeFilter, setActiveFilter] =
         useState<NotificationFilter>("ALL");
 
-    const [isAuthChecked, setIsAuthChecked] = useState(false);
+    // Loading starts immediately, so the skeleton appears on first render.
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState(false);
     const [isUpdatingAll, setIsUpdatingAll] = useState(false);
@@ -187,9 +214,46 @@ export default function NotificationsPage() {
     const [isDeleting, setIsDeleting] = useState(false);
 
     const redirectingRef = useRef(false);
+    const authCheckCompletedRef = useRef(false);
+    const mountedRef = useRef(false);
 
-    // Authentication check.
+    // Fetch notifications.
+    const loadNotifications = useCallback(async () => {
+        if (!getAuthStatus()) {
+            if (!redirectingRef.current) {
+                redirectingRef.current = true;
+                router.replace("/login");
+            }
+
+            setIsLoading(true);
+            return;
+        }
+
+        setIsLoading(true);
+        setLoadError(false);
+
+        try {
+            const response = await getNotifications();
+
+            if (!mountedRef.current) return;
+
+            setNotifications(response);
+        } catch (error: unknown) {
+            if (!mountedRef.current) return;
+
+            setLoadError(true);
+            showToast(getErrorMessage(error), "error");
+        } finally {
+            if (mountedRef.current) {
+                setIsLoading(false);
+            }
+        }
+    }, [router, showToast]);
+
+    // Authentication check and initial notification fetch.
     useEffect(() => {
+        mountedRef.current = true;
+
         const checkAuthStatus = () => {
             if (!getAuthStatus()) {
                 if (!redirectingRef.current) {
@@ -203,11 +267,16 @@ export default function NotificationsPage() {
                     router.replace("/login");
                 }
 
+                setIsLoading(true);
                 return;
             }
 
             redirectingRef.current = false;
-            setIsAuthChecked(true);
+
+            if (!authCheckCompletedRef.current) {
+                authCheckCompletedRef.current = true;
+                void loadNotifications();
+            }
         };
 
         checkAuthStatus();
@@ -215,31 +284,10 @@ export default function NotificationsPage() {
         window.addEventListener("auth-change", checkAuthStatus);
 
         return () => {
+            mountedRef.current = false;
             window.removeEventListener("auth-change", checkAuthStatus);
         };
-    }, [router, showToast]);
-
-    // Fetch notifications.
-    const loadNotifications = useCallback(async () => {
-        setIsLoading(true);
-        setLoadError(false);
-
-        try {
-            const response = await getNotifications();
-            setNotifications(response);
-        } catch (error: unknown) {
-            setLoadError(true);
-            showToast(getErrorMessage(error), "error");
-        } finally {
-            setIsLoading(false);
-        }
-    }, [showToast]);
-
-    useEffect(() => {
-        if (!isAuthChecked) return;
-
-        void loadNotifications();
-    }, [isAuthChecked, loadNotifications]);
+    }, [router, showToast, loadNotifications]);
 
     const unreadCount = notifications.filter(
         (notification) => !notification.is_read
@@ -465,308 +513,238 @@ export default function NotificationsPage() {
             },
         ];
 
-    // Authentication loading state.
-    if (!isAuthChecked || redirectingRef.current) {
-        return (
-            <main className="flex min-h-[65vh] items-center justify-center bg-[#FFFCF6] px-5 py-16 sm:px-8">
-                <div className="flex flex-col items-center text-center">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
-                        <Bell size={26} />
-                    </div>
-
-                    <div className="mt-5 h-6 w-36 animate-pulse rounded-lg bg-[#E5EDE3]" />
-
-                    <p className="mt-3 text-sm text-[#829184]">
-                        Checking your account...
-                    </p>
-                </div>
-            </main>
-        );
-    }
-
-    // Notification loading state.
-    if (isLoading) {
-        return (
-            <main className="min-h-screen bg-[#FFFCF6] px-5 py-12 sm:px-8 sm:py-16">
-                <div className="mx-auto max-w-7xl">
-                    <div className="mb-10 text-center">
-                        <div className="mx-auto h-9 w-36 animate-pulse rounded-full bg-[#E5EDE3]" />
-
-                        <div className="mx-auto mt-5 h-12 w-72 max-w-full animate-pulse rounded-xl bg-[#E5EDE3]" />
-
-                        <div className="mx-auto mt-4 h-4 max-w-md animate-pulse rounded-lg bg-[#E5EDE3]" />
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                        {[1, 2, 3].map((item) => (
-                            <div
-                                key={item}
-                                className="flex items-center gap-4 rounded-2xl border border-[#E5EDE3] bg-white p-5"
-                            >
-                                <div className="h-12 w-12 animate-pulse rounded-xl bg-[#E5F2E1]" />
-
-                                <div className="flex-1 space-y-2">
-                                    <div className="h-3 w-32 animate-pulse rounded bg-[#E5EDE3]" />
-                                    <div className="h-6 w-12 animate-pulse rounded bg-[#E5EDE3]" />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="mt-8 space-y-3">
-                        {[1, 2, 3, 4].map((item) => (
-                            <div
-                                key={item}
-                                className="flex items-start gap-4 rounded-2xl border border-[#E5EDE3] bg-white p-5"
-                            >
-                                <div className="h-12 w-12 animate-pulse rounded-xl bg-[#E5F2E1]" />
-
-                                <div className="flex-1 space-y-3">
-                                    <div className="h-4 w-48 max-w-full animate-pulse rounded bg-[#E5EDE3]" />
-                                    <div className="h-3 w-full animate-pulse rounded bg-[#E5EDE3]" />
-                                    <div className="h-3 w-28 animate-pulse rounded bg-[#E5EDE3]" />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </main>
-        );
-    }
-
-    // Notification loading error.
-    if (loadError) {
-        return (
-            <main className="flex min-h-[65vh] items-center justify-center bg-[#FFFCF6] px-5 py-16 sm:px-8">
-                <div className="text-center">
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F0F6ED] text-[#166534]">
-                        <Bell size={28} />
-                    </div>
-
-                    <h1 className="mt-5 text-2xl font-extrabold text-[#14532D]">
-                        Unable to load notifications
-                    </h1>
-
-                    <p className="mt-3 text-sm leading-6 text-[#718174]">
-                        Something went wrong while retrieving your notifications.
-                        Please try again.
-                    </p>
-
-                    <button
-                        type="button"
-                        onClick={() => void loadNotifications()}
-                        className="mt-6 inline-flex items-center justify-center rounded-xl bg-[#166534] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#14532D]"
-                    >
-                        Try again
-                    </button>
-                </div>
-            </main>
-        );
-    }
-
     return (
         <>
             <main className="min-h-screen bg-[#FFFCF6] px-5 py-12 sm:px-8 sm:py-16">
                 <div className="mx-auto max-w-7xl">
-
                     {/* Page Header */}
-                    <header className="mb-10 text-center">
-                        <span className="inline-flex items-center gap-2 rounded-full border border-[#D8E8D4] bg-[#F0F7ED] px-4 py-2 text-sm font-semibold text-[#166534]">
-                            <Bell size={16} />
-                            Your Updates
-                        </span>
+                    <NotificationsPageHeader />
 
-                        <h1 className="mt-5 text-3xl font-extrabold tracking-tight text-[#183B2A] sm:text-4xl lg:text-5xl">
-                            Notifications
-                            <span className="block text-[#29904C]">
-                                Stay Connected
-                            </span>
-                        </h1>
+                    {/* Data Fetch Error */}
+                    {loadError ? (
+                        <section className="rounded-3xl border border-dashed border-[#D5E3D0] bg-white px-6 py-16 text-center">
+                            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 text-red-600">
+                                <AlertTriangle size={28} />
+                            </div>
 
-                        <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-[#647568] sm:text-base">
-                            Stay informed about your donations, campaigns,
-                            organization activities, and important updates
-                            from ShareHope.
-                        </p>
-                    </header>
+                            <h2 className="mt-5 text-xl font-bold text-[#183B2A]">
+                                Unable to load notifications
+                            </h2>
 
-                    {/* Notification Summary */}
-                    <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                        <SummaryCard
-                            icon={Bell}
-                            label="Total Notifications"
-                            value={notifications.length}
-                            iconColor="text-[#166534]"
-                            iconBackground="bg-[#E5F2E1]"
-                        />
+                            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#647568]">
+                                Something went wrong while retrieving your
+                                notifications. Please try again.
+                            </p>
 
-                        <SummaryCard
-                            icon={Inbox}
-                            label="Unread Notifications"
-                            value={unreadCount}
-                            iconColor="text-orange-600"
-                            iconBackground="bg-orange-50"
-                        />
+                            <button
+                                type="button"
+                                onClick={() => void loadNotifications()}
+                                className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-[#166534] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#14532D] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#35A45C]/20"
+                            >
+                                <RefreshCw size={16} />
+                                Try again
+                            </button>
+                        </section>
+                    ) : isLoading ? (
+                        <NotificationsDataFetchSkeleton />
+                    ) : (
+                        <>
+                            {/* Notification Summary */}
+                            <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                                <SummaryCard
+                                    icon={Bell}
+                                    label="Total Notifications"
+                                    value={notifications.length}
+                                    iconColor="text-[#166534]"
+                                    iconBackground="bg-[#E5F2E1]"
+                                />
 
-                        <SummaryCard
-                            icon={CheckCheck}
-                            label="Read Notifications"
-                            value={readCount}
-                            iconColor="text-blue-600"
-                            iconBackground="bg-blue-50"
-                        />
-                    </section>
+                                <SummaryCard
+                                    icon={Inbox}
+                                    label="Unread Notifications"
+                                    value={unreadCount}
+                                    iconColor="text-orange-600"
+                                    iconBackground="bg-orange-50"
+                                />
 
-                    {/* Notification Toolbar */}
-                    <section className="mb-6 rounded-3xl border border-[#E5EDE3] bg-white p-4 shadow-sm sm:p-5">
-                        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <Filter
-                                        size={17}
-                                        className="text-[#29904C]"
-                                    />
+                                <SummaryCard
+                                    icon={CheckCheck}
+                                    label="Read Notifications"
+                                    value={readCount}
+                                    iconColor="text-blue-600"
+                                    iconBackground="bg-blue-50"
+                                />
+                            </section>
 
-                                    <h2 className="text-base font-bold text-[#183B2A]">
-                                        Your Activity
-                                    </h2>
+                            {/* Notification Toolbar */}
+                            <section className="mb-6 rounded-3xl border border-[#E5EDE3] bg-white p-4 shadow-sm sm:p-5">
+                                <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <Filter
+                                                size={17}
+                                                className="text-[#29904C]"
+                                            />
+
+                                            <h2 className="text-base font-bold text-[#183B2A]">
+                                                Your Activity
+                                            </h2>
+                                        </div>
+
+                                        <p className="mt-1 text-xs text-[#829184]">
+                                            Manage and keep track of your
+                                            notifications.
+                                        </p>
+                                    </div>
+
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={handleToggleAllReadStatus}
+                                            disabled={
+                                                notifications.length === 0 ||
+                                                isUpdatingAll ||
+                                                updatingNotificationIds.size > 0 ||
+                                                isDeleting
+                                            }
+                                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D8E8D4] bg-[#F0F7ED] px-4 py-2.5 text-sm font-semibold text-[#166534] transition hover:border-[#B8D8B1] hover:bg-[#E5F2E1] disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                            <CheckCheck size={16} />
+
+                                            {isUpdatingAll
+                                                ? "Updating..."
+                                                : unreadCount > 0
+                                                    ? "Mark all as read"
+                                                    : "Mark all as unread"}
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={handleOpenDeleteAllModal}
+                                            disabled={
+                                                notifications.length === 0 ||
+                                                isUpdatingAll ||
+                                                updatingNotificationIds.size > 0 ||
+                                                isDeleting
+                                            }
+                                            className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                            <Trash2 size={16} />
+                                            Delete all
+                                        </button>
+                                    </div>
                                 </div>
 
-                                <p className="mt-1 text-xs text-[#829184]">
-                                    Manage and keep track of your notifications.
-                                </p>
-                            </div>
+                                {/* Filters */}
+                                <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-[#EDF2E9] pt-4">
+                                    {filters.map((filter) => (
+                                        <button
+                                            key={filter.value}
+                                            type="button"
+                                            onClick={() =>
+                                                setActiveFilter(filter.value)
+                                            }
+                                            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${activeFilter === filter.value
+                                                ? "bg-[#166534] text-white shadow-sm"
+                                                : "border border-[#E5EDE3] bg-white text-[#647568] hover:border-[#B8D8B1] hover:bg-[#F0F7ED] hover:text-[#166534]"
+                                                }`}
+                                        >
+                                            {filter.label}
 
-                            <div className="flex flex-wrap items-center gap-2">
-                                <button
-                                    type="button"
-                                    onClick={handleToggleAllReadStatus}
-                                    disabled={
-                                        notifications.length === 0 ||
-                                        isUpdatingAll ||
-                                        updatingNotificationIds.size > 0 ||
-                                        isDeleting
-                                    }
-                                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D8E8D4] bg-[#F0F7ED] px-4 py-2.5 text-sm font-semibold text-[#166534] transition hover:border-[#B8D8B1] hover:bg-[#E5F2E1] disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                    <CheckCheck size={16} />
+                                            <span
+                                                className={`rounded-full px-2 py-0.5 text-xs ${activeFilter === filter.value
+                                                    ? "bg-white/20 text-white"
+                                                    : "bg-[#F0F7ED] text-[#166534]"
+                                                    }`}
+                                            >
+                                                {filter.count}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </section>
 
-                                    {isUpdatingAll
-                                        ? "Updating..."
-                                        : unreadCount > 0
-                                            ? "Mark all as read"
-                                            : "Mark all as unread"}
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={handleOpenDeleteAllModal}
-                                    disabled={
-                                        notifications.length === 0 ||
-                                        isUpdatingAll ||
-                                        updatingNotificationIds.size > 0 ||
-                                        isDeleting
-                                    }
-                                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                    <Trash2 size={16} />
-                                    Delete all
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Filters */}
-                        <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-[#EDF2E9] pt-4">
-                            {filters.map((filter) => (
-                                <button
-                                    key={filter.value}
-                                    type="button"
-                                    onClick={() => setActiveFilter(filter.value)}
-                                    className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition ${activeFilter === filter.value
-                                        ? "bg-[#166534] text-white shadow-sm"
-                                        : "border border-[#E5EDE3] bg-white text-[#647568] hover:border-[#B8D8B1] hover:bg-[#F0F7ED] hover:text-[#166534]"
-                                        }`}
-                                >
-                                    {filter.label}
-
-                                    <span
-                                        className={`rounded-full px-2 py-0.5 text-xs ${activeFilter === filter.value
-                                            ? "bg-white/20 text-white"
-                                            : "bg-[#F0F7ED] text-[#166534]"
-                                            }`}
-                                    >
-                                        {filter.count}
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
-                    </section>
-
-                    {/* Notification List */}
-                    <section aria-label="Notifications">
-                        {filteredNotifications.length > 0 ? (
-                            <div className="space-y-3">
-                                {filteredNotifications.map((notification) => (
-                                    <NotificationCard
-                                        key={notification.id}
-                                        notification={notification}
-                                        isUpdating={updatingNotificationIds.has(
-                                            notification.id
+                            {/* Notification List */}
+                            <section aria-label="Notifications">
+                                {filteredNotifications.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {filteredNotifications.map(
+                                            (notification) => (
+                                                <NotificationCard
+                                                    key={notification.id}
+                                                    notification={notification}
+                                                    isUpdating={updatingNotificationIds.has(
+                                                        notification.id
+                                                    )}
+                                                    isDeleting={isDeleting}
+                                                    onToggleReadStatus={
+                                                        handleToggleNotificationReadStatus
+                                                    }
+                                                    onDelete={
+                                                        handleOpenSingleDeleteModal
+                                                    }
+                                                />
+                                            )
                                         )}
-                                        isDeleting={isDeleting}
-                                        onToggleReadStatus={
-                                            handleToggleNotificationReadStatus
-                                        }
-                                        onDelete={handleOpenSingleDeleteModal}
-                                    />
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="rounded-3xl border border-dashed border-[#D5E3D0] bg-white px-6 py-16 text-center">
-                                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
-                                    <Inbox size={30} strokeWidth={1.6} />
-                                </div>
+                                    </div>
+                                ) : (
+                                    <div className="rounded-3xl border border-dashed border-[#D5E3D0] bg-white px-6 py-16 text-center">
+                                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
+                                            <Inbox
+                                                size={30}
+                                                strokeWidth={1.6}
+                                            />
+                                        </div>
 
-                                <h2 className="mt-5 text-xl font-bold text-[#183B2A]">
-                                    {activeFilter === "UNREAD"
-                                        ? "You're all caught up!"
-                                        : activeFilter === "READ"
-                                            ? "No read notifications"
-                                            : "No notifications yet"}
-                                </h2>
+                                        <h2 className="mt-5 text-xl font-bold text-[#183B2A]">
+                                            {activeFilter === "UNREAD"
+                                                ? "You're all caught up!"
+                                                : activeFilter === "READ"
+                                                    ? "No read notifications"
+                                                    : "No notifications yet"}
+                                        </h2>
 
-                                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#647568]">
-                                    {activeFilter === "UNREAD"
-                                        ? "You don't have any unread notifications at the moment."
-                                        : activeFilter === "READ"
-                                            ? "Notifications you have already read will appear here."
-                                            : "When there's something new, your notifications will appear here."}
-                                </p>
+                                        <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#647568]">
+                                            {activeFilter === "UNREAD"
+                                                ? "You don't have any unread notifications at the moment."
+                                                : activeFilter === "READ"
+                                                    ? "Notifications you have already read will appear here."
+                                                    : "When there's something new, your notifications will appear here."}
+                                        </p>
 
-                                {activeFilter !== "ALL" && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setActiveFilter("ALL")}
-                                        className="mt-5 rounded-xl bg-[#166534] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14532D]"
-                                    >
-                                        View all notifications
-                                    </button>
+                                        {activeFilter !== "ALL" && (
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    setActiveFilter("ALL")
+                                                }
+                                                className="mt-5 rounded-xl bg-[#166534] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14532D]"
+                                            >
+                                                View all notifications
+                                            </button>
+                                        )}
+                                    </div>
                                 )}
-                            </div>
-                        )}
-                    </section>
+                            </section>
 
-                    {/* Footer Note */}
-                    <div className="mt-8 flex items-center justify-center gap-2 text-center text-xs text-[#829184]">
-                        <Sparkles size={14} className="text-[#29904C]" />
-                        <p>
-                            Stay connected with everything happening on ShareHope.
-                        </p>
-                    </div>
+                            {/* Footer Note */}
+                            <div className="mt-8 flex items-center justify-center gap-2 text-center text-xs text-[#829184]">
+                                <Sparkles
+                                    size={14}
+                                    className="text-[#29904C]"
+                                />
+
+                                <p>
+                                    Stay connected with everything happening
+                                    on ShareHope.
+                                </p>
+                            </div>
+                        </>
+                    )}
                 </div>
             </main>
 
-            {/* Shared Delete Confirmation Modal */}
+            {/* Delete Confirmation Modal */}
             <ConfirmationModal
                 isOpen={deleteModal !== null}
                 title={
@@ -908,7 +886,6 @@ function NotificationCard({
 
             {/* Notification Actions */}
             <div className="flex shrink-0 items-start gap-2">
-                {/* Toggle Read / Unread */}
                 <button
                     type="button"
                     onClick={() => onToggleReadStatus(notification.id)}
@@ -934,7 +911,6 @@ function NotificationCard({
                     )}
                 </button>
 
-                {/* Delete Notification */}
                 <button
                     type="button"
                     onClick={() => onDelete(notification)}
