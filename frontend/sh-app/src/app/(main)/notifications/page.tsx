@@ -7,16 +7,6 @@ import {
     Bell,
     Check,
     CheckCheck,
-    Building2,
-    UserRound,
-    UserCircle,
-    Megaphone,
-    HandHeart,
-    Star,
-    Mail,
-    CreditCard,
-    FileText,
-    ClipboardCheck,
     Inbox,
     Sparkles,
     Clock3,
@@ -25,13 +15,11 @@ import {
     Trash2,
     RefreshCw,
     AlertTriangle,
+    ArrowUpRight,
 } from "lucide-react";
 
 import type { LucideIcon } from "lucide-react";
-import type {
-    NotificationItem,
-    NotificationType,
-} from "@/types/notification";
+import type { NotificationItem } from "@/types/notification";
 
 import {
     getNotifications,
@@ -46,14 +34,11 @@ import { useToast } from "@/components/toast/ToastProvider";
 import ConfirmationModal from "@/components/common/ConfirmationModal";
 import NotificationsDataFetchSkeleton from "@/components/skeleton/main/NotificationsDataFetchSkeleton";
 
-type NotificationFilter = "ALL" | "UNREAD" | "READ";
+import {
+    getNotificationConfiguration,
+} from "@/config/notifications-configuration";
 
-type NotificationStyle = {
-    icon: LucideIcon;
-    iconColor: string;
-    iconBackground: string;
-    label: string;
-};
+type NotificationFilter = "ALL" | "UNREAD" | "READ";
 
 type DeleteModalState =
     | { type: "single"; notification: NotificationItem }
@@ -71,75 +56,6 @@ function getErrorMessage(error: unknown): string {
 
     return "Something went wrong. Please try again.";
 }
-
-const notificationStyles: Record<NotificationType, NotificationStyle> = {
-    USER: {
-        icon: UserCircle,
-        iconColor: "text-blue-600",
-        iconBackground: "bg-blue-50",
-        label: "Account",
-    },
-    NGO: {
-        icon: Building2,
-        iconColor: "text-emerald-700",
-        iconBackground: "bg-emerald-50",
-        label: "Organization",
-    },
-    PROFILE: {
-        icon: UserRound,
-        iconColor: "text-violet-600",
-        iconBackground: "bg-violet-50",
-        label: "Profile",
-    },
-    CAMPAIGN: {
-        icon: Megaphone,
-        iconColor: "text-orange-600",
-        iconBackground: "bg-orange-50",
-        label: "Campaign",
-    },
-    DONATION: {
-        icon: HandHeart,
-        iconColor: "text-pink-600",
-        iconBackground: "bg-pink-50",
-        label: "Donation",
-    },
-    TESTIMONIAL: {
-        icon: Star,
-        iconColor: "text-amber-600",
-        iconBackground: "bg-amber-50",
-        label: "Testimonial",
-    },
-    INVITATION: {
-        icon: Mail,
-        iconColor: "text-indigo-600",
-        iconBackground: "bg-indigo-50",
-        label: "Invitation",
-    },
-    CONTACT: {
-        icon: Mail,
-        iconColor: "text-cyan-600",
-        iconBackground: "bg-cyan-50",
-        label: "Contact",
-    },
-    PAYMENT: {
-        icon: CreditCard,
-        iconColor: "text-green-700",
-        iconBackground: "bg-green-50",
-        label: "Payment",
-    },
-    REPORT: {
-        icon: FileText,
-        iconColor: "text-sky-600",
-        iconBackground: "bg-sky-50",
-        label: "Report",
-    },
-    AUDIT: {
-        icon: ClipboardCheck,
-        iconColor: "text-slate-600",
-        iconBackground: "bg-slate-100",
-        label: "Audit",
-    },
-};
 
 function formatNotificationDate(dateString: string): string {
     const date = new Date(dateString);
@@ -200,12 +116,14 @@ export default function NotificationsPage() {
     const [activeFilter, setActiveFilter] =
         useState<NotificationFilter>("ALL");
 
-    // Loading starts immediately, so the skeleton appears on first render.
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState(false);
     const [isUpdatingAll, setIsUpdatingAll] = useState(false);
 
     const [updatingNotificationIds, setUpdatingNotificationIds] =
+        useState<Set<number>>(new Set());
+
+    const [openingNotificationIds, setOpeningNotificationIds] =
         useState<Set<number>>(new Set());
 
     const [deleteModal, setDeleteModal] =
@@ -312,12 +230,77 @@ export default function NotificationsPage() {
         }
     }, [notifications, activeFilter]);
 
+    // Open a notification, mark it as read if necessary, then navigate.
+    const handleOpenNotification = async (
+        notification: NotificationItem,
+        href: string
+    ) => {
+        if (
+            openingNotificationIds.has(notification.id) ||
+            updatingNotificationIds.has(notification.id) ||
+            isUpdatingAll ||
+            isDeleting
+        ) {
+            return;
+        }
+
+        // Already read: navigate without making an API request.
+        if (notification.is_read) {
+            router.push(href);
+            return;
+        }
+
+        setOpeningNotificationIds((previous) => {
+            const updated = new Set(previous);
+            updated.add(notification.id);
+            return updated;
+        });
+
+        try {
+            // Only unread notifications reach this API call.
+            const response = await toggleNotificationReadStatus(
+                notification.id
+            );
+
+            const markedAsRead = response.message
+                .toLowerCase()
+                .includes("marked as read");
+
+            if (!markedAsRead) {
+                throw new Error(
+                    "Unable to mark this notification as read."
+                );
+            }
+
+            // Update the notification in the current page.
+            setNotifications((previous) =>
+                previous.map((item) =>
+                    item.id === notification.id
+                        ? { ...item, is_read: true }
+                        : item
+                )
+            );
+
+            // Navigate after successfully marking it as read.
+            router.push(href);
+        } catch (error: unknown) {
+            showToast(getErrorMessage(error), "error");
+        } finally {
+            setOpeningNotificationIds((previous) => {
+                const updated = new Set(previous);
+                updated.delete(notification.id);
+                return updated;
+            });
+        }
+    };
+
     // Toggle all notifications between read and unread.
     const handleToggleAllReadStatus = async () => {
         if (
             notifications.length === 0 ||
             isUpdatingAll ||
             updatingNotificationIds.size > 0 ||
+            openingNotificationIds.size > 0 ||
             isDeleting
         ) {
             return;
@@ -355,6 +338,7 @@ export default function NotificationsPage() {
     ) => {
         if (
             updatingNotificationIds.has(notificationId) ||
+            openingNotificationIds.has(notificationId) ||
             isUpdatingAll ||
             isDeleting
         ) {
@@ -416,6 +400,7 @@ export default function NotificationsPage() {
         if (
             isUpdatingAll ||
             updatingNotificationIds.size > 0 ||
+            openingNotificationIds.size > 0 ||
             isDeleting
         ) {
             return;
@@ -433,6 +418,7 @@ export default function NotificationsPage() {
             notifications.length === 0 ||
             isUpdatingAll ||
             updatingNotificationIds.size > 0 ||
+            openingNotificationIds.size > 0 ||
             isDeleting
         ) {
             return;
@@ -517,10 +503,8 @@ export default function NotificationsPage() {
         <>
             <main className="min-h-screen bg-[#FFFCF6] px-5 py-12 sm:px-8 sm:py-16">
                 <div className="mx-auto max-w-7xl">
-                    {/* Page Header */}
                     <NotificationsPageHeader />
 
-                    {/* Data Fetch Error */}
                     {loadError ? (
                         <section className="rounded-3xl border border-dashed border-[#D5E3D0] bg-white px-6 py-16 text-center">
                             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 text-red-600">
@@ -605,6 +589,7 @@ export default function NotificationsPage() {
                                                 notifications.length === 0 ||
                                                 isUpdatingAll ||
                                                 updatingNotificationIds.size > 0 ||
+                                                openingNotificationIds.size > 0 ||
                                                 isDeleting
                                             }
                                             className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D8E8D4] bg-[#F0F7ED] px-4 py-2.5 text-sm font-semibold text-[#166534] transition hover:border-[#B8D8B1] hover:bg-[#E5F2E1] disabled:cursor-not-allowed disabled:opacity-50"
@@ -625,6 +610,7 @@ export default function NotificationsPage() {
                                                 notifications.length === 0 ||
                                                 isUpdatingAll ||
                                                 updatingNotificationIds.size > 0 ||
+                                                openingNotificationIds.size > 0 ||
                                                 isDeleting
                                             }
                                             className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
@@ -669,22 +655,48 @@ export default function NotificationsPage() {
                                 {filteredNotifications.length > 0 ? (
                                     <div className="space-y-3">
                                         {filteredNotifications.map(
-                                            (notification) => (
-                                                <NotificationCard
-                                                    key={notification.id}
-                                                    notification={notification}
-                                                    isUpdating={updatingNotificationIds.has(
-                                                        notification.id
-                                                    )}
-                                                    isDeleting={isDeleting}
-                                                    onToggleReadStatus={
-                                                        handleToggleNotificationReadStatus
-                                                    }
-                                                    onDelete={
-                                                        handleOpenSingleDeleteModal
-                                                    }
-                                                />
-                                            )
+                                            (notification) => {
+                                                const configuration =
+                                                    getNotificationConfiguration(
+                                                        notification.type,
+                                                        notification.user?.role
+                                                    );
+
+                                                const href =
+                                                    configuration.getHref(
+                                                        notification.user?.role
+                                                    );
+
+                                                return (
+                                                    <NotificationCard
+                                                        key={notification.id}
+                                                        notification={notification}
+                                                        icon={configuration.icon}
+                                                        iconColor={configuration.iconColor}
+                                                        iconBackground={configuration.iconBackground}
+                                                        label={configuration.label}
+                                                        isOpening={openingNotificationIds.has(
+                                                            notification.id
+                                                        )}
+                                                        isUpdating={updatingNotificationIds.has(
+                                                            notification.id
+                                                        )}
+                                                        isDeleting={isDeleting}
+                                                        onOpen={() =>
+                                                            void handleOpenNotification(
+                                                                notification,
+                                                                href
+                                                            )
+                                                        }
+                                                        onToggleReadStatus={
+                                                            handleToggleNotificationReadStatus
+                                                        }
+                                                        onDelete={
+                                                            handleOpenSingleDeleteModal
+                                                        }
+                                                    />
+                                                );
+                                            }
                                         )}
                                     </div>
                                 ) : (
@@ -813,19 +825,30 @@ function SummaryCard({
 
 function NotificationCard({
     notification,
+    icon: Icon,
+    iconColor,
+    iconBackground,
+    label,
+    isOpening,
     isUpdating,
     isDeleting,
+    onOpen,
     onToggleReadStatus,
     onDelete,
 }: {
     notification: NotificationItem;
+    icon: LucideIcon;
+    iconColor: string;
+    iconBackground: string;
+    label: string;
+    isOpening: boolean;
     isUpdating: boolean;
     isDeleting: boolean;
+    onOpen: () => void;
     onToggleReadStatus: (notificationId: number) => void;
     onDelete: (notification: NotificationItem) => void;
 }) {
-    const style = notificationStyles[notification.type];
-    const Icon = style.icon;
+    const isBusy = isOpening || isUpdating || isDeleting;
 
     return (
         <article
@@ -844,19 +867,25 @@ function NotificationCard({
 
             {/* Notification Icon */}
             <div
-                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl sm:h-12 sm:w-12 ${style.iconBackground} ${style.iconColor}`}
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl sm:h-12 sm:w-12 ${iconBackground} ${iconColor}`}
             >
                 <Icon size={21} strokeWidth={1.8} />
             </div>
 
-            {/* Notification Content */}
-            <div className="min-w-0 flex-1">
+            {/* Clickable Notification Content */}
+            <button
+                type="button"
+                onClick={onOpen}
+                disabled={isBusy}
+                className="min-w-0 flex-1 cursor-pointer text-left disabled:cursor-wait"
+                aria-label={`Open notification: ${notification.title}`}
+            >
                 <div className="flex flex-wrap items-center gap-2">
                     <h3
-                        className={`break-words text-sm sm:text-base ${notification.is_read
+                        className={`break-words text-sm transition-colors sm:text-base ${notification.is_read
                             ? "font-semibold text-[#183B2A]"
                             : "font-bold text-[#183B2A]"
-                            }`}
+                            } group-hover:text-[#166534]`}
                     >
                         {notification.title}
                     </h3>
@@ -864,6 +893,15 @@ function NotificationCard({
                     {!notification.is_read && (
                         <span className="h-2 w-2 shrink-0 rounded-full bg-[#29904C]" />
                     )}
+
+                    {isOpening && (
+                        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#29904C] border-t-transparent" />
+                    )}
+
+                    <ArrowUpRight
+                        size={15}
+                        className="shrink-0 text-[#829184] opacity-0 transition group-hover:opacity-100"
+                    />
                 </div>
 
                 <p className="mt-1.5 text-xs leading-6 text-[#647568] sm:text-sm">
@@ -872,9 +910,9 @@ function NotificationCard({
 
                 <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
                     <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${style.iconBackground} ${style.iconColor}`}
+                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${iconBackground} ${iconColor}`}
                     >
-                        {style.label}
+                        {label}
                     </span>
 
                     <span className="inline-flex items-center gap-1.5 text-xs text-[#829184]">
@@ -882,14 +920,15 @@ function NotificationCard({
                         {formatNotificationDate(notification.created_at)}
                     </span>
                 </div>
-            </div>
+            </button>
 
             {/* Notification Actions */}
             <div className="flex shrink-0 items-start gap-2">
+                {/* Toggle Read / Unread */}
                 <button
                     type="button"
                     onClick={() => onToggleReadStatus(notification.id)}
-                    disabled={isUpdating || isDeleting}
+                    disabled={isBusy}
                     title={
                         notification.is_read
                             ? "Mark as unread"
@@ -911,10 +950,11 @@ function NotificationCard({
                     )}
                 </button>
 
+                {/* Delete Notification */}
                 <button
                     type="button"
                     onClick={() => onDelete(notification)}
-                    disabled={isUpdating || isDeleting}
+                    disabled={isBusy}
                     title="Delete notification"
                     aria-label={`Delete ${notification.title}`}
                     className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-100 bg-white text-red-500 transition hover:border-red-500 hover:bg-red-500 hover:text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-red-500/20 disabled:cursor-not-allowed disabled:opacity-50"
