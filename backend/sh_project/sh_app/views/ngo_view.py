@@ -653,18 +653,18 @@ def ngo_staff_detail_view(request, pk):
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def ngo_staff_invitation_view(request):
-    try:
-        ngo = NGO.objects.get(created_by=request.user)
-    except NGO.DoesNotExist:
-        return Response({'error': 'NGO not found for the user.'}, status=status.HTTP_404_NOT_FOUND)
-    
     if request.method == 'GET':
-        invitations = NGOMembershipInvitation.objects.filter(ngo=ngo)
+        invitations = NGOMembershipInvitation.objects.filter(user=request.user)
         serializer = NGOMembershipInvitationSerializer(invitations, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     if request.method == 'POST':
         user_id = request.data.get('user_id')
+        
+        try:
+            ngo = NGO.objects.get(created_by=request.user)
+        except NGO.DoesNotExist:
+            return Response({'error': 'NGO not found for the user.'}, status=status.HTTP_404_NOT_FOUND)
         
         try:
             user = User.objects.get(id=user_id)
