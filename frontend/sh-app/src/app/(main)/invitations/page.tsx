@@ -17,6 +17,10 @@ import {
 
 import { getNGOStaffInvitations } from "@/services/ngoService";
 
+import { useToast } from "@/components/toast/ToastProvider";
+
+import NGOStaffInvitationsDataFetchSkeleton from "@/components/skeleton/main/NGOStaffInvitationsDataFetchSkeleton";
+
 import type {
     NGOStaffInvitationResponse,
     NGOMembershipInvitation,
@@ -41,16 +45,6 @@ function formatInvitationDate(date: string) {
         year: "numeric",
         timeZone: "Asia/Kathmandu",
     });
-}
-
-function getInitials(name: string) {
-    return name
-        .split(" ")
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part[0])
-        .join("")
-        .toUpperCase();
 }
 
 function InvitationCard({
@@ -129,7 +123,6 @@ function InvitationCard({
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#EDF2E9] pt-4">
                     <div className="flex min-w-0 items-center gap-2 text-xs text-[#718174]">
                         <Mail size={14} className="shrink-0" />
-
                         <span className="truncate">{ngo.email}</span>
                     </div>
 
@@ -165,38 +158,9 @@ function InvitationCard({
     );
 }
 
-function InvitationCardSkeleton() {
-    return (
-        <div className="animate-pulse rounded-2xl border border-[#E3EDE0] bg-white p-5 sm:p-6">
-            <div className="flex items-start gap-4">
-                <div className="h-14 w-14 shrink-0 rounded-2xl bg-[#EAF0E7]" />
-
-                <div className="flex-1 space-y-3 pt-1">
-                    <div className="h-4 w-48 max-w-full rounded bg-[#EAF0E7]" />
-                    <div className="h-3 w-64 max-w-full rounded bg-[#F0F3ED]" />
-                </div>
-
-                <div className="hidden h-7 w-32 rounded-full bg-[#F0F3ED] sm:block" />
-            </div>
-
-            <div className="mt-6 space-y-2">
-                <div className="h-3 w-full rounded bg-[#F0F3ED]" />
-                <div className="h-3 w-4/5 rounded bg-[#F0F3ED]" />
-            </div>
-
-            <div className="mt-6 flex flex-col gap-3 border-t border-[#EDF2E9] pt-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="h-3 w-44 rounded bg-[#F0F3ED]" />
-
-                <div className="flex gap-2">
-                    <div className="h-10 w-24 rounded-xl bg-[#EAF0E7]" />
-                    <div className="h-10 w-24 rounded-xl bg-[#FCEEEE]" />
-                </div>
-            </div>
-        </div>
-    );
-}
-
 export default function InvitationsPage() {
+    const { showToast } = useToast();
+
     const [invitations, setInvitations] =
         useState<NGOStaffInvitationResponse>([]);
 
@@ -223,10 +187,11 @@ export default function InvitationsPage() {
                     : "Unable to load your invitations. Please try again.";
 
             setError(errorMessage);
+            showToast(errorMessage, "error");
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [showToast]);
 
     useEffect(() => {
         void fetchInvitations();
@@ -275,7 +240,7 @@ export default function InvitationsPage() {
                     </p>
                 </header>
 
-                {/* Summary */}
+                {/* Summary Cards */}
                 <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="flex items-center gap-4 rounded-2xl border border-[#E3EDE0] bg-white p-5">
                         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#EDF5EC] text-[#166534]">
@@ -390,11 +355,7 @@ export default function InvitationsPage() {
                             </button>
                         </div>
                     ) : isLoading ? (
-                        <div className="space-y-4">
-                            {[1, 2, 3].map((item) => (
-                                <InvitationCardSkeleton key={item} />
-                            ))}
-                        </div>
+                        <NGOStaffInvitationsDataFetchSkeleton />
                     ) : filteredInvitations.length === 0 ? (
                         <div className="rounded-3xl border border-dashed border-[#D5E3D0] bg-white px-6 py-16 text-center">
                             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
