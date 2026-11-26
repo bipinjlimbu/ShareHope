@@ -13,6 +13,7 @@ import {
 
 import type { LucideIcon } from "lucide-react";
 import type { NotificationType } from "@/types/notification";
+import { get } from "http";
 
 export type NotificationUserRole =
     | "ADMIN"
@@ -26,6 +27,20 @@ export interface NotificationConfiguration {
     iconBackground: string;
     label: string;
     getHref: (role?: string) => string;
+}
+
+function getInvitationHref(role?: string): string {
+    switch (role) {
+        case "ADMIN":
+            return "/dashboard/admin/";
+        case "NGO_ADMIN":
+            return "/dashboard/ngo-admin/";
+        case "NGO_STAFF":
+            return "/dashboard/ngo-staff/";
+        case "DONOR":
+        default:
+            return "/invitations";
+    }
 }
 
 function getDonationHref(role?: string): string {
@@ -118,7 +133,7 @@ export const NOTIFICATION_CONFIG: Record<
         iconColor: "text-indigo-600",
         iconBackground: "bg-indigo-50",
         label: "Invitation",
-        getHref: () => "/invitations",
+        getHref: (role) => getInvitationHref(role),
     },
 
     CONTACT: {
