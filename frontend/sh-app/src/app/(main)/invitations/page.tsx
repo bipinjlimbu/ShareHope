@@ -15,9 +15,14 @@ import {
     X,
 } from "lucide-react";
 
-import { getNGOStaffInvitations } from "@/services/ngoService";
+import {
+    acceptNGOStaffInvitation,
+    getNGOStaffInvitations,
+} from "@/services/ngoService";
 
 import { useToast } from "@/components/toast/ToastProvider";
+
+import ConfirmationModal from "@/components/common/ConfirmationModal";
 
 import NGOStaffInvitationsDataFetchSkeleton from "@/components/skeleton/main/NGOStaffInvitationsDataFetchSkeleton";
 
@@ -47,11 +52,15 @@ function formatInvitationDate(date: string) {
     });
 }
 
+interface InvitationCardProps {
+    invitation: NGOMembershipInvitation;
+    onAccept: (invitation: NGOMembershipInvitation) => void;
+}
+
 function InvitationCard({
     invitation,
-}: {
-    invitation: NGOMembershipInvitation;
-}) {
+    onAccept,
+}: InvitationCardProps) {
     const [logoFailed, setLogoFailed] = useState(false);
 
     const ngo = invitation.ngo;
@@ -134,9 +143,8 @@ function InvitationCard({
                     <div className="flex w-full gap-2 sm:w-auto">
                         <button
                             type="button"
-                            disabled
-                            className="flex flex-1 cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-[#166534] px-4 py-2.5 text-sm font-semibold text-white opacity-50 sm:flex-none"
-                            title="Accept functionality will be available soon"
+                            onClick={() => onAccept(invitation)}
+                            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#166534] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14532D] sm:flex-none"
                         >
                             <Check size={16} />
                             Accept
@@ -168,6 +176,11 @@ export default function InvitationsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
 
+    const [selectedInvitation, setSelectedInvitation] =
+        useState<NGOMembershipInvitation | null>(null);
+
+    const [isAccepting, setIsAccepting] = useState(false);
+
     const fetchInvitations = useCallback(async () => {
         setIsLoading(true);
         setError("");
@@ -197,6 +210,57 @@ export default function InvitationsPage() {
         void fetchInvitations();
     }, [fetchInvitations]);
 
+    const handleOpenAcceptModal = useCallback(
+        (invitation: NGOMembershipInvitation) => {
+            setSelectedInvitation(invitation);
+        },
+        []
+    );
+
+    const handleCloseAcceptModal = useCallback(() => {
+        if (isAccepting) return;
+
+        setSelectedInvitation(null);
+    }, [isAccepting]);
+
+    const handleConfirmAccept = useCallback(async () => {
+        if (!selectedInvitation || isAccepting) return;
+
+        setIsAccepting(true);
+
+        try {
+            await acceptNGOStaffInvitation(selectedInvitation.id);
+
+            setInvitations((previous) =>
+                previous.filter(
+                    (invitation) =>
+                        invitation.id !== selectedInvitation.id
+                )
+            );
+
+            showToast(
+                `You have successfully joined ${selectedInvitation.ngo.name}.`,
+                "success"
+            );
+
+            setSelectedInvitation(null);
+        } catch (err: unknown) {
+            console.error(
+                "Failed to accept NGO staff invitation:",
+                err
+            );
+
+            const errorMessage =
+                err instanceof Error
+                    ? err.message
+                    : "Unable to accept this invitation. Please try again.";
+
+            showToast(errorMessage, "error");
+        } finally {
+            setIsAccepting(false);
+        }
+    }, [selectedInvitation, isAccepting, showToast]);
+
     const query = search.trim().toLowerCase();
 
     const filteredInvitations = useMemo(() => {
@@ -217,203 +281,224 @@ export default function InvitationsPage() {
     const totalInvitations = invitations.length;
 
     return (
-        <main className="min-h-screen bg-[#FFFCF6] px-5 py-12 sm:px-8 sm:py-16">
-            <div className="mx-auto max-w-7xl">
-                {/* Page Header */}
-                <header className="mb-10 text-center">
-                    <span className="inline-flex items-center gap-2 rounded-full border border-[#D8E8D4] bg-[#F0F7ED] px-4 py-2 text-sm font-semibold text-[#166534]">
-                        <Mail size={16} />
-                        Your Invitations
-                    </span>
-
-                    <h1 className="mt-5 text-3xl font-extrabold tracking-tight text-[#183B2A] sm:text-4xl lg:text-5xl">
-                        Connect with Organizations
-                        <span className="block text-[#29904C]">
-                            Make a Difference Together
+        <>
+            <main className="min-h-screen bg-[#FFFCF6] px-5 py-12 sm:px-8 sm:py-16">
+                <div className="mx-auto max-w-7xl">
+                    {/* Page Header */}
+                    <header className="mb-10 text-center">
+                        <span className="inline-flex items-center gap-2 rounded-full border border-[#D8E8D4] bg-[#F0F7ED] px-4 py-2 text-sm font-semibold text-[#166534]">
+                            <Mail size={16} />
+                            Your Invitations
                         </span>
-                    </h1>
 
-                    <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-[#647568] sm:text-base">
-                        Explore invitations from NGOs and discover
-                        opportunities to become part of meaningful
-                        community work.
-                    </p>
-                </header>
+                        <h1 className="mt-5 text-3xl font-extrabold tracking-tight text-[#183B2A] sm:text-4xl lg:text-5xl">
+                            Connect with Organizations
+                            <span className="block text-[#29904C]">
+                                Make a Difference Together
+                            </span>
+                        </h1>
 
-                {/* Summary Cards */}
-                <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    <div className="flex items-center gap-4 rounded-2xl border border-[#E3EDE0] bg-white p-5">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#EDF5EC] text-[#166534]">
-                            <Mail size={21} />
+                        <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-[#647568] sm:text-base">
+                            Explore invitations from NGOs and discover
+                            opportunities to become part of meaningful
+                            community work.
+                        </p>
+                    </header>
+
+                    {/* Summary Cards */}
+                    <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div className="flex items-center gap-4 rounded-2xl border border-[#E3EDE0] bg-white p-5">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#EDF5EC] text-[#166534]">
+                                <Mail size={21} />
+                            </div>
+
+                            <div>
+                                <p className="text-xs font-medium text-[#718174]">
+                                    Total invitations
+                                </p>
+
+                                <p className="mt-1 text-2xl font-bold text-[#183B2A]">
+                                    {isLoading ? "—" : totalInvitations}
+                                </p>
+                            </div>
                         </div>
 
-                        <div>
-                            <p className="text-xs font-medium text-[#718174]">
-                                Total invitations
-                            </p>
+                        <div className="flex items-center gap-4 rounded-2xl border border-[#E3EDE0] bg-white p-5">
+                            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                                <Clock3 size={21} />
+                            </div>
 
-                            <p className="mt-1 text-2xl font-bold text-[#183B2A]">
-                                {isLoading ? "—" : totalInvitations}
-                            </p>
+                            <div>
+                                <p className="text-xs font-medium text-[#718174]">
+                                    Pending invitations
+                                </p>
+
+                                <p className="mt-1 text-2xl font-bold text-[#183B2A]">
+                                    {isLoading ? "—" : totalInvitations}
+                                </p>
+                            </div>
                         </div>
-                    </div>
+                    </section>
 
-                    <div className="flex items-center gap-4 rounded-2xl border border-[#E3EDE0] bg-white p-5">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-                            <Clock3 size={21} />
-                        </div>
-
-                        <div>
-                            <p className="text-xs font-medium text-[#718174]">
-                                Pending invitations
-                            </p>
-
-                            <p className="mt-1 text-2xl font-bold text-[#183B2A]">
-                                {isLoading ? "—" : totalInvitations}
-                            </p>
-                        </div>
-                    </div>
-                </section>
-
-                {/* Search */}
-                <section className="mb-6 rounded-2xl border border-[#E3EDE0] bg-white p-4 sm:p-5">
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="relative w-full sm:max-w-sm">
-                            <Search
-                                size={17}
-                                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#829184]"
-                            />
-
-                            <input
-                                type="search"
-                                value={search}
-                                onChange={(event) =>
-                                    setSearch(event.target.value)
-                                }
-                                placeholder="Search NGO invitations..."
-                                aria-label="Search NGO invitations"
-                                className="h-11 w-full rounded-xl border border-[#DDE7DC] bg-[#FFFEFB] pl-10 pr-4 text-sm text-[#183B2A] outline-none transition placeholder:text-[#9AA69B] focus:border-[#29904C] focus:ring-2 focus:ring-[#29904C]/10"
-                            />
-                        </div>
-
-                        <div className="flex items-center justify-between gap-3">
-                            <p className="text-xs text-[#829184]">
-                                {isLoading
-                                    ? "Loading invitations..."
-                                    : `Showing ${filteredInvitations.length} of ${totalInvitations} invitations`}
-                            </p>
-
-                            <button
-                                type="button"
-                                onClick={() => void fetchInvitations()}
-                                disabled={isLoading}
-                                title="Refresh invitations"
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#DDE7DC] text-[#647568] transition hover:border-[#29904C] hover:bg-[#F0F7ED] hover:text-[#166534] disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                <RefreshCw
-                                    size={15}
-                                    className={isLoading ? "animate-spin" : ""}
+                    {/* Search */}
+                    <section className="mb-6 rounded-2xl border border-[#E3EDE0] bg-white p-4 sm:p-5">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="relative w-full sm:max-w-sm">
+                                <Search
+                                    size={17}
+                                    className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#829184]"
                                 />
-                            </button>
-                        </div>
-                    </div>
-                </section>
 
-                {/* Invitation List */}
-                <section>
-                    <div className="mb-4 flex items-center justify-between">
-                        <h2 className="text-base font-bold text-[#183B2A] sm:text-lg">
-                            Your invitations
-                        </h2>
-
-                        <span className="text-xs text-[#829184]">
-                            Newest first
-                        </span>
-                    </div>
-
-                    {error ? (
-                        <div className="rounded-3xl border border-dashed border-[#D5E3D0] bg-white px-6 py-16 text-center">
-                            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
-                                <Mail size={28} />
+                                <input
+                                    type="search"
+                                    value={search}
+                                    onChange={(event) =>
+                                        setSearch(event.target.value)
+                                    }
+                                    placeholder="Search NGO invitations..."
+                                    aria-label="Search NGO invitations"
+                                    className="h-11 w-full rounded-xl border border-[#DDE7DC] bg-[#FFFEFB] pl-10 pr-4 text-sm text-[#183B2A] outline-none transition placeholder:text-[#9AA69B] focus:border-[#29904C] focus:ring-2 focus:ring-[#29904C]/10"
+                                />
                             </div>
 
-                            <h2 className="mt-5 text-xl font-bold text-[#183B2A]">
-                                Invitations are temporarily unavailable
-                            </h2>
+                            <div className="flex items-center justify-between gap-3">
+                                <p className="text-xs text-[#829184]">
+                                    {isLoading
+                                        ? "Loading invitations..."
+                                        : `Showing ${filteredInvitations.length} of ${totalInvitations} invitations`}
+                                </p>
 
-                            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#647568]">
-                                Please try loading your invitations again.
-                            </p>
-
-                            <button
-                                type="button"
-                                onClick={() => void fetchInvitations()}
-                                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#166534] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14532D]"
-                            >
-                                <RefreshCw size={15} />
-                                Try again
-                            </button>
-                        </div>
-                    ) : isLoading ? (
-                        <NGOStaffInvitationsDataFetchSkeleton />
-                    ) : filteredInvitations.length === 0 ? (
-                        <div className="rounded-3xl border border-dashed border-[#D5E3D0] bg-white px-6 py-16 text-center">
-                            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
-                                {query ? (
-                                    <Search size={28} />
-                                ) : (
-                                    <Building2 size={28} />
-                                )}
-                            </div>
-
-                            <h2 className="mt-5 text-xl font-bold text-[#183B2A]">
-                                {query
-                                    ? "No matching invitations"
-                                    : "No invitations yet"}
-                            </h2>
-
-                            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#647568]">
-                                {query
-                                    ? "Try a different search term to find an invitation."
-                                    : "You haven't received any NGO invitations yet. New invitations will appear here."}
-                            </p>
-
-                            {query && (
                                 <button
                                     type="button"
-                                    onClick={() => setSearch("")}
-                                    className="mt-5 rounded-xl bg-[#166534] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14532D]"
+                                    onClick={() => void fetchInvitations()}
+                                    disabled={isLoading}
+                                    title="Refresh invitations"
+                                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#DDE7DC] text-[#647568] transition hover:border-[#29904C] hover:bg-[#F0F7ED] hover:text-[#166534] disabled:cursor-not-allowed disabled:opacity-50"
                                 >
-                                    Clear search
+                                    <RefreshCw
+                                        size={15}
+                                        className={
+                                            isLoading ? "animate-spin" : ""
+                                        }
+                                    />
                                 </button>
-                            )}
+                            </div>
                         </div>
-                    ) : (
-                        <div className="space-y-4">
-                            {filteredInvitations.map((invitation) => (
-                                <InvitationCard
-                                    key={invitation.id}
-                                    invitation={invitation}
-                                />
-                            ))}
+                    </section>
+
+                    {/* Invitation List */}
+                    <section>
+                        <div className="mb-4 flex items-center justify-between">
+                            <h2 className="text-base font-bold text-[#183B2A] sm:text-lg">
+                                Your invitations
+                            </h2>
+
+                            <span className="text-xs text-[#829184]">
+                                Newest first
+                            </span>
                         </div>
-                    )}
-                </section>
 
-                {/* Footer Note */}
-                <div className="mt-8 flex items-start gap-3 rounded-2xl border border-[#DCEBDD] bg-[#F1F7EF] p-4">
-                    <ShieldCheck
-                        size={19}
-                        className="mt-0.5 shrink-0 text-[#29904C]"
-                    />
+                        {error ? (
+                            <div className="rounded-3xl border border-dashed border-[#D5E3D0] bg-white px-6 py-16 text-center">
+                                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
+                                    <Mail size={28} />
+                                </div>
 
-                    <p className="text-xs leading-5 text-[#647568]">
-                        Review an organization's information before joining.
-                        Your participation helps build a stronger and more
-                        transparent community.
-                    </p>
+                                <h2 className="mt-5 text-xl font-bold text-[#183B2A]">
+                                    Invitations are temporarily unavailable
+                                </h2>
+
+                                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#647568]">
+                                    Please try loading your invitations again.
+                                </p>
+
+                                <button
+                                    type="button"
+                                    onClick={() => void fetchInvitations()}
+                                    className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#166534] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14532D]"
+                                >
+                                    <RefreshCw size={15} />
+                                    Try again
+                                </button>
+                            </div>
+                        ) : isLoading ? (
+                            <NGOStaffInvitationsDataFetchSkeleton />
+                        ) : filteredInvitations.length === 0 ? (
+                            <div className="rounded-3xl border border-dashed border-[#D5E3D0] bg-white px-6 py-16 text-center">
+                                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#E5F2E1] text-[#166534]">
+                                    {query ? (
+                                        <Search size={28} />
+                                    ) : (
+                                        <Building2 size={28} />
+                                    )}
+                                </div>
+
+                                <h2 className="mt-5 text-xl font-bold text-[#183B2A]">
+                                    {query
+                                        ? "No matching invitations"
+                                        : "No invitations yet"}
+                                </h2>
+
+                                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#647568]">
+                                    {query
+                                        ? "Try a different search term to find an invitation."
+                                        : "You haven't received any NGO invitations yet. New invitations will appear here."}
+                                </p>
+
+                                {query && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearch("")}
+                                        className="mt-5 rounded-xl bg-[#166534] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14532D]"
+                                    >
+                                        Clear search
+                                    </button>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {filteredInvitations.map((invitation) => (
+                                    <InvitationCard
+                                        key={invitation.id}
+                                        invitation={invitation}
+                                        onAccept={handleOpenAcceptModal}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </section>
+
+                    {/* Footer Note */}
+                    <div className="mt-8 flex items-start gap-3 rounded-2xl border border-[#DCEBDD] bg-[#F1F7EF] p-4">
+                        <ShieldCheck
+                            size={19}
+                            className="mt-0.5 shrink-0 text-[#29904C]"
+                        />
+
+                        <p className="text-xs leading-5 text-[#647568]">
+                            Review an organization's information before joining.
+                            Your participation helps build a stronger and more
+                            transparent community.
+                        </p>
+                    </div>
                 </div>
-            </div>
-        </main>
+            </main>
+
+            {/* Accept Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={selectedInvitation !== null}
+                title="Accept NGO Invitation?"
+                description="Are you sure you want to accept this invitation? By accepting, you will join this organization as an NGO staff member."
+                itemName={selectedInvitation?.ngo.name}
+                confirmText="Accept Invitation"
+                isDeleting={isAccepting}
+                buttonColor="bg-[#166534]"
+                buttonHoverColor="hover:bg-[#14532D]"
+                iconBackgroundColor="bg-[#E5F2E1]"
+                iconColor="text-[#166534]"
+                onConfirm={handleConfirmAccept}
+                onCancel={handleCloseAcceptModal}
+            />
+        </>
     );
 }
