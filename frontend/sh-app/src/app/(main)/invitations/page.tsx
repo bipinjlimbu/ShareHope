@@ -17,6 +17,7 @@ import {
 
 import {
     acceptNGOStaffInvitation,
+    declineNGOStaffInvitation,
     getNGOStaffInvitations,
 } from "@/services/ngoService";
 
@@ -34,6 +35,8 @@ import type {
 const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "")
     .replace(/\/+$/, "")
     .replace(/\/api$/i, "");
+
+type InvitationAction = "accept" | "decline";
 
 function getNGOLogoUrl(path: string | null): string | null {
     if (!path) return null;
@@ -54,12 +57,15 @@ function formatInvitationDate(date: string) {
 
 interface InvitationCardProps {
     invitation: NGOMembershipInvitation;
-    onAccept: (invitation: NGOMembershipInvitation) => void;
+    onAction: (
+        invitation: NGOMembershipInvitation,
+        action: InvitationAction
+    ) => void;
 }
 
 function InvitationCard({
     invitation,
-    onAccept,
+    onAction,
 }: InvitationCardProps) {
     const [logoFailed, setLogoFailed] = useState(false);
 
@@ -143,7 +149,7 @@ function InvitationCard({
                     <div className="flex w-full gap-2 sm:w-auto">
                         <button
                             type="button"
-                            onClick={() => onAccept(invitation)}
+                            onClick={() => onAction(invitation, "accept")}
                             className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#166534] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#14532D] sm:flex-none"
                         >
                             <Check size={16} />
@@ -152,9 +158,8 @@ function InvitationCard({
 
                         <button
                             type="button"
-                            disabled
-                            className="flex flex-1 cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 opacity-50 sm:flex-none"
-                            title="Decline functionality will be available soon"
+                            onClick={() => onAction(invitation, "decline")}
+                            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:border-red-300 hover:bg-red-100 sm:flex-none"
                         >
                             <X size={16} />
                             Decline
@@ -179,7 +184,10 @@ export default function InvitationsPage() {
     const [selectedInvitation, setSelectedInvitation] =
         useState<NGOMembershipInvitation | null>(null);
 
-    const [isAccepting, setIsAccepting] = useState(false);
+    const [selectedAction, setSelectedAction] =
+        useState<InvitationAction>("accept");
+
+    const [isProcessing, setIsProcessing] = useState(false);
 
     const fetchInvitations = useCallback(async () => {
         setIsLoading(true);
@@ -210,26 +218,34 @@ export default function InvitationsPage() {
         void fetchInvitations();
     }, [fetchInvitations]);
 
-    const handleOpenAcceptModal = useCallback(
-        (invitation: NGOMembershipInvitation) => {
+    const handleOpenConfirmation = useCallback(
+        (
+            invitation: NGOMembershipInvitation,
+            action: InvitationAction
+        ) => {
             setSelectedInvitation(invitation);
+            setSelectedAction(action);
         },
         []
     );
 
-    const handleCloseAcceptModal = useCallback(() => {
-        if (isAccepting) return;
+    const handleCloseConfirmation = useCallback(() => {
+        if (isProcessing) return;
 
         setSelectedInvitation(null);
-    }, [isAccepting]);
+    }, [isProcessing]);
 
-    const handleConfirmAccept = useCallback(async () => {
-        if (!selectedInvitation || isAccepting) return;
+    const handleConfirmInvitationAction = useCallback(async () => {
+        if (!selectedInvitation || isProcessing) return;
 
-        setIsAccepting(true);
+        setIsProcessing(true);
 
         try {
-            await acceptNGOStaffInvitation(selectedInvitation.id);
+            if (selectedAction === "accept") {
+                await acceptNGOStaffInvitation(selectedInvitation.id);
+            } else {
+                await declineNGOStaffInvitation(selectedInvitation.id);
+            }
 
             setInvitations((previous) =>
                 previous.filter(
@@ -239,27 +255,29 @@ export default function InvitationsPage() {
             );
 
             showToast(
-                `You have successfully joined ${selectedInvitation.ngo.name}.`,
+                selectedAction === "accept"
+                    ? `You have successfully joined ${selectedInvitation.ngo.name}.`
+                    : `Invitation from ${selectedInvitation.ngo.name} declined.`,
                 "success"
             );
 
             setSelectedInvitation(null);
         } catch (err: unknown) {
             console.error(
-                "Failed to accept NGO staff invitation:",
+                `Failed to ${selectedAction} NGO staff invitation:`,
                 err
             );
 
             const errorMessage =
                 err instanceof Error
                     ? err.message
-                    : "Unable to accept this invitation. Please try again.";
+                    : `Unable to ${selectedAction} this invitation. Please try again.`;
 
             showToast(errorMessage, "error");
         } finally {
-            setIsAccepting(false);
+            setIsProcessing(false);
         }
-    }, [selectedInvitation, isAccepting, showToast]);
+    }, [selectedInvitation, selectedAction, isProcessing, showToast]);
 
     const query = search.trim().toLowerCase();
 
@@ -461,7 +479,7 @@ export default function InvitationsPage() {
                                     <InvitationCard
                                         key={invitation.id}
                                         invitation={invitation}
-                                        onAccept={handleOpenAcceptModal}
+                                        onAction={handleOpenConfirmation}
                                     />
                                 ))}
                             </div>
@@ -484,20 +502,48 @@ export default function InvitationsPage() {
                 </div>
             </main>
 
-            {/* Accept Confirmation Modal */}
+            {/* Invitation Action Confirmation Modal */}
             <ConfirmationModal
                 isOpen={selectedInvitation !== null}
-                title="Accept NGO Invitation?"
-                description="Are you sure you want to accept this invitation? By accepting, you will join this organization as an NGO staff member."
+                title={
+                    selectedAction === "accept"
+                        ? "Accept NGO Invitation?"
+                        : "Decline NGO Invitation?"
+                }
+                description={
+                    selectedAction === "accept"
+                        ? "Are you sure you want to accept this invitation? By accepting, you will join this organization as an NGO staff member."
+                        : "Are you sure you want to decline this invitation? You will no longer be able to accept this invitation."
+                }
                 itemName={selectedInvitation?.ngo.name}
-                confirmText="Accept Invitation"
-                isDeleting={isAccepting}
-                buttonColor="bg-[#166534]"
-                buttonHoverColor="hover:bg-[#14532D]"
-                iconBackgroundColor="bg-[#E5F2E1]"
-                iconColor="text-[#166534]"
-                onConfirm={handleConfirmAccept}
-                onCancel={handleCloseAcceptModal}
+                confirmText={
+                    selectedAction === "accept"
+                        ? "Accept Invitation"
+                        : "Decline Invitation"
+                }
+                isDeleting={isProcessing}
+                buttonColor={
+                    selectedAction === "accept"
+                        ? "bg-[#166534]"
+                        : "bg-red-600"
+                }
+                buttonHoverColor={
+                    selectedAction === "accept"
+                        ? "hover:bg-[#14532D]"
+                        : "hover:bg-red-700"
+                }
+                iconBackgroundColor={
+                    selectedAction === "accept"
+                        ? "bg-[#E5F2E1]"
+                        : "bg-red-50"
+                }
+                iconColor={
+                    selectedAction === "accept"
+                        ? "text-[#166534]"
+                        : "text-red-600"
+                }
+                onConfirm={handleConfirmInvitationAction}
+                onCancel={handleCloseConfirmation}
             />
         </>
     );
